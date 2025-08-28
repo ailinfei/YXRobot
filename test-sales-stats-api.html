@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>销售统计API测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success {
+            border-color: #28a745;
+            background-color: #d4edda;
+        }
+        .error {
+            border-color: #dc3545;
+            background-color: #f8d7da;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            display: inline-block;
+            width: 120px;
+            font-weight: bold;
+        }
+        .input-group input {
+            padding: 5px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 200px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>销售统计API测试工具</h1>
+        <p>测试销售统计控制器的API接口功能</p>
+    </div>
+
+    <div class="container">
+        <div class="test-section">
+            <h3>1. 销售统计数据API测试</h3>
+            <p>测试 GET /api/sales/stats 接口</p>
+            
+            <div class="input-group">
+                <label>开始日期:</label>
+                <input type="date" id="statsStartDate" value="">
+            </div>
+            <div class="input-group">
+                <label>结束日期:</label>
+                <input type="date" id="statsEndDate" value="">
+            </div>
+            <div class="input-group">
+                <label>统计类型:</label>
+                <select id="statType" style="padding: 5px 10px; border: 1px solid #ddd; border-radius: 4px; width: 220px;">
+                    <option value="daily">daily</option>
+                    <option value="weekly">weekly</option>
+                    <option value="monthly">monthly</option>
+                    <option value="yearly">yearly</option>
+                </select>
+            </div>
+            
+            <button onclick="testSalesStats()">测试销售统计</button>
+            <button onclick="testSalesStatsEmpty()">测试空参数</button>
+            <button onclick="testSalesStatsInvalidDate()">测试无效日期</button>
+            
+            <div id="statsResult" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>2. 概览卡片数据API测试</h3>
+            <p>测试 GET /api/sales/overview-cards 接口</p>
+            
+            <div class="input-group">
+                <label>日期范围:</label>
+                <select id="dateRange" style="padding: 5px 10px; border: 1px solid #ddd; border-radius: 4px; width: 220px;">
+                    <option value="today">今日</option>
+                    <option value="week">本周</option>
+                    <option value="month" selected>本月</option>
+                    <option value="quarter">本季度</option>
+                    <option value="year">本年</option>
+                </select>
+            </div>
+            
+            <button onclick="testOverviewCards()">测试概览卡片</button>
+            <button onclick="testOverviewCardsAllRanges()">测试所有范围</button>
+            
+            <div id="overviewResult" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>3. 实时统计API测试</h3>
+            <p>测试各种实时统计接口</p>
+            
+            <button onclick="testRealTimeStats()">实时统计</button>
+            <button onclick="testTodayStats()">今日统计</button>
+            <button onclick="testCurrentMonthStats()">本月统计</button>
+            <button onclick="testSalesOverview()">销售概览</button>
+            
+            <div id="realtimeResult" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>4. 错误处理测试</h3>
+            <p>测试API的错误处理能力</p>
+            
+            <button onclick="testInvalidDateFormat()">无效日期格式</button>
+            <button onclick="testInvalidStatType()">无效统计类型</button>
+            <button onclick="testDateRangeError()">日期范围错误</button>
+            
+            <div id="errorResult" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        // 设置默认日期
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date();
+            const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
+            
+            document.getElementById('statsStartDate').value = lastMonth.toISOString().split('T')[0];
+            document.getElementById('statsEndDate').value = today.toISOString().split('T')[0];
+        });
+
+        // 通用API调用函数
+        async function callAPI(url, options = {}) {
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+                
+                const data = await response.json();
+                return {
+                    status: response.status,
+                    data: data,
+                    success: response.ok
+                };
+            } catch (error) {
+                return {
+                    status: 0,
+                    data: { error: error.message },
+                    success: false
+                };
+            }
+        }
+
+        // 显示结果
+        function displayResult(elementId, result) {
+            const element = document.getElementById(elementId);
+            element.className = 'result ' + (result.success ? 'success' : 'error');
+            element.textContent = JSON.stringify(result, null, 2);
+        }
+
+        // 1. 销售统计API测试
+        async function testSalesStats() {
+            const startDate = document.getElementById('statsStartDate').value;
+            const endDate = document.getElementById('statsEndDate').value;
+            const statType = document.getElementById('statType').value;
+            
+            const params = new URLSearchParams();
+            if (startDate) params.append('startDate', startDate);
+            if (endDate) params.append('endDate', endDate);
+            if (statType) params.append('statType', statType);
+            
+            const url = `http://localhost:8080/api/sales/stats?${params.toString()}`;
+            const result = await callAPI(url);
+            displayResult('statsResult', result);
+        }
+
+        async function testSalesStatsEmpty() {
+            const url = 'http://localhost:8080/api/sales/stats';
+            const result = await callAPI(url);
+            displayResult('statsResult', result);
+        }
+
+        async function testSalesStatsInvalidDate() {
+            const url = 'http://localhost:8080/api/sales/stats?startDate=invalid-date&endDate=2024-12-31';
+            const result = await callAPI(url);
+            displayResult('statsResult', result);
+        }
+
+        // 2. 概览卡片API测试
+        async function testOverviewCards() {
+            const dateRange = document.getElementById('dateRange').value;
+            const url = `http://localhost:8080/api/sales/overview-cards?dateRange=${dateRange}`;
+            const result = await callAPI(url);
+            displayResult('overviewResult', result);
+        }
+
+        async function testOverviewCardsAllRanges() {
+            const ranges = ['today', 'week', 'month', 'quarter', 'year'];
+            const results = {};
+            
+            for (const range of ranges) {
+                const url = `http://localhost:8080/api/sales/overview-cards?dateRange=${range}`;
+                const result = await callAPI(url);
+                results[range] = result;
+            }
+            
+            displayResult('overviewResult', results);
+        }
+
+        // 3. 实时统计API测试
+        async function testRealTimeStats() {
+            const url = 'http://localhost:8080/api/sales/realtime-stats';
+            const result = await callAPI(url);
+            displayResult('realtimeResult', result);
+        }
+
+        async function testTodayStats() {
+            const url = 'http://localhost:8080/api/sales/today-stats';
+            const result = await callAPI(url);
+            displayResult('realtimeResult', result);
+        }
+
+        async function testCurrentMonthStats() {
+            const url = 'http://localhost:8080/api/sales/current-month-stats';
+            const result = await callAPI(url);
+            displayResult('realtimeResult', result);
+        }
+
+        async function testSalesOverview() {
+            const url = 'http://localhost:8080/api/sales/overview';
+            const result = await callAPI(url);
+            displayResult('realtimeResult', result);
+        }
+
+        // 4. 错误处理测试
+        async function testInvalidDateFormat() {
+            const url = 'http://localhost:8080/api/sales/stats?startDate=2024-13-45&endDate=2024-12-31';
+            const result = await callAPI(url);
+            displayResult('errorResult', result);
+        }
+
+        async function testInvalidStatType() {
+            const url = 'http://localhost:8080/api/sales/stats?statType=invalid';
+            const result = await callAPI(url);
+            displayResult('errorResult', result);
+        }
+
+        async function testDateRangeError() {
+            const url = 'http://localhost:8080/api/sales/stats?startDate=2024-12-31&endDate=2024-01-01';
+            const result = await callAPI(url);
+            displayResult('errorResult', result);
+        }
+
+        // 页面加载完成后自动测试基本功能
+        window.addEventListener('load', function() {
+            console.log('销售统计API测试工具已加载');
+            console.log('点击按钮开始测试各个API接口');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "title": "测试公益活动",
+  "description": "这是一个测试的公益活动描述",
+  "type": "volunteer",
+  "date": "2025-08-25",
+  "startTime": "2025-08-25 09:00:00",
+  "endTime": "2025-08-25 17:00:00",
+  "location": "北京市朝阳区",
+  "participants": 0,
+  "targetParticipants": 50,
+  "organizer": "YXRobot公益基金会",
+  "status": "planned",
+  "budget": 5000.00,
+  "manager": "张三",
+  "managerContact": "13800138000",
+  "volunteerNeeded": 10,
+  "actualVolunteers": 0,
+  "notes": "测试活动备注"
+}

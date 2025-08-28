@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yxrobot.mapper.LinkValidationLogMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="LinkValidationLogResultMap" type="com.yxrobot.entity.LinkValidationLog">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="link_id" property="linkId" jdbcType="BIGINT"/>
+        <result column="is_valid" property="isValid" jdbcType="TINYINT"/>
+        <result column="status_code" property="statusCode" jdbcType="INTEGER"/>
+        <result column="response_time" property="responseTime" jdbcType="INTEGER"/>
+        <result column="error_message" property="errorMessage" jdbcType="VARCHAR"/>
+        <result column="checked_at" property="checkedAt" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <!-- 基础列 -->
+    <sql id="Base_Column_List">
+        id, link_id, is_valid, status_code, response_time, error_message, checked_at
+    </sql>
+
+    <!-- 根据ID查询 -->
+    <select id="selectById" resultMap="LinkValidationLogResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM link_validation_logs
+        WHERE id = #{id}
+    </select>
+
+    <!-- 根据链接ID查询验证日志列表 -->
+    <select id="selectByLinkId" resultMap="LinkValidationLogResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM link_validation_logs
+        WHERE link_id = #{linkId}
+        ORDER BY checked_at DESC
+        <if test="limit != null and limit > 0">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 查询最新的验证日志 -->
+    <select id="selectLatestByLinkId" resultMap="LinkValidationLogResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM link_validation_logs
+        WHERE link_id = #{linkId}
+        ORDER BY checked_at DESC
+        LIMIT 1
+    </select>
+
+    <!-- 插入验证日志 -->
+    <insert id="insert" parameterType="com.yxrobot.entity.LinkValidationLog" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO link_validation_logs (
+            link_id, is_valid, status_code, response_time, error_message, checked_at
+        ) VALUES (
+            #{linkId}, #{isValid}, #{statusCode}, #{responseTime}, #{errorMessage}, #{checkedAt}
+        )
+    </insert>
+
+    <!-- 批量插入验证日志 -->
+    <insert id="batchInsert" parameterType="list">
+        INSERT INTO link_validation_logs (
+            link_id, is_valid, status_code, response_time, error_message, checked_at
+        ) VALUES
+        <foreach collection="logs" item="log" separator=",">
+            (#{log.linkId}, #{log.isValid}, #{log.statusCode}, #{log.responseTime}, #{log.errorMessage}, #{log.checkedAt})
+        </foreach>
+    </insert>
+
+    <!-- 删除指定时间之前的日志 -->
+    <delete id="deleteBeforeTime">
+        DELETE FROM link_validation_logs
+        WHERE checked_at &lt; #{beforeTime}
+    </delete>
+
+    <!-- 统计验证成功率 -->
+    <select id="selectSuccessRate" resultType="double">
+        SELECT 
+            CASE 
+                WHEN COUNT(*) = 0 THEN 0.0
+                ELSE ROUND((SUM(CASE WHEN is_valid = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*)), 2)
+            END as successRate
+        FROM link_validation_logs
+        <where>
+            <if test="linkId != null">
+                AND link_id = #{linkId}
+            </if>
+            <if test="startTime != null">
+                AND checked_at &gt;= #{startTime}
+            </if>
+            <if test="endTime != null">
+                AND checked_at &lt;= #{endTime}
+            </if>
+        </where>
+    </select>
+
+    <!-- 统计平均响应时间 -->
+    <select id="selectAverageResponseTime" resultType="double">
+        SELECT 
+            CASE 
+                WHEN COUNT(*) = 0 THEN 0.0
+                ELSE ROUND(AVG(response_time), 2)
+            END as avgResponseTime
+        FROM link_validation_logs
+        <where>
+            response_time IS NOT NULL
+            <if test="linkId != null">
+                AND link_id = #{linkId}
+            </if>
+            <if test="startTime != null">
+                AND checked_at &gt;= #{startTime}
+            </if>
+            <if test="endTime != null">
+                AND checked_at &lt;= #{endTime}
+            </if>
+        </where>
+    </select>
+
+    <!-- 查询验证历史统计 -->
+    <select id="selectValidationHistory" resultType="map">
+        SELECT 
+            DATE(checked_at) as date,
+            COUNT(*) as totalChecks,
+            SUM(CASE WHEN is_valid = 1 THEN 1 ELSE 0 END) as successfulChecks,
+            ROUND((SUM(CASE WHEN is_valid = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*)), 2) as successRate,
+            ROUND(AVG(CASE WHEN response_time IS NOT NULL THEN response_time END), 2) as avgResponseTime
+        FROM link_validation_logs
+        WHERE link_id = #{linkId}
+          AND checked_at &gt;= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
+        GROUP BY DATE(checked_at)
+        ORDER BY date DESC
+    </select>
+
+</mapper>

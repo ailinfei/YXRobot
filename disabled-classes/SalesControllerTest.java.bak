@@ -1,0 +1,670 @@
+package com.yxrobot.controller;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.yxrobot.dto.*;
+import com.yxrobot.entity.PaymentStatus;
+import com.yxrobot.entity.SalesStatus;
+import com.yxrobot.exception.SalesRecordNotFoundException;
+import com.yxrobot.exception.SalesValidationException;
+import com.yxrobot.service.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+/**
+ * 销售控制器测试类
+ * 
+ * @author YXRobot开发团队
+ * @version 1.0.0
+ * @since 2025-01-27
+ */
+@WebMvcTest(SalesController.class)
+class SalesControllerTest {
+    
+    @Autowired
+    private MockMvc mockMvc;
+    
+    @MockBean
+    private SalesService salesService;
+    
+    @MockBean
+    private SalesStatsService salesStatsService;
+    
+    @MockBean
+    private SalesAnalysisService salesAnalysisService;
+    
+    @MockBean
+    private CustomerService customerService;
+    
+    @MockBean
+    private SalesProductService salesProductService;
+    
+    @MockBean
+    private SalesStaffService salesStaffService;
+    
+    @Autowired
+    private ObjectMapper objectMapper;
+    
+    private SalesRecordDTO testSalesRecordDTO;
+    private SalesRecordFormDTO testSalesRecordForm;
+    private PageResult<SalesRecordDTO> testPageResult;
+    private SalesStatsDTO testSalesStats;
+    
+    @BeforeEach
+    void setUp() {
+        // 准备测试销售记录DTO
+        testSalesRecordDTO = new SalesRecordDTO();
+        testSalesRecordDTO.setId(1L);
+        testSalesRecordDTO.setOrderNumber("SO20250127001");
+        testSalesRecordDTO.setCustomerId(1L);
+        testSalesRecordDTO.setCustomerName("测试客户");
+        testSalesRecordDTO.setProductId(1L);
+        testSalesRecordDTO.setProductName("测试产品");
+        testSalesRecordDTO.setSalesStaffId(1L);
+        testSalesRecordDTO.setSalesStaffName("张三");
+        testSalesRecordDTO.setQuantity(2);
+        testSalesRecordDTO.setUnitPrice(new BigDecimal("1000.00"));
+        testSalesRecordDTO.setSalesAmount(new BigDecimal("2000.00"));
+        testSalesRecordDTO.setDiscountAmount(new BigDecimal("100.00"));
+        testSalesRecordDTO.setOrderDate(LocalDate.now());
+        testSalesRecordDTO.setStatus(SalesStatus.PENDING);
+        testSalesRecordDTO.setPaymentStatus(PaymentStatus.UNPAID);
+        testSalesRecordDTO.setPaymentMethod("银行转账");
+        testSalesRecordDTO.setRegion("北京");
+        testSalesRecordDTO.setChannel("线上");
+        testSalesRecordDTO.setNotes("测试订单");
+        testSalesRecordDTO.setCreatedAt(LocalDateTime.now());
+        testSalesRecordDTO.setUpdatedAt(LocalDateTime.now());
+        
+        // 准备测试销售记录表单
+        testSalesRecordForm = new SalesRecordFormDTO();
+        testSalesRecordForm.setOrderNumber("SO20250127001");
+        testSalesRecordForm.setCustomerId(1L);
+        testSalesRecordForm.setProductId(1L);
+        testSalesRecordForm.setSalesStaffId(1L);
+        testSalesRecordForm.setQuantity(2);
+        testSalesRecordForm.setUnitPrice(new BigDecimal("1000.00"));
+        testSalesRecordForm.setDiscountAmount(new BigDecimal("100.00"));
+        testSalesRecordForm.setOrderDate(LocalDate.now());
+        testSalesRecordForm.setStatus(SalesStatus.PENDING);
+        testSalesRecordForm.setPaymentStatus(PaymentStatus.UNPAID);
+        testSalesRecordForm.setPaymentMethod("银行转账");
+        testSalesRecordForm.setRegion("北京");
+        testSalesRecordForm.setChannel("线上");
+        testSalesRecordForm.setNotes("测试订单");
+        
+        // 准备测试分页结果
+        List<SalesRecordDTO> salesList = Arrays.asList(testSalesRecordDTO);
+        testPageResult = PageResult.of(salesList, 1L, 1, 20);
+        
+        // 准备测试统计数据
+        testSalesStats = new SalesStatsDTO();
+        testSalesStats.setTotalSalesAmount(new BigDecimal("100000.00"));
+        testSalesStats.setTotalOrders(50L);
+        testSalesStats.setAvgOrderAmount(new BigDecimal("2000.00"));
+        testSalesStats.setTotalQuantity(100L);
+        testSalesStats.setNewCustomers(10L);
+        testSalesStats.setActiveCustomers(25L);
+    }
+    
+    @Test
+    void testGetSalesRecords_Success() throws Exception {
+        // 模拟Service调用
+        when(salesService.getSalesRecords(any(SalesRecordQueryDTO.class))).thenReturn(testPageResult);
+        
+        // 执行测试
+        mockMvc.perform(get("/api/sales/records")
+                .param("page", "1")
+                .param("pageSize", "20")
+                .param("keyword", "测试")
+                .param("startDate", "2025-01-01")
+                .param("endDate", "2025-01-27")
+                .param("status", "PENDING")
+                .param("customerId", "1")
+                .param("productId", "1")
+                .param("salesStaffId", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("查询成功"))
+                .andExpect(jsonPath("$.data.list").isArray())
+                .andExpect(jsonPath("$.data.list[0].id").value(1))
+                .andExpect(jsonPath("$.data.list[0].orderNumber").value("SO20250127001"))
+                .andExpect(jsonPath("$.data.list[0].customerName").value("测试客户"))
+                .andExpect(jsonPath("$.data.total").value(1))
+                .andExpect(jsonPath("$.data.page").value(1))
+                .andExpect(jsonPath("$.data.pageSize").value(20));
+        
+        // 验证Service调用
+        verify(salesService, times(1)).getSalesRecords(any(SalesRecordQueryDTO.class));
+    }
+    
+    @Test
+    void testGetSalesRecords_EmptyResult() throws Exception {
+        // 模拟Service返回空结果
+        PageResult<SalesRecordDTO> emptyResult = PageResult.of(Arrays.asList(), 0L, 1, 20);
+        when(salesService.getSalesRecords(any(SalesRecordQueryDTO.class))).thenReturn(emptyResult);
+        
+        // 执行测试
+        mockMvc.perform(get("/api/sales/records"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("查询成功"))
+                .andExpect(jsonPath("$.data.list").isArray())
+                .andExpect(jsonPath("$.data.list").isEmpty())
+                .andExpect(jsonPath("$.data.total").value(0))
+                .andExpect(jsonPath("$.data.isEmpty").value(true));
+        
+        // 验证Service调用
+        verify(salesService, times(1)).getSalesRecords(any(SalesRecordQueryDTO.class));
+    }
+    
+    @Test
+    void testGetSalesRecords_DefaultParams() throws Exception {
+        // 模拟Service调用
+        when(salesService.getSalesRecords(any(SalesRecordQueryDTO.class))).thenReturn(testPageResult);
+        
+        // 执行测试（使用默认参数）
+        mockMvc.perform(get("/api/sales/records"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+        
+        // 验证Service调用
+        verify(salesService, times(1)).getSalesRecords(any(SalesRecordQueryDTO.class));
+    }
+    
+    @Test
+    void testGetSalesRecordById_Success() throws Exception {
+        // 模拟Service调用
+        when(salesService.getSalesRecordById(1L)).thenReturn(testSalesRecordDTO);
+        
+        // 执行测试
+        mockMvc.perform(get("/api/sales/records/1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("查询成功"))
+                .andExpect(jsonPath("$.data.id").value(1))
+                .andExpect(jsonPath("$.data.orderNumber").value("SO20250127001"))
+                .andExpect(jsonPath("$.data.customerName").value("测试客户"));
+        
+        // 验证Service调用
+        verify(salesService, times(1)).getSalesRecordById(1L);
+    }
+    
+    @Test
+    void testGetSalesRecordById_NotFound() throws Exception {
+        // 模拟Service抛出异常
+        when(salesService.getSalesRecordById(999L))
+            .thenThrow(new SalesRecordNotFoundException("销售记录不存在，ID: 999"));
+        
+        // 执行测试
+        mockMvc.perform(get("/api/sales/records/999"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value(404))
+                .andExpect(jsonPath("$.message").value("销售记录不存在，ID: 999"));
+        
+        // 验证Service调用
+        verify(salesService, times(1)).getSalesRecordById(999L);
+    }
+    
+    @Test
+    void testCreateSalesRecord_Success() throws Exception {
+        // 模拟Service调用
+        when(salesService.createSalesRecord(any(SalesRecordFormDTO.class))).thenReturn(testSalesRecordDTO);
+        
+        // 执行测试
+        mockMvc.perform(post("/api/sales/records")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(testSalesRecordForm)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("销售记录创建成功"))
+                .andExpect(jsonPath("$.data.id").value(1))
+                .andExpect(jsonPath("$.data.orderNumber").value("SO20250127001"));
+        
+        // 验证Service调用
+        verify(salesService, times(1)).createSalesRecord(any(SalesRecordFormDTO.class));
+    }
+    
+    @Test
+    void testCreateSalesRecord_ValidationError() throws Exception {
+        // 模拟Service抛出验证异常
+        when(salesService.createSalesRecord(any(SalesRecordFormDTO.class)))
+            .thenThrow(new SalesValidationException("订单号格式不正确"));
+        
+        // 执行测试
+        mockMvc.perform(post("/api/sales/records")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(testSalesRecordForm)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message").value("订单号格式不正确"));
+        
+        // 验证Service调用
+        verify(salesService, times(1)).createSalesRecord(any(SalesRecordFormDTO.class));
+    }
+    
+    @Test
+    void testUpdateSalesRecord_Success() throws Exception {
+        // 模拟Service调用
+        when(salesService.updateSalesRecord(eq(1L), any(SalesRecordFormDTO.class))).thenReturn(testSalesRecordDTO);
+        
+        // 执行测试
+        mockMvc.perform(put("/api/sales/records/1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(testSalesRecordForm)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("销售记录更新成功"))
+                .andExpect(jsonPath("$.data.id").value(1));
+        
+        // 验证Service调用
+        verify(salesService, times(1)).updateSalesRecord(eq(1L), any(SalesRecordFormDTO.class));
+    }
+    
+    @Test
+    void testUpdateSalesRecord_NotFound() throws Exception {
+        // 模拟Service抛出异常
+        when(salesService.updateSalesRecord(eq(999L), any(SalesRecordFormDTO.class)))
+            .thenThrow(new SalesRecordNotFoundException("销售记录不存在，ID: 999"));
+        
+        // 执行测试
+        mockMvc.perform(put("/api/sales/records/999")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(testSalesRecordForm)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value(404))
+                .andExpect(jsonPath("$.message").value("销售记录不存在，ID: 999"));
+        
+        // 验证Service调用
+        verify(salesService, times(1)).updateSalesRecord(eq(999L), any(SalesRecordFormDTO.class));
+    }
+    
+    @Test
+    void testDeleteSalesRecord_Success() throws Exception {
+        // 模拟Service调用
+        doNothing().when(salesService).deleteSalesRecord(1L);
+        
+        // 执行测试
+        mockMvc.perform(delete("/api/sales/records/1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("销售记录删除成功"));
+        
+        // 验证Service调用
+        verify(salesService, times(1)).deleteSalesRecord(1L);
+    }
+    
+    @Test
+    void testDeleteSalesRecord_NotFound() throws Exception {
+        // 模拟Service抛出异常
+        doThrow(new SalesRecordNotFoundException("销售记录不存在，ID: 999"))
+            .when(salesService).deleteSalesRecord(999L);
+        
+        // 执行测试
+        mockMvc.perform(delete("/api/sales/records/999"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value(404))
+                .andExpect(jsonPath("$.message").value("销售记录不存在，ID: 999"));
+        
+        // 验证Service调用
+        verify(salesService, times(1)).deleteSalesRecord(999L);
+    }
+    
+    @Test
+    void testGetSalesStats_Success() throws Exception {
+        // 模拟Service调用
+        when(salesStatsService.getSalesStats(any(), any())).thenReturn(testSalesStats);
+        
+        // 执行测试
+        mockMvc.perform(get("/api/sales/stats")
+                .param("startDate", "2025-01-01")
+                .param("endDate", "2025-01-27"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("查询成功"))
+                .andExpect(jsonPath("$.data.totalSalesAmount").value(100000.00))
+                .andExpect(jsonPath("$.data.totalOrders").value(50))
+                .andExpect(jsonPath("$.data.avgOrderAmount").value(2000.00));
+        
+        // 验证Service调用
+        verify(salesStatsService, times(1)).getSalesStats(any(), any());
+    }
+    
+    @Test
+    void testGetSalesTrends_Success() throws Exception {
+        // 准备测试数据
+        Map<String, Object> trendsData = new HashMap<>();
+        trendsData.put("dates", Arrays.asList("2025-01-01", "2025-01-02", "2025-01-03"));
+        trendsData.put("values", Arrays.asList(1000, 1500, 2000));
+        trendsData.put("comparison", Arrays.asList(800, 1200, 1800));
+        
+        // 模拟Service调用
+        when(salesStatsService.getSalesTrends(any(), any(), any())).thenReturn(trendsData);
+        
+        // 执行测试
+        mockMvc.perform(get("/api/sales/trends")
+                .param("startDate", "2025-01-01")
+                .param("endDate", "2025-01-27")
+                .param("type", "amount"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("查询成功"))
+                .andExpect(jsonPath("$.data.dates").isArray())
+                .andExpect(jsonPath("$.data.values").isArray())
+                .andExpect(jsonPath("$.data.comparison").isArray());
+        
+        // 验证Service调用
+        verify(salesStatsService, times(1)).getSalesTrends(any(), any(), any());
+    }
+    
+    @Test
+    void testGetProductRanking_Success() throws Exception {
+        // 准备测试数据
+        List<Map<String, Object>> rankingData = Arrays.asList(
+            Map.of("productId", 1L, "productName", "产品A", "salesAmount", 10000, "quantity", 50, "orderCount", 25),
+            Map.of("productId", 2L, "productName", "产品B", "salesAmount", 8000, "quantity", 40, "orderCount", 20)
+        );
+        
+        // 模拟Service调用
+        when(salesStatsService.getProductRanking(any(), any(), anyInt())).thenReturn(rankingData);
+        
+        // 执行测试
+        mockMvc.perform(get("/api/sales/product-ranking")
+                .param("startDate", "2025-01-01")
+                .param("endDate", "2025-01-27")
+                .param("limit", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("查询成功"))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data[0].productName").value("产品A"));
+        
+        // 验证Service调用
+        verify(salesStatsService, times(1)).getProductRanking(any(), any(), anyInt());
+    }
+    
+    @Test
+    void testGetStaffPerformance_Success() throws Exception {
+        // 准备测试数据
+        List<Map<String, Object>> performanceData = Arrays.asList(
+            Map.of("staffId", 1L, "staffName", "张三", "salesAmount", 15000, "orderCount", 30, "targetCompletion", 0.75),
+            Map.of("staffId", 2L, "staffName", "李四", "salesAmount", 12000, "orderCount", 25, "targetCompletion", 0.60)
+        );
+        
+        // 模拟Service调用
+        when(salesStatsService.getStaffPerformance(any(), any(), anyInt())).thenReturn(performanceData);
+        
+        // 执行测试
+        mockMvc.perform(get("/api/sales/staff-performance")
+                .param("startDate", "2025-01-01")
+                .param("endDate", "2025-01-27")
+                .param("limit", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("查询成功"))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data[0].staffName").value("张三"));
+        
+        // 验证Service调用
+        verify(salesStatsService, times(1)).getStaffPerformance(any(), any(), anyInt());
+    }
+    
+    @Test
+    void testGetChartsDistribution_Success() throws Exception {
+        // 准备测试数据
+        List<SalesChartDataDTO> chartData = Arrays.asList(
+            new SalesChartDataDTO("产品A", new BigDecimal("10000"), 50.0),
+            new SalesChartDataDTO("产品B", new BigDecimal("8000"), 40.0),
+            new SalesChartDataDTO("产品C", new BigDecimal("2000"), 10.0)
+        );
+        
+        // 模拟Service调用
+        when(salesAnalysisService.getDistributionData(any(), any(), any())).thenReturn(chartData);
+        
+        // 执行测试
+        mockMvc.perform(get("/api/sales/charts/distribution")
+                .param("type", "product")
+                .param("startDate", "2025-01-01")
+                .param("endDate", "2025-01-27"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("查询成功"))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data[0].name").value("产品A"));
+        
+        // 验证Service调用
+        verify(salesAnalysisService, times(1)).getDistributionData(any(), any(), any());
+    }
+    
+    @Test
+    void testGetChartsMonthly_Success() throws Exception {
+        // 准备测试数据
+        Map<String, Object> monthlyData = new HashMap<>();
+        monthlyData.put("months", Arrays.asList("2024-01", "2024-02", "2024-03"));
+        monthlyData.put("salesAmount", Arrays.asList(10000, 12000, 15000));
+        monthlyData.put("orderCount", Arrays.asList(50, 60, 75));
+        monthlyData.put("targets", Arrays.asList(8000, 10000, 12000));
+        
+        // 模拟Service调用
+        when(salesAnalysisService.getMonthlyData(anyInt(), anyInt())).thenReturn(monthlyData);
+        
+        // 执行测试
+        mockMvc.perform(get("/api/sales/charts/monthly")
+                .param("year", "2024")
+                .param("months", "12"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("查询成功"))
+                .andExpect(jsonPath("$.data.months").isArray())
+                .andExpect(jsonPath("$.data.salesAmount").isArray());
+        
+        // 验证Service调用
+        verify(salesAnalysisService, times(1)).getMonthlyData(anyInt(), anyInt());
+    }
+    
+    @Test
+    void testGetChartsFunnel_Success() throws Exception {
+        // 准备测试数据
+        List<Map<String, Object>> funnelData = Arrays.asList(
+            Map.of("stage", "潜在客户", "value", 1000, "conversion", 100.0),
+            Map.of("stage", "意向客户", "value", 500, "conversion", 50.0),
+            Map.of("stage", "成交客户", "value", 200, "conversion", 20.0)
+        );
+        
+        // 模拟Service调用
+        when(salesAnalysisService.getFunnelData(any(), any())).thenReturn(funnelData);
+        
+        // 执行测试
+        mockMvc.perform(get("/api/sales/charts/funnel")
+                .param("startDate", "2025-01-01")
+                .param("endDate", "2025-01-27"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("查询成功"))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data[0].stage").value("潜在客户"));
+        
+        // 验证Service调用
+        verify(salesAnalysisService, times(1)).getFunnelData(any(), any());
+    }
+    
+    @Test
+    void testGetCustomers_Success() throws Exception {
+        // 准备测试数据
+        List<CustomerDTO> customers = Arrays.asList(
+            new CustomerDTO(1L, "客户A", "企业", "13800138000", "customerA@example.com"),
+            new CustomerDTO(2L, "客户B", "个人", "13900139000", "customerB@example.com")
+        );
+        
+        // 模拟Service调用
+        when(customerService.getCustomers(any(), any(), anyBoolean())).thenReturn(customers);
+        
+        // 执行测试
+        mockMvc.perform(get("/api/sales/customers")
+                .param("keyword", "客户")
+                .param("type", "enterprise")
+                .param("active", "true"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("查询成功"))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data[0].customerName").value("客户A"));
+        
+        // 验证Service调用
+        verify(customerService, times(1)).getCustomers(any(), any(), anyBoolean());
+    }
+    
+    @Test
+    void testGetProducts_Success() throws Exception {
+        // 准备测试数据
+        List<SalesProductDTO> products = Arrays.asList(
+            new SalesProductDTO(1L, "产品A", "PROD001", "电子产品", new BigDecimal("1000.00")),
+            new SalesProductDTO(2L, "产品B", "PROD002", "机械产品", new BigDecimal("2000.00"))
+        );
+        
+        // 模拟Service调用
+        when(salesProductService.getProducts(any(), any(), anyBoolean())).thenReturn(products);
+        
+        // 执行测试
+        mockMvc.perform(get("/api/sales/products")
+                .param("keyword", "产品")
+                .param("category", "电子产品")
+                .param("active", "true"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("查询成功"))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data[0].productName").value("产品A"));
+        
+        // 验证Service调用
+        verify(salesProductService, times(1)).getProducts(any(), any(), anyBoolean());
+    }
+    
+    @Test
+    void testGetSalesStaff_Success() throws Exception {
+        // 准备测试数据
+        List<SalesStaffDTO> salesStaff = Arrays.asList(
+            new SalesStaffDTO(1L, "张三", "STAFF001", "销售部", "销售经理"),
+            new SalesStaffDTO(2L, "李四", "STAFF002", "销售部", "销售专员")
+        );
+        
+        // 模拟Service调用
+        when(salesStaffService.getSalesStaff(any(), any(), anyBoolean())).thenReturn(salesStaff);
+        
+        // 执行测试
+        mockMvc.perform(get("/api/sales/staff")
+                .param("keyword", "张")
+                .param("department", "销售部")
+                .param("active", "true"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("查询成功"))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data[0].staffName").value("张三"));
+        
+        // 验证Service调用
+        verify(salesStaffService, times(1)).getSalesStaff(any(), any(), anyBoolean());
+    }
+    
+    @Test
+    void testBatchOperation_Delete_Success() throws Exception {
+        // 准备请求数据
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("ids", Arrays.asList(1L, 2L, 3L));
+        requestBody.put("operation", "delete");
+        
+        // 模拟Service调用
+        when(salesService.batchDeleteSalesRecords(any())).thenReturn(3);
+        
+        // 执行测试
+        mockMvc.perform(post("/api/sales/batch")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(requestBody)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("批量删除成功，共删除3条记录"));
+        
+        // 验证Service调用
+        verify(salesService, times(1)).batchDeleteSalesRecords(any());
+    }
+    
+    @Test
+    void testBatchOperation_UpdateStatus_Success() throws Exception {
+        // 准备请求数据
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("ids", Arrays.asList(1L, 2L, 3L));
+        requestBody.put("operation", "updateStatus");
+        requestBody.put("params", Map.of("status", "CONFIRMED"));
+        
+        // 模拟Service调用
+        when(salesService.batchUpdateStatus(any(), any())).thenReturn(3);
+        
+        // 执行测试
+        mockMvc.perform(post("/api/sales/batch")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(requestBody)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("批量更新状态成功，共更新3条记录"));
+        
+        // 验证Service调用
+        verify(salesService, times(1)).batchUpdateStatus(any(), any());
+    }
+    
+    @Test
+    void testBatchOperation_EmptyIds() throws Exception {
+        // 准备请求数据
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("ids", Arrays.asList());
+        requestBody.put("operation", "delete");
+        
+        // 执行测试
+        mockMvc.perform(post("/api/sales/batch")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(requestBody)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message").value("操作ID列表不能为空"));
+        
+        // 验证Service没有被调用
+        verify(salesService, never()).batchDeleteSalesRecords(any());
+        verify(salesService, never()).batchUpdateStatus(any(), any());
+    }
+    
+    @Test
+    void testBatchOperation_UnsupportedOperation() throws Exception {
+        // 准备请求数据
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("ids", Arrays.asList(1L, 2L, 3L));
+        requestBody.put("operation", "unsupported");
+        
+        // 执行测试
+        mockMvc.perform(post("/api/sales/batch")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(requestBody)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message").value("不支持的批量操作类型: unsupported"));
+        
+        // 验证Service没有被调用
+        verify(salesService, never()).batchDeleteSalesRecords(any());
+        verify(salesService, never()).batchUpdateStatus(any(), any());
+    }
+}

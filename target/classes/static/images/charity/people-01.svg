@@ -1,0 +1,196 @@
+<svg width="800" height="600" viewBox="0 0 800 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景 -->
+  <rect width="800" height="600" fill="url(#bgGradient)"/>
+  
+  <!-- 地面 -->
+  <rect y="500" width="800" height="100" fill="#22C55E"/>
+  
+  <!-- 学校建筑背景 -->
+  <g transform="translate(50, 150)" opacity="0.7">
+    <rect x="0" y="100" width="200" height="150" fill="#DC2626"/>
+    <polygon points="0,100 100,50 200,100" fill="#7C2D12"/>
+    <rect x="80" y="150" width="40" height="100" fill="#92400E"/>
+    <rect x="30" y="120" width="30" height="25" fill="#3B82F6"/>
+    <rect x="140" y="120" width="30" height="25" fill="#3B82F6"/>
+  </g>
+  
+  <!-- 横幅 -->
+  <g transform="translate(200, 100)">
+    <rect x="0" y="0" width="400" height="60" fill="#EF4444" stroke="#DC2626" stroke-width="2"/>
+    <text x="200" y="25" text-anchor="middle" font-family="Arial" font-size="16" font-weight="bold" fill="white">AI练字机器人</text>
+    <text x="200" y="45" text-anchor="middle" font-family="Arial" font-size="14" fill="white">公益教学活动</text>
+  </g>
+  
+  <!-- 后排人员 -->
+  <g transform="translate(150, 300)">
+    <!-- 志愿者1 -->
+    <g>
+      <circle cx="50" cy="30" r="15" fill="#FEF3C7"/>
+      <rect x="40" y="45" width="20" height="35" fill="#3B82F6"/>
+      <rect x="35" y="50" width="10" height="25" fill="#FEF3C7"/>
+      <rect x="55" y="50" width="10" height="25" fill="#FEF3C7"/>
+      <rect x="42" y="80" width="8" height="20" fill="#1F2937"/>
+      <rect x="50" y="80" width="8" height="20" fill="#1F2937"/>
+    </g>
+    
+    <!-- 志愿者2 -->
+    <g transform="translate(80, 0)">
+      <circle cx="50" cy="30" r="15" fill="#DBEAFE"/>
+      <rect x="40" y="45" width="20" height="35" fill="#EF4444"/>
+      <rect x="35" y="50" width="10" height="25" fill="#DBEAFE"/>
+      <rect x="55" y="50" width="10" height="25" fill="#DBEAFE"/>
+      <rect x="42" y="80" width="8" height="20" fill="#1F2937"/>
+      <rect x="50" y="80" width="8" height="20" fill="#1F2937"/>
+    </g>
+    
+    <!-- 老师 -->
+    <g transform="translate(160, 0)">
+      <circle cx="50" cy="30" r="15" fill="#F3E8FF"/>
+      <rect x="40" y="45" width="20" height="35" fill="#8B5CF6"/>
+      <rect x="35" y="50" width="10" height="25" fill="#F3E8FF"/>
+      <rect x="55" y="50" width="10" height="25" fill="#F3E8FF"/>
+      <rect x="42" y="80" width="8" height="20" fill="#1F2937"/>
+      <rect x="50" y="80" width="8" height="20" fill="#1F2937"/>
+      <!-- 眼镜 -->
+      <rect x="45" y="25" width="10" height="6" rx="3" fill="none" stroke="#1F2937" stroke-width="1"/>
+    </g>
+    
+    <!-- 志愿者3 -->
+    <g transform="translate(240, 0)">
+      <circle cx="50" cy="30" r="15" fill="#FEF3C7"/>
+      <rect x="40" y="45" width="20" height="35" fill="#10B981"/>
+      <rect x="35" y="50" width="10" height="25" fill="#FEF3C7"/>
+      <rect x="55" y="50" width="10" height="25" fill="#FEF3C7"/>
+      <rect x="42" y="80" width="8" height="20" fill="#1F2937"/>
+      <rect x="50" y="80" width="8" height="20" fill="#1F2937"/>
+    </g>
+    
+    <!-- 志愿者4 -->
+    <g transform="translate(320, 0)">
+      <circle cx="50" cy="30" r="15" fill="#DBEAFE"/>
+      <rect x="40" y="45" width="20" height="35" fill="#F59E0B"/>
+      <rect x="35" y="50" width="10" height="25" fill="#DBEAFE"/>
+      <rect x="55" y="50" width="10" height="25" fill="#DBEAFE"/>
+      <rect x="42" y="80" width="8" height="20" fill="#1F2937"/>
+      <rect x="50" y="80" width="8" height="20" fill="#1F2937"/>
+    </g>
+  </g>
+  
+  <!-- 前排人员 -->
+  <g transform="translate(200, 380)">
+    <!-- 学生1 -->
+    <g>
+      <circle cx="40" cy="25" r="12" fill="#FEF3C7"/>
+      <rect x="32" y="37" width="16" height="28" fill="#EC4899"/>
+      <rect x="28" y="42" width="8" height="20" fill="#FEF3C7"/>
+      <rect x="44" y="42" width="8" height="20" fill="#FEF3C7"/>
+      <rect x="34" y="65" width="6" height="15" fill="#1F2937"/>
+      <rect x="40" y="65" width="6" height="15" fill="#1F2937"/>
+    </g>
+    
+    <!-- 学生2 -->
+    <g transform="translate(80, 0)">
+      <circle cx="40" cy="25" r="12" fill="#DBEAFE"/>
+      <rect x="32" y="37" width="16" height="28" fill="#3B82F6"/>
+      <rect x="28" y="42" width="8" height="20" fill="#DBEAFE"/>
+      <rect x="44" y="42" width="8" height="20" fill="#DBEAFE"/>
+      <rect x="34" y="65" width="6" height="15" fill="#1F2937"/>
+      <rect x="40" y="65" width="6" height="15" fill="#1F2937"/>
+    </g>
+    
+    <!-- 练字机器人 -->
+    <g transform="translate(160, -20)">
+      <!-- 底座 -->
+      <ellipse cx="40" cy="70" rx="30" ry="6" fill="#374151"/>
+      <rect x="25" y="55" width="30" height="15" rx="7" fill="#4B5563"/>
+      
+      <!-- 支撑柱 -->
+      <rect x="35" y="35" width="10" height="20" fill="#6B7280"/>
+      
+      <!-- 机械臂 -->
+      <rect x="30" y="25" width="20" height="6" rx="3" fill="#6B7280"/>
+      <rect x="45" y="15" width="6" height="15" rx="3" fill="#6B7280"/>
+      
+      <!-- 笔夹 -->
+      <rect x="47" y="10" width="3" height="8" fill="#EF4444"/>
+      
+      <!-- 笔 -->
+      <rect x="48" y="5" width="1.5" height="8" fill="#1F2937"/>
+      
+      <!-- 显示屏 -->
+      <rect x="30" y="40" width="20" height="12" rx="2" fill="#111827"/>
+      <rect x="32" y="42" width="16" height="8" rx="1" fill="#1E40AF"/>
+      <text x="40" y="47" text-anchor="middle" font-family="Arial" font-size="4" fill="white">AI</text>
+      
+      <!-- 状态灯 -->
+      <circle cx="32" cy="57" r="1.5" fill="#10B981"/>
+      <circle cx="40" cy="57" r="1.5" fill="#F59E0B"/>
+      <circle cx="48" cy="57" r="1.5" fill="#EF4444"/>
+    </g>
+    
+    <!-- 学生3 -->
+    <g transform="translate(240, 0)">
+      <circle cx="40" cy="25" r="12" fill="#F3E8FF"/>
+      <rect x="32" y="37" width="16" height="28" fill="#10B981"/>
+      <rect x="28" y="42" width="8" height="20" fill="#F3E8FF"/>
+      <rect x="44" y="42" width="8" height="20" fill="#F3E8FF"/>
+      <rect x="34" y="65" width="6" height="15" fill="#1F2937"/>
+      <rect x="40" y="65" width="6" height="15" fill="#1F2937"/>
+    </g>
+    
+    <!-- 学生4 -->
+    <g transform="translate(320, 0)">
+      <circle cx="40" cy="25" r="12" fill="#FEF3C7"/>
+      <rect x="32" y="37" width="16" height="28" fill="#8B5CF6"/>
+      <rect x="28" y="42" width="8" height="20" fill="#FEF3C7"/>
+      <rect x="44" y="42" width="8" height="20" fill="#FEF3C7"/>
+      <rect x="34" y="65" width="6" height="15" fill="#1F2937"/>
+      <rect x="40" y="65" width="6" height="15" fill="#1F2937"/>
+    </g>
+  </g>
+  
+  <!-- 练字作品展示 -->
+  <g transform="translate(600, 350)">
+    <rect x="0" y="0" width="120" height="80" fill="white" stroke="#D1D5DB" stroke-width="2"/>
+    <text x="60" y="20" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold" fill="#1F2937">学生作品</text>
+    
+    <!-- 作品1 -->
+    <rect x="10" y="30" width="30" height="20" fill="#F9FAFB" stroke="#E5E7EB" stroke-width="1"/>
+    <text x="25" y="42" text-anchor="middle" font-family="serif" font-size="8" fill="#1F2937">书</text>
+    
+    <!-- 作品2 -->
+    <rect x="45" y="30" width="30" height="20" fill="#F9FAFB" stroke="#E5E7EB" stroke-width="1"/>
+    <text x="60" y="42" text-anchor="middle" font-family="serif" font-size="8" fill="#1F2937">法</text>
+    
+    <!-- 作品3 -->
+    <rect x="80" y="30" width="30" height="20" fill="#F9FAFB" stroke="#E5E7EB" stroke-width="1"/>
+    <text x="95" y="42" text-anchor="middle" font-family="serif" font-size="8" fill="#1F2937">美</text>
+    
+    <text x="60" y="65" text-anchor="middle" font-family="Arial" font-size="8" fill="#6B7280">优秀作品展示</text>
+  </g>
+  
+  <!-- 装饰气球 -->
+  <g transform="translate(100, 200)">
+    <circle cx="0" cy="0" r="12" fill="#EF4444"/>
+    <circle cx="25" cy="5" r="12" fill="#F59E0B"/>
+    <circle cx="50" cy="0" r="12" fill="#10B981"/>
+    <circle cx="75" cy="5" r="12" fill="#3B82F6"/>
+    <!-- 气球线 -->
+    <line x1="0" y1="12" x2="0" y2="40" stroke="#6B7280" stroke-width="1"/>
+    <line x1="25" y1="17" x2="25" y2="45" stroke="#6B7280" stroke-width="1"/>
+    <line x1="50" y1="12" x2="50" y2="40" stroke="#6B7280" stroke-width="1"/>
+    <line x1="75" y1="17" x2="75" y2="45" stroke="#6B7280" stroke-width="1"/>
+  </g>
+  
+  <!-- 标题 -->
+  <text x="400" y="50" text-anchor="middle" font-family="Arial" font-size="20" font-weight="bold" fill="#1F2937">志愿者与学生合影</text>
+  <text x="400" y="580" text-anchor="middle" font-family="Arial" font-size="14" fill="#6B7280">公益教学活动圆满成功 | 感谢所有志愿者的无私奉献</text>
+  
+  <!-- 渐变定义 -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#DBEAFE;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#BFDBFE;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+</svg>

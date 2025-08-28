@@ -1,0 +1,389 @@
+package com.yxrobot.service;
+
+import com.yxrobot.dto.CustomerDTO;
+import com.yxrobot.dto.SalesProductDTO;
+import com.yxrobot.dto.SalesRecordFormDTO;
+import com.yxrobot.dto.SalesStaffDTO;
+import com.yxrobot.entity.CustomerType;
+import com.yxrobot.entity.PaymentStatus;
+import com.yxrobot.entity.SalesStatus;
+import com.yxrobot.exception.SalesValidationException;
+import com.yxrobot.mapper.CustomerMapper;
+import com.yxrobot.mapper.ProductMapper;
+import com.yxrobot.mapper.SalesRecordMapper;
+import com.yxrobot.mapper.SalesStaffMapper;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
+/**
+ * 销售数据验证服务测试类
+ * 
+ * @author YXRobot开发团队
+ * @version 1.0.0
+ * @since 2025-01-27
+ */
+@ExtendWith(MockitoExtension.class)
+class SalesValidationServiceTest {
+    
+    @Mock
+    private SalesRecordMapper salesRecordMapper;
+    
+    @Mock
+    private CustomerMapper customerMapper;
+    
+    @Mock
+    private ProductMapper productMapper;
+    
+    @Mock
+    private SalesStaffMapper salesStaffMapper;
+    
+    @InjectMocks
+    private SalesValidationService salesValidationService;
+    
+    private SalesRecordFormDTO validSalesRecordForm;
+    private CustomerDTO validCustomer;
+    private SalesProductDTO validProduct;
+    private SalesStaffDTO validSalesStaff;
+    
+    @BeforeEach
+    void setUp() {
+        // 准备有效的销售记录表单数据
+        validSalesRecordForm = new SalesRecordFormDTO();
+        validSalesRecordForm.setOrderNumber("SO20250127001");
+        validSalesRecordForm.setCustomerId(1L);
+        validSalesRecordForm.setProductId(1L);
+        validSalesRecordForm.setSalesStaffId(1L);
+        validSalesRecordForm.setQuantity(2);
+        validSalesRecordForm.setUnitPrice(new BigDecimal("1000.00"));
+        validSalesRecordForm.setDiscountAmount(new BigDecimal("100.00"));
+        validSalesRecordForm.setOrderDate(LocalDate.now());
+        validSalesRecordForm.setStatus(SalesStatus.PENDING);
+        validSalesRecordForm.setPaymentStatus(PaymentStatus.UNPAID);
+        validSalesRecordForm.setPaymentMethod("银行转账");
+        validSalesRecordForm.setRegion("北京");
+        validSalesRecordForm.setChannel("线上");
+        
+        // 准备有效的客户数据
+        validCustomer = new CustomerDTO();
+        validCustomer.setCustomerName("测试客户");
+        validCustomer.setCustomerType(CustomerType.ENTERPRISE);
+        validCustomer.setPhone("13800138000");
+        validCustomer.setEmail("test@example.com");
+        validCustomer.setRegion("北京");
+        validCustomer.setIndustry("科技");
+        
+        // 准备有效的产品数据
+        validProduct = new SalesProductDTO();
+        validProduct.setProductName("测试产品");
+        validProduct.setProductCode("PROD001");
+        validProduct.setCategory("电子产品");
+        validProduct.setUnitPrice(new BigDecimal("1000.00"));
+        validProduct.setCostPrice(new BigDecimal("800.00"));
+        validProduct.setStockQuantity(100);
+        
+        // 准备有效的销售人员数据
+        validSalesStaff = new SalesStaffDTO();
+        validSalesStaff.setStaffName("张三");
+        validSalesStaff.setStaffCode("STAFF001");
+        validSalesStaff.setDepartment("销售部");
+        validSalesStaff.setPosition("销售经理");
+        validSalesStaff.setPhone("13900139000");
+        validSalesStaff.setEmail("zhangsan@example.com");
+        validSalesStaff.setSalesTarget(new BigDecimal("100000.00"));
+        validSalesStaff.setCommissionRate(new BigDecimal("0.05"));
+    }
+    
+    @Test
+    void testValidateSalesRecordForm_ValidData_ShouldPass() {
+        // 模拟数据库查询返回存在的记录
+        when(customerMapper.selectById(1L)).thenReturn(new Object());
+        when(productMapper.selectById(1L)).thenReturn(new Object());
+        when(salesStaffMapper.selectById(1L)).thenReturn(new Object());
+        when(salesRecordMapper.existsByOrderNumber(any())).thenReturn(false);
+        
+        // 验证应该通过
+        assertDoesNotThrow(() -> {
+            salesValidationService.validateSalesRecordForm(validSalesRecordForm, true);
+        });
+    }
+    
+    @Test
+    void testValidateSalesRecordForm_NullData_ShouldThrowException() {
+        // 验证空数据应该抛出异常
+        SalesValidationException exception = assertThrows(SalesValidationException.class, () -> {
+            salesValidationService.validateSalesRecordForm(null, true);
+        });
+        
+        assertEquals("销售记录数据不能为空", exception.getMessage());
+    }
+    
+    @Test
+    void testValidateSalesRecordForm_InvalidOrderNumber_ShouldThrowException() {
+        validSalesRecordForm.setOrderNumber("invalid");
+        
+        SalesValidationException exception = assertThrows(SalesValidationException.class, () -> {
+            salesValidationService.validateSalesRecordForm(validSalesRecordForm, true);
+        });
+        
+        assertTrue(exception.getMessage().contains("订单号格式不正确"));
+    }
+    
+    @Test
+    void testValidateSalesRecordForm_DuplicateOrderNumber_ShouldThrowException() {
+        when(salesRecordMapper.existsByOrderNumber(any())).thenReturn(true);
+        
+        SalesValidationException exception = assertThrows(SalesValidationException.class, () -> {
+            salesValidationService.validateSalesRecordForm(validSalesRecordForm, true);
+        });
+        
+        assertTrue(exception.getMessage().contains("订单号已存在"));
+    }
+    
+    @Test
+    void testValidateSalesRecordForm_InvalidQuantity_ShouldThrowException() {
+        validSalesRecordForm.setQuantity(0);
+        
+        SalesValidationException exception = assertThrows(SalesValidationException.class, () -> {
+            salesValidationService.validateSalesRecordForm(validSalesRecordForm, true);
+        });
+        
+        assertTrue(exception.getMessage().contains("销售数量应在1-9999之间"));
+    }
+    
+    @Test
+    void testValidateSalesRecordForm_InvalidUnitPrice_ShouldThrowException() {
+        validSalesRecordForm.setUnitPrice(BigDecimal.ZERO);
+        
+        SalesValidationException exception = assertThrows(SalesValidationException.class, () -> {
+            salesValidationService.validateSalesRecordForm(validSalesRecordForm, true);
+        });
+        
+        assertTrue(exception.getMessage().contains("单价不能小于"));
+    }
+    
+    @Test
+    void testValidateSalesRecordForm_ExcessiveDiscount_ShouldThrowException() {
+        validSalesRecordForm.setDiscountAmount(new BigDecimal("3000.00")); // 超过商品总价
+        
+        SalesValidationException exception = assertThrows(SalesValidationException.class, () -> {
+            salesValidationService.validateSalesRecordForm(validSalesRecordForm, true);
+        });
+        
+        assertTrue(exception.getMessage().contains("折扣金额不能超过商品总价"));
+    }
+    
+    @Test
+    void testValidateSalesRecordForm_FutureOrderDate_ShouldThrowException() {
+        validSalesRecordForm.setOrderDate(LocalDate.now().plusDays(1));
+        
+        SalesValidationException exception = assertThrows(SalesValidationException.class, () -> {
+            salesValidationService.validateSalesRecordForm(validSalesRecordForm, true);
+        });
+        
+        assertTrue(exception.getMessage().contains("订单日期不能是未来日期"));
+    }
+    
+    @Test
+    void testValidateSalesRecordForm_InvalidStatusCombination_ShouldThrowException() {
+        validSalesRecordForm.setStatus(SalesStatus.COMPLETED);
+        validSalesRecordForm.setPaymentStatus(PaymentStatus.UNPAID);
+        
+        when(customerMapper.selectById(1L)).thenReturn(new Object());
+        when(productMapper.selectById(1L)).thenReturn(new Object());
+        when(salesStaffMapper.selectById(1L)).thenReturn(new Object());
+        when(salesRecordMapper.existsByOrderNumber(any())).thenReturn(false);
+        
+        SalesValidationException exception = assertThrows(SalesValidationException.class, () -> {
+            salesValidationService.validateSalesRecordForm(validSalesRecordForm, true);
+        });
+        
+        assertTrue(exception.getMessage().contains("已完成的订单不能是未付款状态"));
+    }
+    
+    @Test
+    void testValidateCustomerInfo_ValidData_ShouldPass() {
+        assertDoesNotThrow(() -> {
+            salesValidationService.validateCustomerInfo(validCustomer);
+        });
+    }
+    
+    @Test
+    void testValidateCustomerInfo_NullData_ShouldThrowException() {
+        SalesValidationException exception = assertThrows(SalesValidationException.class, () -> {
+            salesValidationService.validateCustomerInfo(null);
+        });
+        
+        assertEquals("客户信息不能为空", exception.getMessage());
+    }
+    
+    @Test
+    void testValidateCustomerInfo_EmptyCustomerName_ShouldThrowException() {
+        validCustomer.setCustomerName("");
+        
+        SalesValidationException exception = assertThrows(SalesValidationException.class, () -> {
+            salesValidationService.validateCustomerInfo(validCustomer);
+        });
+        
+        assertTrue(exception.getMessage().contains("客户名称不能为空"));
+    }
+    
+    @Test
+    void testValidateCustomerInfo_InvalidPhone_ShouldThrowException() {
+        validCustomer.setPhone("invalid-phone");
+        
+        SalesValidationException exception = assertThrows(SalesValidationException.class, () -> {
+            salesValidationService.validateCustomerInfo(validCustomer);
+        });
+        
+        assertTrue(exception.getMessage().contains("联系电话格式不正确"));
+    }
+    
+    @Test
+    void testValidateCustomerInfo_InvalidEmail_ShouldThrowException() {
+        validCustomer.setEmail("invalid-email");
+        
+        SalesValidationException exception = assertThrows(SalesValidationException.class, () -> {
+            salesValidationService.validateCustomerInfo(validCustomer);
+        });
+        
+        assertTrue(exception.getMessage().contains("邮箱格式不正确"));
+    }
+    
+    @Test
+    void testValidateProductInfo_ValidData_ShouldPass() {
+        assertDoesNotThrow(() -> {
+            salesValidationService.validateProductInfo(validProduct);
+        });
+    }
+    
+    @Test
+    void testValidateProductInfo_NullData_ShouldThrowException() {
+        SalesValidationException exception = assertThrows(SalesValidationException.class, () -> {
+            salesValidationService.validateProductInfo(null);
+        });
+        
+        assertEquals("产品信息不能为空", exception.getMessage());
+    }
+    
+    @Test
+    void testValidateProductInfo_EmptyProductName_ShouldThrowException() {
+        validProduct.setProductName("");
+        
+        SalesValidationException exception = assertThrows(SalesValidationException.class, () -> {
+            salesValidationService.validateProductInfo(validProduct);
+        });
+        
+        assertTrue(exception.getMessage().contains("产品名称不能为空"));
+    }
+    
+    @Test
+    void testValidateProductInfo_InvalidProductCode_ShouldThrowException() {
+        validProduct.setProductCode("invalid");
+        
+        SalesValidationException exception = assertThrows(SalesValidationException.class, () -> {
+            salesValidationService.validateProductInfo(validProduct);
+        });
+        
+        assertTrue(exception.getMessage().contains("产品编码格式不正确"));
+    }
+    
+    @Test
+    void testValidateProductInfo_CostPriceHigherThanUnitPrice_ShouldThrowException() {
+        validProduct.setCostPrice(new BigDecimal("1200.00")); // 高于单价
+        
+        SalesValidationException exception = assertThrows(SalesValidationException.class, () -> {
+            salesValidationService.validateProductInfo(validProduct);
+        });
+        
+        assertTrue(exception.getMessage().contains("成本价不能高于销售单价"));
+    }
+    
+    @Test
+    void testValidateSalesStaffInfo_ValidData_ShouldPass() {
+        assertDoesNotThrow(() -> {
+            salesValidationService.validateSalesStaffInfo(validSalesStaff);
+        });
+    }
+    
+    @Test
+    void testValidateSalesStaffInfo_NullData_ShouldThrowException() {
+        SalesValidationException exception = assertThrows(SalesValidationException.class, () -> {
+            salesValidationService.validateSalesStaffInfo(null);
+        });
+        
+        assertEquals("销售人员信息不能为空", exception.getMessage());
+    }
+    
+    @Test
+    void testValidateSalesStaffInfo_EmptyStaffName_ShouldThrowException() {
+        validSalesStaff.setStaffName("");
+        
+        SalesValidationException exception = assertThrows(SalesValidationException.class, () -> {
+            salesValidationService.validateSalesStaffInfo(validSalesStaff);
+        });
+        
+        assertTrue(exception.getMessage().contains("销售人员姓名不能为空"));
+    }
+    
+    @Test
+    void testValidateSalesStaffInfo_InvalidStaffCode_ShouldThrowException() {
+        validSalesStaff.setStaffCode("invalid");
+        
+        SalesValidationException exception = assertThrows(SalesValidationException.class, () -> {
+            salesValidationService.validateSalesStaffInfo(validSalesStaff);
+        });
+        
+        assertTrue(exception.getMessage().contains("员工编号格式不正确"));
+    }
+    
+    @Test
+    void testValidateSalesStaffInfo_InvalidCommissionRate_ShouldThrowException() {
+        validSalesStaff.setCommissionRate(new BigDecimal("1.5")); // 超过100%
+        
+        SalesValidationException exception = assertThrows(SalesValidationException.class, () -> {
+            salesValidationService.validateSalesStaffInfo(validSalesStaff);
+        });
+        
+        assertTrue(exception.getMessage().contains("提成比例不能超过100%"));
+    }
+    
+    @Test
+    void testValidateRequiredFields_ValidData_ShouldPass() {
+        assertDoesNotThrow(() -> {
+            salesValidationService.validateRequiredFields(validSalesRecordForm);
+        });
+    }
+    
+    @Test
+    void testValidateRequiredFields_MissingOrderNumber_ShouldThrowException() {
+        validSalesRecordForm.setOrderNumber(null);
+        
+        SalesValidationException exception = assertThrows(SalesValidationException.class, () -> {
+            salesValidationService.validateRequiredFields(validSalesRecordForm);
+        });
+        
+        assertTrue(exception.getMessage().contains("订单号"));
+    }
+    
+    @Test
+    void testValidateRequiredFields_MissingCustomerId_ShouldThrowException() {
+        validSalesRecordForm.setCustomerId(null);
+        
+        SalesValidationException exception = assertThrows(SalesValidationException.class, () -> {
+            salesValidationService.validateRequiredFields(validSalesRecordForm);
+        });
+        
+        assertTrue(exception.getMessage().contains("客户ID"));
+    }
+}

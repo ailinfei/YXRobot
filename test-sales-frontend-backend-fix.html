@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>销售管理前后端字段匹配测试</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #007bff;
+        }
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .info {
+            color: #17a2b8;
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 10px 10px 0;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .json-display {
+            background: #f1f3f4;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        .field-check {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+        }
+        .field-check .status {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        .field-check .pass {
+            background: #28a745;
+        }
+        .field-check .fail {
+            background: #dc3545;
+        }
+        .field-check .pending {
+            background: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 销售管理前后端字段匹配测试</h1>
+    
+    <div class="test-section">
+        <h2>📋 修复内容验证</h2>
+        <p>本测试用于验证销售管理模块前后端字段匹配修复是否成功。</p>
+        
+        <h3>修复的关键字段：</h3>
+        <ul>
+            <li><code>customerPhone</code> - 客户电话（新增）</li>
+            <li><code>staffName</code> - 销售人员姓名（修复字段名）</li>
+            <li><code>customerName</code> - 客户姓名（验证关联查询）</li>
+            <li><code>productName</code> - 产品名称（验证关联查询）</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>🧪 API接口测试</h2>
+        
+        <button class="test-button" onclick="testSalesRecordsAPI()">
+            测试销售记录列表API
+        </button>
+        
+        <button class="test-button" onclick="testSalesStatsAPI()">
+            测试销售统计API
+        </button>
+        
+        <button class="test-button" onclick="testAllAPIs()">
+            测试所有API
+        </button>
+        
+        <div id="test-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>📊 字段匹配验证</h2>
+        <div id="field-validation">
+            <p class="info">点击上方按钮开始测试...</p>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>📝 API响应数据</h2>
+        <div id="api-response">
+            <p class="info">API响应数据将在这里显示...</p>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8080/api/sales';
+        
+        // 前端期望的字段列表
+        const EXPECTED_FIELDS = [
+            'id',
+            'orderNumber',
+            'customerName',
+            'customerPhone',  // 新增字段
+            'productName',
+            'staffName',      // 修复的字段名
+            'quantity',
+            'unitPrice',
+            'salesAmount',
+            'discountAmount',
+            'status',
+            'paymentStatus',
+            'paymentMethod',
+            'orderDate',
+            'deliveryDate'
+        ];
+
+        async function testSalesRecordsAPI() {
+            updateTestResults('开始测试销售记录列表API...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/records?page=1&pageSize=10`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    updateTestResults('✅ 销售记录API调用成功', 'success');
+                    displayAPIResponse('销售记录API响应', data);
+                    validateFields(data.data?.list || [], 'sales-records');
+                } else {
+                    updateTestResults(`❌ 销售记录API调用失败: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                updateTestResults(`❌ 销售记录API调用异常: ${error.message}`, 'error');
+            }
+        }
+
+        async function testSalesStatsAPI() {
+            updateTestResults('开始测试销售统计API...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/stats`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    updateTestResults('✅ 销售统计API调用成功', 'success');
+                    displayAPIResponse('销售统计API响应', data);
+                    validateStatsFields(data.data || {});
+                } else {
+                    updateTestResults(`❌ 销售统计API调用失败: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                updateTestResults(`❌ 销售统计API调用异常: ${error.message}`, 'error');
+            }
+        }
+
+        async function testAllAPIs() {
+            updateTestResults('开始测试所有API...', 'info');
+            await testSalesRecordsAPI();
+            await new Promise(resolve => setTimeout(resolve, 1000)); // 延迟1秒
+            await testSalesStatsAPI();
+            updateTestResults('🎉 所有API测试完成', 'success');
+        }
+
+        function validateFields(records, type) {
+            const validationDiv = document.getElementById('field-validation');
+            let html = '<h3>字段验证结果：</h3>';
+            
+            if (!records || records.length === 0) {
+                html += '<p class="info">⚠️ 没有数据记录，无法验证字段</p>';
+                validationDiv.innerHTML = html;
+                return;
+            }
+
+            const firstRecord = records[0];
+            const missingFields = [];
+            const presentFields = [];
+
+            EXPECTED_FIELDS.forEach(field => {
+                const hasField = firstRecord.hasOwnProperty(field);
+                const value = firstRecord[field];
+                
+                if (hasField) {
+                    presentFields.push({
+                        field,
+                        value,
+                        status: 'pass'
+                    });
+                } else {
+                    missingFields.push({
+                        field,
+                        status: 'fail'
+                    });
+                }
+            });
+
+            // 显示验证结果
+            html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">';
+            
+            // 成功的字段
+            html += '<div><h4 class="success">✅ 存在的字段 (' + presentFields.length + ')</h4>';
+            presentFields.forEach(item => {
+                html += `<div class="field-check">
+                    <div class="status pass">✓</div>
+                    <div>
+                        <strong>${item.field}</strong>: 
+                        <span style="color: #666;">${JSON.stringify(item.value)}</span>
+                    </div>
+                </div>`;
+            });
+            html += '</div>';
+
+            // 缺失的字段
+            html += '<div><h4 class="error">❌ 缺失的字段 (' + missingFields.length + ')</h4>';
+            if (missingFields.length === 0) {
+                html += '<p class="success">🎉 所有期望字段都存在！</p>';
+            } else {
+                missingFields.forEach(item => {
+                    html += `<div class="field-check">
+                        <div class="status fail">✗</div>
+                        <div><strong>${item.field}</strong></div>
+                    </div>`;
+                });
+            }
+            html += '</div>';
+            
+            html += '</div>';
+
+            // 特别检查修复的字段
+            html += '<h4>🔍 关键修复字段检查：</h4>';
+            const keyFields = ['customerPhone', 'staffName', 'customerName', 'productName'];
+            keyFields.forEach(field => {
+                const hasField = firstRecord.hasOwnProperty(field);
+                const value = firstRecord[field];
+                const status = hasField ? 'success' : 'error';
+                const icon = hasField ? '✅' : '❌';
+                
+                html += `<div class="field-check">
+                    <div class="status ${hasField ? 'pass' : 'fail'}">${hasField ? '✓' : '✗'}</div>
+                    <div>
+                        <strong>${field}</strong>: 
+                        <span class="${status}">${hasField ? JSON.stringify(value) : '字段缺失'}</span>
+                    </div>
+                </div>`;
+            });
+
+            validationDiv.innerHTML = html;
+        }
+
+        function validateStatsFields(stats) {
+            const expectedStatsFields = [
+                'totalSalesAmount',
+                'totalOrders', 
+                'newCustomers',
+                'avgOrderAmount',
+                'growthRate'
+            ];
+
+            let html = '<h3>统计字段验证结果：</h3>';
+            
+            expectedStatsFields.forEach(field => {
+                const hasField = stats.hasOwnProperty(field);
+                const value = stats[field];
+                const status = hasField ? 'pass' : 'fail';
+                const icon = hasField ? '✓' : '✗';
+                
+                html += `<div class="field-check">
+                    <div class="status ${status}">${icon}</div>
+                    <div>
+                        <strong>${field}</strong>: 
+                        <span>${hasField ? JSON.stringify(value) : '字段缺失'}</span>
+                    </div>
+                </div>`;
+            });
+
+            document.getElementById('field-validation').innerHTML += html;
+        }
+
+        function updateTestResults(message, type) {
+            const resultsDiv = document.getElementById('test-results');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'success' ? 'success' : type === 'error' ? 'error' : 'info';
+            
+            resultsDiv.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
+        }
+
+        function displayAPIResponse(title, data) {
+            const responseDiv = document.getElementById('api-response');
+            const jsonString = JSON.stringify(data, null, 2);
+            
+            responseDiv.innerHTML = `
+                <h3>${title}</h3>
+                <div class="json-display">${jsonString}</div>
+            `;
+        }
+
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            updateTestResults('🚀 测试页面已加载，准备开始测试', 'info');
+            updateTestResults('💡 提示：请确保后端服务已启动 (http://localhost:8080)', 'info');
+        });
+    </script>
+</body>
+</html>

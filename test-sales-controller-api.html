@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>销售控制器API测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .test-button.success {
+            background: #28a745;
+        }
+        .test-button.error {
+            background: #dc3545;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .result.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .result.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .input-group {
+            margin: 10px 0;
+        }
+        .input-group label {
+            display: inline-block;
+            width: 120px;
+            font-weight: bold;
+        }
+        .input-group input, .input-group select {
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            width: 200px;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-up { background: #28a745; }
+        .status-down { background: #dc3545; }
+        .status-unknown { background: #6c757d; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>销售控制器API测试工具</h1>
+        <p>测试销售记录管理相关的API接口，验证前后端对接是否正常</p>
+        
+        <!-- API健康检查 -->
+        <div class="test-section">
+            <h2>🔍 API健康检查</h2>
+            <button class="test-button" onclick="testHealthCheck()">检查API状态</button>
+            <button class="test-button" onclick="testApiInfo()">获取API信息</button>
+            <div id="health-result" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- 销售记录查询测试 -->
+        <div class="test-section">
+            <h2>📋 销售记录查询测试</h2>
+            <div class="input-group">
+                <label>页码:</label>
+                <input type="number" id="page" value="1" min="1">
+            </div>
+            <div class="input-group">
+                <label>每页大小:</label>
+                <input type="number" id="pageSize" value="20" min="1" max="100">
+            </div>
+            <div class="input-group">
+                <label>开始日期:</label>
+                <input type="date" id="startDate">
+            </div>
+            <div class="input-group">
+                <label>结束日期:</label>
+                <input type="date" id="endDate">
+            </div>
+            <div class="input-group">
+                <label>搜索关键词:</label>
+                <input type="text" id="keyword" placeholder="订单号或客户名称">
+            </div>
+            <div class="input-group">
+                <label>订单状态:</label>
+                <select id="status">
+                    <option value="">全部</option>
+                    <option value="pending">待确认</option>
+                    <option value="confirmed">已确认</option>
+                    <option value="delivered">已交付</option>
+                    <option value="completed">已完成</option>
+                    <option value="cancelled">已取消</option>
+                </select>
+            </div>
+            <button class="test-button" onclick="testGetSalesRecords()">查询销售记录</button>
+            <button class="test-button" onclick="testGetSalesRecordsOptimized()">优化查询</button>
+            <button class="test-button" onclick="testGetRecordsCount()">获取总数</button>
+            <div id="records-result" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- 销售统计测试 -->
+        <div class="test-section">
+            <h2>📊 销售统计测试</h2>
+            <button class="test-button" onclick="testGetSalesStats()">获取销售统计</button>
+            <button class="test-button" onclick="testGetTodayStats()">今日统计</button>
+            <button class="test-button" onclick="testGetCurrentMonthStats()">本月统计</button>
+            <button class="test-button" onclick="testGetRealTimeStats()">实时统计</button>
+            <div id="stats-result" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- 图表数据测试 -->
+        <div class="test-section">
+            <h2>📈 图表数据测试</h2>
+            <div class="input-group">
+                <label>分布类型:</label>
+                <select id="distributionType">
+                    <option value="product">产品分布</option>
+                    <option value="region">地区分布</option>
+                    <option value="channel">渠道分布</option>
+                    <option value="staff">销售人员分布</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>分组方式:</label>
+                <select id="groupBy">
+                    <option value="day">按天</option>
+                    <option value="week">按周</option>
+                    <option value="month">按月</option>
+                    <option value="quarter">按季度</option>
+                    <option value="year">按年</option>
+                </select>
+            </div>
+            <button class="test-button" onclick="testGetDistributionData()">分布图表数据</button>
+            <button class="test-button" onclick="testGetTrendChartData()">趋势图表数据</button>
+            <button class="test-button" onclick="testGetMonthlyData()">月度图表数据</button>
+            <button class="test-button" onclick="testGetFunnelData()">漏斗图表数据</button>
+            <div id="charts-result" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- 辅助功能测试 -->
+        <div class="test-section">
+            <h2>🔧 辅助功能测试</h2>
+            <button class="test-button" onclick="testGetCustomers()">获取客户列表</button>
+            <button class="test-button" onclick="testGetActiveCustomers()">获取活跃客户</button>
+            <button class="test-button" onclick="testGetProducts()">获取产品列表</button>
+            <button class="test-button" onclick="testGetActiveProducts()">获取启用产品</button>
+            <button class="test-button" onclick="testGetStaff()">获取销售人员</button>
+            <button class="test-button" onclick="testGetActiveStaff()">获取在职人员</button>
+            <div id="auxiliary-result" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- 搜索和筛选测试 -->
+        <div class="test-section">
+            <h2>🔍 搜索和筛选测试</h2>
+            <div class="input-group">
+                <label>搜索关键词:</label>
+                <input type="text" id="searchKeyword" placeholder="输入搜索关键词">
+            </div>
+            <button class="test-button" onclick="testGetSearchSuggestions()">获取搜索建议</button>
+            <button class="test-button" onclick="testGetFilterOptions()">获取筛选选项</button>
+            <button class="test-button" onclick="testGetTodayOrders()">今日订单</button>
+            <button class="test-button" onclick="testGetThisWeekOrders()">本周订单</button>
+            <button class="test-button" onclick="testGetThisMonthOrders()">本月订单</button>
+            <button class="test-button" onclick="testGetPendingOrders()">待处理订单</button>
+            <button class="test-button" onclick="testGetHighValueOrders()">高价值订单</button>
+            <div id="search-result" class="result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8080';
+        
+        // 设置默认日期范围（最近30天）
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date();
+            const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+            
+            document.getElementById('startDate').value = thirtyDaysAgo.toISOString().split('T')[0];
+            document.getElementById('endDate').value = today.toISOString().split('T')[0];
+        });
+
+        // 通用API调用函数
+        async function callAPI(url, options = {}) {
+            try {
+                const response = await fetch(API_BASE_URL + url, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+                
+                const data = await response.json();
+                return { success: response.ok, data, status: response.status };
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        }
+
+        // 显示结果
+        function showResult(elementId, result, isSuccess) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = `result ${isSuccess ? 'success' : 'error'}`;
+            element.textContent = JSON.stringify(result, null, 2);
+        }
+
+        // API健康检查
+        async function testHealthCheck() {
+            const result = await callAPI('/api/sales/health');
+            showResult('health-result', result, result.success);
+        }
+
+        async function testApiInfo() {
+            const result = await callAPI('/api/sales/api-info');
+            showResult('health-result', result, result.success);
+        }
+
+        // 销售记录查询测试
+        async function testGetSalesRecords() {
+            const params = new URLSearchParams({
+                page: document.getElementById('page').value,
+                pageSize: document.getElementById('pageSize').value,
+                startDate: document.getElementById('startDate').value,
+                endDate: document.getElementById('endDate').value,
+                keyword: document.getElementById('keyword').value,
+                status: document.getElementById('status').value
+            });
+            
+            const result = await callAPI(`/api/sales/records?${params}`);
+            showResult('records-result', result, result.success);
+        }
+
+        async function testGetSalesRecordsOptimized() {
+            const params = new URLSearchParams({
+                page: document.getElementById('page').value,
+                pageSize: document.getElementById('pageSize').value,
+                startDate: document.getElementById('startDate').value,
+                endDate: document.getElementById('endDate').value,
+                keyword: document.getElementById('keyword').value,
+                status: document.getElementById('status').value
+            });
+            
+            const result = await callAPI(`/api/sales/records-optimized?${params}`);
+            showResult('records-result', result, result.success);
+        }
+
+        async function testGetRecordsCount() {
+            const result = await callAPI('/api/sales/records/count');
+            showResult('records-result', result, result.success);
+        }
+
+        // 销售统计测试
+        async function testGetSalesStats() {
+            const params = new URLSearchParams({
+                startDate: document.getElementById('startDate').value,
+                endDate: document.getElementById('endDate').value
+            });
+            
+            const result = await callAPI(`/api/sales/stats?${params}`);
+            showResult('stats-result', result, result.success);
+        }
+
+        async function testGetTodayStats() {
+            const result = await callAPI('/api/sales/today-stats');
+            showResult('stats-result', result, result.success);
+        }
+
+        async function testGetCurrentMonthStats() {
+            const result = await callAPI('/api/sales/current-month-stats');
+            showResult('stats-result', result, result.success);
+        }
+
+        async function testGetRealTimeStats() {
+            const result = await callAPI('/api/sales/realtime-stats');
+            showResult('stats-result', result, result.success);
+        }
+
+        // 图表数据测试
+        async function testGetDistributionData() {
+            const params = new URLSearchParams({
+                type: document.getElementById('distributionType').value,
+                startDate: document.getElementById('startDate').value,
+                endDate: document.getElementById('endDate').value
+            });
+            
+            const result = await callAPI(`/api/sales/charts/distribution?${params}`);
+            showResult('charts-result', result, result.success);
+        }
+
+        async function testGetTrendChartData() {
+            const params = new URLSearchParams({
+                startDate: document.getElementById('startDate').value,
+                endDate: document.getElementById('endDate').value,
+                groupBy: document.getElementById('groupBy').value
+            });
+            
+            const result = await callAPI(`/api/sales/charts/trends?${params}`);
+            showResult('charts-result', result, result.success);
+        }
+
+        async function testGetMonthlyData() {
+            const result = await callAPI('/api/sales/charts/monthly?year=2025&months=12');
+            showResult('charts-result', result, result.success);
+        }
+
+        async function testGetFunnelData() {
+            const params = new URLSearchParams({
+                startDate: document.getElementById('startDate').value,
+                endDate: document.getElementById('endDate').value
+            });
+            
+            const result = await callAPI(`/api/sales/charts/funnel?${params}`);
+            showResult('charts-result', result, result.success);
+        }
+
+        // 辅助功能测试
+        async function testGetCustomers() {
+            const result = await callAPI('/api/sales/customers?page=0&pageSize=10');
+            showResult('auxiliary-result', result, result.success);
+        }
+
+        async function testGetActiveCustomers() {
+            const result = await callAPI('/api/sales/customers/active');
+            showResult('auxiliary-result', result, result.success);
+        }
+
+        async function testGetProducts() {
+            const result = await callAPI('/api/sales/products?page=1&pageSize=10');
+            showResult('auxiliary-result', result, result.success);
+        }
+
+        async function testGetActiveProducts() {
+            const result = await callAPI('/api/sales/products/active');
+            showResult('auxiliary-result', result, result.success);
+        }
+
+        async function testGetStaff() {
+            const result = await callAPI('/api/sales/staff?page=0&pageSize=10');
+            showResult('auxiliary-result', result, result.success);
+        }
+
+        async function testGetActiveStaff() {
+            const result = await callAPI('/api/sales/staff/active');
+            showResult('auxiliary-result', result, result.success);
+        }
+
+        // 搜索和筛选测试
+        async function testGetSearchSuggestions() {
+            const keyword = document.getElementById('searchKeyword').value || '客户';
+            const result = await callAPI(`/api/sales/search-suggestions?keyword=${encodeURIComponent(keyword)}`);
+            showResult('search-result', result, result.success);
+        }
+
+        async function testGetFilterOptions() {
+            const result = await callAPI('/api/sales/filter-options');
+            showResult('search-result', result, result.success);
+        }
+
+        async function testGetTodayOrders() {
+            const result = await callAPI('/api/sales/quick-filter/today');
+            showResult('search-result', result, result.success);
+        }
+
+        async function testGetThisWeekOrders() {
+            const result = await callAPI('/api/sales/quick-filter/this-week');
+            showResult('search-result', result, result.success);
+        }
+
+        async function testGetThisMonthOrders() {
+            const result = await callAPI('/api/sales/quick-filter/this-month');
+            showResult('search-result', result, result.success);
+        }
+
+        async function testGetPendingOrders() {
+            const result = await callAPI('/api/sales/quick-filter/pending');
+            showResult('search-result', result, result.success);
+        }
+
+        async function testGetHighValueOrders() {
+            const result = await callAPI('/api/sales/quick-filter/high-value?minAmount=10000');
+            showResult('search-result', result, result.success);
+        }
+    </script>
+</body>
+</html>

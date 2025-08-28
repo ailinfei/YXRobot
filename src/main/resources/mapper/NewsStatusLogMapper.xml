@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yxrobot.mapper.NewsStatusLogMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="NewsStatusLogResultMap" type="com.yxrobot.entity.NewsStatusLog">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="news_id" property="newsId" jdbcType="BIGINT"/>
+        <result column="from_status" property="fromStatus" jdbcType="VARCHAR" typeHandler="com.yxrobot.handler.CodeEnumTypeHandler"/>
+        <result column="to_status" property="toStatus" jdbcType="VARCHAR" typeHandler="com.yxrobot.handler.CodeEnumTypeHandler"/>
+        <result column="reason" property="reason" jdbcType="VARCHAR"/>
+        <result column="operator" property="operator" jdbcType="VARCHAR"/>
+        <result column="change_time" property="changeTime" jdbcType="TIMESTAMP"/>
+        <result column="remark" property="remark" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <!-- 基础字段列表 -->
+    <sql id="Base_Column_List">
+        id, news_id, from_status, to_status, reason, operator, change_time, remark
+    </sql>
+
+    <!-- 插入状态变更日志 -->
+    <insert id="insert" parameterType="com.yxrobot.entity.NewsStatusLog" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO news_status_logs (
+            news_id, from_status, to_status, reason, operator, change_time, remark
+        ) VALUES (
+            #{newsId}, #{fromStatus}, #{toStatus}, #{reason}, #{operator}, #{changeTime}, #{remark}
+        )
+    </insert>
+
+    <!-- 根据新闻ID查询状态变更日志 -->
+    <select id="selectByNewsId" resultMap="NewsStatusLogResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM news_status_logs
+        WHERE news_id = #{newsId}
+        ORDER BY change_time DESC
+    </select>
+
+    <!-- 根据新闻ID查询最新的状态变更日志 -->
+    <select id="selectLatestByNewsId" resultMap="NewsStatusLogResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM news_status_logs
+        WHERE news_id = #{newsId}
+        ORDER BY change_time DESC
+        LIMIT 1
+    </select>
+
+    <!-- 分页查询状态变更日志 -->
+    <select id="selectByPage" resultMap="NewsStatusLogResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM news_status_logs
+        ORDER BY change_time DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 统计日志总数 -->
+    <select id="countAll" resultType="int">
+        SELECT COUNT(*)
+        FROM news_status_logs
+    </select>
+
+    <!-- 根据新闻ID统计日志数量 -->
+    <select id="countByNewsId" resultType="int">
+        SELECT COUNT(*)
+        FROM news_status_logs
+        WHERE news_id = #{newsId}
+    </select>
+
+    <!-- 根据操作人查询日志 -->
+    <select id="selectByOperator" resultMap="NewsStatusLogResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM news_status_logs
+        WHERE operator = #{operator}
+        ORDER BY change_time DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 删除指定新闻的所有状态日志 -->
+    <delete id="deleteByNewsId">
+        DELETE FROM news_status_logs
+        WHERE news_id = #{newsId}
+    </delete>
+
+</mapper>

@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yxrobot.mapper.CharityStatsLogMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="CharityStatsLogResultMap" type="com.yxrobot.entity.CharityStatsLog">
+        <id column="id" property="id"/>
+        <result column="stats_id" property="statsId"/>
+        <result column="operation_type" property="operationType"/>
+        <result column="field_changes" property="updatedFields"/>
+        <result column="before_data" property="beforeData"/>
+        <result column="after_data" property="afterData"/>
+        <result column="update_reason" property="updateReason"/>
+        <result column="operator_id" property="operatorId"/>
+        <result column="operator_name" property="operatorName"/>
+        <result column="ip_address" property="operatorIp"/>
+        <result column="operation_time" property="operationTime"/>
+        <result column="data_version" property="dataVersion"/>
+        <result column="operation_result" property="operationResult"/>
+        <result column="error_message" property="errorMessage"/>
+        <result column="notes" property="notes"/>
+        <result column="created_at" property="createTime"/>
+    </resultMap>
+
+    <!-- 基础查询字段 -->
+    <sql id="Base_Column_List">
+        id, stats_id, operation_type, field_changes, before_data, after_data, update_reason,
+        operator_id, operator_name, ip_address, operation_time, data_version, operation_result,
+        error_message, notes, created_at
+    </sql>
+
+    <!-- 插入新的日志记录 -->
+    <insert id="insert" parameterType="com.yxrobot.entity.CharityStatsLog" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO charity_stats_logs (
+            stats_id, operation_type, field_changes, update_reason,
+            operator_id, operator_name, ip_address, created_at
+        ) VALUES (
+            #{statsId}, #{operationType}, #{updatedFields}, #{updateReason},
+            #{operatorId}, #{operatorName}, #{operatorIp}, #{createTime}
+        )
+    </insert>
+
+    <!-- 根据ID查询日志详情 -->
+    <select id="selectById" resultMap="CharityStatsLogResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM charity_stats_logs
+        WHERE id = #{id}
+    </select>
+
+    <!-- 根据统计数据ID查询日志列表 -->
+    <select id="selectByStatsId" resultMap="CharityStatsLogResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM charity_stats_logs
+        WHERE stats_id = #{statsId}
+        ORDER BY operation_time DESC
+        <if test="offset != null and limit != null">
+            LIMIT #{limit} OFFSET #{offset}
+        </if>
+    </select>
+
+    <!-- 根据统计数据ID统计日志总数 -->
+    <select id="countByStatsId" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM charity_stats_logs
+        WHERE stats_id = #{statsId}
+    </select>
+
+    <!-- 根据操作人查询日志列表 -->
+    <select id="selectByOperator" resultMap="CharityStatsLogResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM charity_stats_logs
+        WHERE operator_id = #{operatorId}
+        ORDER BY operation_time DESC
+        <if test="offset != null and limit != null">
+            LIMIT #{limit} OFFSET #{offset}
+        </if>
+    </select>
+
+    <!-- 根据操作人统计日志总数 -->
+    <select id="countByOperator" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM charity_stats_logs
+        WHERE operator_id = #{operatorId}
+    </select>
+
+    <!-- 根据时间范围查询日志列表 -->
+    <select id="selectByTimeRange" resultMap="CharityStatsLogResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM charity_stats_logs
+        WHERE operation_time BETWEEN #{startTime} AND #{endTime}
+        ORDER BY operation_time DESC
+        <if test="offset != null and limit != null">
+            LIMIT #{limit} OFFSET #{offset}
+        </if>
+    </select>
+
+    <!-- 根据时间范围统计日志总数 -->
+    <select id="countByTimeRange" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM charity_stats_logs
+        WHERE operation_time BETWEEN #{startTime} AND #{endTime}
+    </select>
+
+    <!-- 根据操作类型查询日志列表 -->
+    <select id="selectByOperationType" resultMap="CharityStatsLogResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM charity_stats_logs
+        WHERE operation_type = #{operationType}
+        ORDER BY operation_time DESC
+        <if test="offset != null and limit != null">
+            LIMIT #{limit} OFFSET #{offset}
+        </if>
+    </select>
+
+    <!-- 根据操作类型统计日志总数 -->
+    <select id="countByOperationType" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM charity_stats_logs
+        WHERE operation_type = #{operationType}
+    </select>
+
+    <!-- 根据操作结果查询日志列表 -->
+    <select id="selectByOperationResult" resultMap="CharityStatsLogResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM charity_stats_logs
+        WHERE operation_result = #{operationResult}
+        ORDER BY operation_time DESC
+        <if test="offset != null and limit != null">
+            LIMIT #{limit} OFFSET #{offset}
+        </if>
+    </select>
+
+    <!-- 根据操作结果统计日志总数 -->
+    <select id="countByOperationResult" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM charity_stats_logs
+        WHERE operation_result = #{operationResult}
+    </select>
+
+    <!-- 获取最新的日志记录 -->
+    <select id="selectLatestLogs" resultMap="CharityStatsLogResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM charity_stats_logs
+        ORDER BY operation_time DESC
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 获取操作类型统计 -->
+    <select id="getOperationTypeStatistics" resultType="java.util.Map">
+        SELECT 
+            operation_type,
+            COUNT(*) as count,
+            CASE operation_type
+                WHEN 'create' THEN '创建'
+                WHEN 'update' THEN '更新'
+                WHEN 'delete' THEN '删除'
+                ELSE operation_type
+            END as operationTypeName
+        FROM charity_stats_logs
+        GROUP BY operation_type
+        ORDER BY count DESC
+    </select>
+
+    <!-- 获取操作结果统计 -->
+    <select id="getOperationResultStatistics" resultType="java.util.Map">
+        SELECT 
+            operation_result,
+            COUNT(*) as count,
+            CASE operation_result
+                WHEN 'success' THEN '成功'
+                WHEN 'failed' THEN '失败'
+                ELSE operation_result
+            END as operationResultName
+        FROM charity_stats_logs
+        GROUP BY operation_result
+        ORDER BY 
+            CASE operation_result
+                WHEN 'success' THEN 1
+                WHEN 'failed' THEN 2
+                ELSE 3
+            END
+    </select>
+
+    <!-- 获取操作人统计 -->
+    <select id="getOperatorStatistics" resultType="java.util.Map">
+        SELECT 
+            operator_id,
+            operator_name,
+            COUNT(*) as operation_count,
+            COUNT(CASE WHEN operation_result = 'success' THEN 1 END) as success_count,
+            COUNT(CASE WHEN operation_result = 'failed' THEN 1 END) as failed_count
+        FROM charity_stats_logs
+        GROUP BY operator_id, operator_name
+        ORDER BY operation_count DESC
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 获取每日操作统计 -->
+    <select id="getDailyOperationStatistics" resultType="java.util.Map">
+        SELECT 
+            DATE(operation_time) as operation_date,
+            COUNT(*) as total_operations,
+            COUNT(CASE WHEN operation_result = 'success' THEN 1 END) as success_operations,
+            COUNT(CASE WHEN operation_result = 'failed' THEN 1 END) as failed_operations,
+            COUNT(CASE WHEN operation_type = 'create' THEN 1 END) as create_operations,
+            COUNT(CASE WHEN operation_type = 'update' THEN 1 END) as update_operations,
+            COUNT(CASE WHEN operation_type = 'delete' THEN 1 END) as delete_operations
+        FROM charity_stats_logs
+        WHERE operation_time >= DATE_SUB(NOW(), INTERVAL #{days} DAY)
+        GROUP BY DATE(operation_time)
+        ORDER BY operation_date DESC
+    </select>
+
+    <!-- 获取失败操作日志 -->
+    <select id="selectFailedOperations" resultMap="CharityStatsLogResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM charity_stats_logs
+        WHERE operation_result = 'failed'
+        ORDER BY operation_time DESC
+        <if test="offset != null and limit != null">
+            LIMIT #{limit} OFFSET #{offset}
+        </if>
+    </select>
+
+    <!-- 统计失败操作总数 -->
+    <select id="countFailedOperations" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM charity_stats_logs
+        WHERE operation_result = 'failed'
+    </select>
+
+    <!-- 根据IP地址查询日志列表 -->
+    <select id="selectByOperatorIp" resultMap="CharityStatsLogResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM charity_stats_logs
+        WHERE operator_ip = #{operatorIp}
+        ORDER BY operation_time DESC
+        <if test="offset != null and limit != null">
+            LIMIT #{limit} OFFSET #{offset}
+        </if>
+    </select>
+
+    <!-- 根据IP地址统计日志总数 -->
+    <select id="countByOperatorIp" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM charity_stats_logs
+        WHERE operator_ip = #{operatorIp}
+    </select>
+
+    <!-- 清理过期日志 -->
+    <delete id="cleanExpiredLogs">
+        DELETE FROM charity_stats_logs
+        WHERE operation_time &lt; DATE_SUB(NOW(), INTERVAL #{days} DAY)
+    </delete>
+
+    <!-- 获取数据版本变更历史 -->
+    <select id="selectVersionHistory" resultMap="CharityStatsLogResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM charity_stats_logs
+        WHERE stats_id = #{statsId}
+        AND operation_type IN ('create', 'update')
+        ORDER BY data_version ASC, operation_time ASC
+    </select>
+
+</mapper>

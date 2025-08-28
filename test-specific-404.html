@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>快速404错误测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .api-test {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: #f9f9f9;
+        }
+        .api-method {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .method-GET { background: #28a745; color: white; }
+        .method-PUT { background: #ffc107; color: black; }
+        .method-POST { background: #007bff; color: white; }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔧 快速404错误测试</h1>
+        <p>测试用户报告的具体API端点</p>
+
+        <div class="api-test">
+            <h3>❌ 用户报告的404错误</h3>
+            <div>
+                <span class="api-method method-PUT">PUT</span>
+                <code>/api/admin/products/9/with-urls</code>
+            </div>
+            <button onclick="testSpecificEndpoint()">测试此端点</button>
+            <div id="specificResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="api-test">
+            <h3>✅ 基础API测试</h3>
+            <div>
+                <span class="api-method method-GET">GET</span>
+                <code>/api/admin/products/test</code>
+            </div>
+            <button onclick="testBasicEndpoint()">测试基础端点</button>
+            <div id="basicResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="api-test">
+            <h3>📋 产品列表测试</h3>
+            <div>
+                <span class="api-method method-GET">GET</span>
+                <code>/api/admin/products</code>
+            </div>
+            <button onclick="testProductList()">测试产品列表</button>
+            <div id="listResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="api-test">
+            <h3>🆕 创建with-urls测试</h3>
+            <div>
+                <span class="api-method method-POST">POST</span>
+                <code>/api/admin/products/with-urls</code>
+            </div>
+            <button onclick="testCreateWithUrls()">测试创建端点</button>
+            <div id="createResult" class="result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8081';
+
+        async function testSpecificEndpoint() {
+            const resultDiv = document.getElementById('specificResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<div class="info">正在测试用户报告的404端点...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/products/9/with-urls`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: '测试产品更新',
+                        model: 'TEST-UPDATE-001',
+                        price: 1999.99,
+                        status: 'draft'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.status === 404) {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            ❌ 确认404错误！
+                            状态码: ${response.status}
+                            
+                            这个端点确实不存在，需要添加到后端！
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ 端点工作正常！
+                            状态码: ${response.status}
+                            响应: ${JSON.stringify(data, null, 2)}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ 网络错误: ${error.message}
+                        
+                        可能原因: 应用未启动 (localhost:8081)
+                    </div>
+                `;
+            }
+        }
+
+        async function testBasicEndpoint() {
+            const resultDiv = document.getElementById('basicResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<div class="info">测试基础端点...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/products/test`, {
+                    method: 'GET'
+                });
+
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        ✅ 基础端点正常
+                        状态码: ${response.status}
+                        消息: ${data.message}
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ 基础端点失败: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function testProductList() {
+            const resultDiv = document.getElementById('listResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<div class="info">测试产品列表...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/products?page=1&size=5`, {
+                    method: 'GET'
+                });
+
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        ✅ 产品列表正常
+                        状态码: ${response.status}
+                        产品数量: ${data.data ? data.data.list.length : 0}
+                        响应: ${JSON.stringify(data, null, 2)}
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ 产品列表失败: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function testCreateWithUrls() {
+            const resultDiv = document.getElementById('createResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<div class="info">测试创建with-urls端点...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/products/with-urls`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: '测试产品创建',
+                        model: 'TEST-CREATE-001',
+                        price: 2999.99,
+                        status: 'draft',
+                        cover_image_url: 'https://example.com/test.jpg'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.status === 404) {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            ❌ 创建端点404错误
+                            状态码: ${response.status}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ 创建端点正常
+                            状态码: ${response.status}
+                            响应: ${JSON.stringify(data, null, 2)}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ 创建端点失败: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // 页面加载时自动测试基础端点
+        window.onload = function() {
+            setTimeout(testBasicEndpoint, 1000);
+        };
+    </script>
+</body>
+</html>

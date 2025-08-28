@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yxrobot.mapper.LinkClickLogMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="LinkClickLogResultMap" type="com.yxrobot.entity.LinkClickLog">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="link_id" property="linkId" jdbcType="BIGINT"/>
+        <result column="user_ip" property="userIp" jdbcType="VARCHAR"/>
+        <result column="user_agent" property="userAgent" jdbcType="VARCHAR"/>
+        <result column="referer" property="referer" jdbcType="VARCHAR"/>
+        <result column="clicked_at" property="clickedAt" jdbcType="TIMESTAMP"/>
+        <result column="is_conversion" property="isConversion" jdbcType="TINYINT"/>
+        <result column="conversion_type" property="conversionType" jdbcType="VARCHAR"/>
+        <result column="conversion_value" property="conversionValue" jdbcType="DECIMAL"/>
+    </resultMap>
+
+    <!-- 基础列 -->
+    <sql id="Base_Column_List">
+        id, link_id, user_ip, user_agent, referer, clicked_at, 
+        is_conversion, conversion_type, conversion_value
+    </sql>
+
+    <!-- 根据ID查询 -->
+    <select id="selectById" resultMap="LinkClickLogResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM link_click_logs
+        WHERE id = #{id}
+    </select>
+
+    <!-- 根据链接ID查询点击日志列表 -->
+    <select id="selectByLinkId" resultMap="LinkClickLogResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM link_click_logs
+        WHERE link_id = #{linkId}
+        ORDER BY clicked_at DESC
+        <if test="limit != null and limit > 0">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 插入点击日志 -->
+    <insert id="insert" parameterType="com.yxrobot.entity.LinkClickLog" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO link_click_logs (
+            link_id, user_ip, user_agent, referer, clicked_at, 
+            is_conversion, conversion_type, conversion_value
+        ) VALUES (
+            #{linkId}, #{userIp}, #{userAgent}, #{referer}, #{clickedAt},
+            #{isConversion}, #{conversionType}, #{conversionValue}
+        )
+    </insert>
+
+    <!-- 批量插入点击日志 -->
+    <insert id="batchInsert" parameterType="list">
+        INSERT INTO link_click_logs (
+            link_id, user_ip, user_agent, referer, clicked_at, 
+            is_conversion, conversion_type, conversion_value
+        ) VALUES
+        <foreach collection="logs" item="log" separator=",">
+            (#{log.linkId}, #{log.userIp}, #{log.userAgent}, #{log.referer}, #{log.clickedAt},
+             #{log.isConversion}, #{log.conversionType}, #{log.conversionValue})
+        </foreach>
+    </insert>
+
+    <!-- 更新转化信息 -->
+    <update id="updateConversion">
+        UPDATE link_click_logs
+        SET is_conversion = 1,
+            conversion_type = #{conversionType},
+            conversion_value = #{conversionValue}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 删除指定时间之前的日志 -->
+    <delete id="deleteBeforeTime">
+        DELETE FROM link_click_logs
+        WHERE clicked_at &lt; #{beforeTime}
+    </delete>
+
+    <!-- 统计链接点击量 -->
+    <select id="selectClickCount" resultType="long">
+        SELECT COUNT(*)
+        FROM link_click_logs
+        <where>
+            <if test="linkId != null">
+                AND link_id = #{linkId}
+            </if>
+            <if test="startTime != null">
+                AND clicked_at &gt;= #{startTime}
+            </if>
+            <if test="endTime != null">
+                AND clicked_at &lt;= #{endTime}
+            </if>
+        </where>
+    </select>
+
+    <!-- 统计链接转化量 -->
+    <select id="selectConversionCount" resultType="long">
+        SELECT COUNT(*)
+        FROM link_click_logs
+        <where>
+            is_conversion = 1
+            <if test="linkId != null">
+                AND link_id = #{linkId}
+            </if>
+            <if test="startTime != null">
+                AND clicked_at &gt;= #{startTime}
+            </if>
+            <if test="endTime != null">
+                AND clicked_at &lt;= #{endTime}
+            </if>
+        </where>
+    </select>
+
+    <!-- 获取点击趋势数据 -->
+    <select id="selectClickTrends" resultType="map">
+        SELECT 
+            DATE(clicked_at) as date,
+            COUNT(*) as clickCount,
+            COUNT(DISTINCT user_ip) as uniqueVisitors
+        FROM link_click_logs
+        WHERE clicked_at &gt;= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
+        <if test="linkId != null">
+            AND link_id = #{linkId}
+        </if>
+        GROUP BY DATE(clicked_at)
+        ORDER BY date DESC
+    </select>
+
+    <!-- 获取转化趋势数据 -->
+    <select id="selectConversionTrends" resultType="map">
+        SELECT 
+            DATE(clicked_at) as date,
+            COUNT(*) as conversionCount,
+            COALESCE(SUM(conversion_value), 0) as totalValue
+        FROM link_click_logs
+        WHERE is_conversion = 1
+          AND clicked_at &gt;= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
+        <if test="linkId != null">
+            AND link_id = #{linkId}
+        </if>
+        GROUP BY DATE(clicked_at)
+        ORDER BY date DESC
+    </select>
+
+    <!-- 获取用户设备统计 -->
+    <select id="selectDeviceStats" resultType="map">
+        SELECT 
+            CASE 
+                WHEN LOWER(user_agent) LIKE '%mobile%' OR LOWER(user_agent) LIKE '%android%' OR LOWER(user_agent) LIKE '%iphone%' THEN '移动设备'
+                WHEN LOWER(user_agent) LIKE '%tablet%' OR LOWER(user_agent) LIKE '%ipad%' THEN '平板设备'
+                ELSE '桌面设备'
+            END as deviceType,
+            COUNT(*) as clickCount,
+            COUNT(CASE WHEN is_conversion = 1 THEN 1 END) as conversionCount
+        FROM link_click_logs
+        <where>
+            user_agent IS NOT NULL
+            <if test="linkId != null">
+                AND link_id = #{linkId}
+            </if>
+            <if test="startTime != null">
+                AND clicked_at &gt;= #{startTime}
+            </if>
+            <if test="endTime != null">
+                AND clicked_at &lt;= #{endTime}
+            </if>
+        </where>
+        GROUP BY deviceType
+        ORDER BY clickCount DESC
+    </select>
+
+    <!-- 获取来源统计 -->
+    <select id="selectRefererStats" resultType="map">
+        SELECT 
+            CASE 
+                WHEN referer IS NULL OR referer = '' THEN '直接访问'
+                WHEN referer LIKE '%google%' THEN 'Google'
+                WHEN referer LIKE '%baidu%' THEN '百度'
+                WHEN referer LIKE '%bing%' THEN 'Bing'
+                WHEN referer LIKE '%facebook%' THEN 'Facebook'
+                WHEN referer LIKE '%twitter%' THEN 'Twitter'
+                ELSE '其他网站'
+            END as refererSource,
+            COUNT(*) as clickCount,
+            COUNT(CASE WHEN is_conversion = 1 THEN 1 END) as conversionCount
+        FROM link_click_logs
+        <where>
+            <if test="linkId != null">
+                AND link_id = #{linkId}
+            </if>
+            <if test="startTime != null">
+                AND clicked_at &gt;= #{startTime}
+            </if>
+            <if test="endTime != null">
+                AND clicked_at &lt;= #{endTime}
+            </if>
+        </where>
+        GROUP BY refererSource
+        ORDER BY clickCount DESC
+    </select>
+
+    <!-- 更新链接的点击统计 -->
+    <update id="updateLinkClickStats">
+        UPDATE platform_links pl
+        SET 
+            click_count = (
+                SELECT COUNT(*) 
+                FROM link_click_logs 
+                WHERE link_id = #{linkId}
+            ),
+            conversion_count = (
+                SELECT COUNT(*) 
+                FROM link_click_logs 
+                WHERE link_id = #{linkId} AND is_conversion = 1
+            ),
+            updated_at = NOW()
+        WHERE id = #{linkId} AND is_deleted = 0
+    </update>
+
+</mapper>

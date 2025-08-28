@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>性能优化和错误处理测试 - 任务11验证</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f7fa;
+            color: #333;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #e74c3c;
+            padding-bottom: 15px;
+            font-size: 2.2em;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 35px;
+            margin-bottom: 20px;
+            border-left: 5px solid #e74c3c;
+            padding-left: 15px;
+            font-size: 1.4em;
+        }
+        .test-overview {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin-bottom: 35px;
+            padding: 25px;
+            border: 1px solid #e1e8ed;
+            border-radius: 10px;
+            background-color: #fafbfc;
+        }
+        .api-info {
+            background: linear-gradient(135deg, #fdeaea 0%, #fff5f5 100%);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 5px solid #e74c3c;
+        }
+        .test-button {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-right: 12px;
+            margin-bottom: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .test-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
+        }
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .result.success {
+            background: linear-gradient(135deg, #d5f4e6 0%, #e8f8f5 100%);
+            border: 1px solid #27ae60;
+            color: #1e8449;
+        }
+        .result.error {
+            background: linear-gradient(135deg, #fadbd8 0%, #fdeaea 100%);
+            border: 1px solid #e74c3c;
+            color: #c0392b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚡ 性能优化和错误处理测试 - 任务11验证</h1>
+        
+        <div class="test-overview">
+            <h3>📋 测试目标</h3>
+            <p><strong>任务11：性能优化和错误处理 - 确保系统稳定性</strong></p>
+            <ul>
+                <li>✅ 优化数据库查询性能，添加必要的索引</li>
+                <li>✅ 实现API响应时间监控，确保满足前端性能要求</li>
+                <li>✅ 完善错误处理机制，提供友好的错误信息</li>
+                <li>✅ 添加API请求参数验证和数据格式验证</li>
+                <li>✅ 实现数据缓存机制，提高统计和图表数据查询性能</li>
+                <li>✅ 添加日志记录，便于问题排查和性能监控</li>
+            </ul>
+        </div>
+
+        <!-- 性能监控测试 -->
+        <div class="test-section">
+            <h2>📊 性能监控测试</h2>
+            <div class="api-info">
+                <strong>测试范围：</strong> API响应时间监控、性能统计、慢查询检测<br>
+                <strong>监控接口：</strong> GET /api/monitor/performance/*<br>
+                <strong>验证重点：</strong> 响应时间记录、性能数据统计、报警机制
+            </div>
+            
+            <button class="test-button" onclick="testPerformanceOverview()">测试性能概览</button>
+            <button class="test-button" onclick="testApiStats()">测试API统计</button>
+            <button class="test-button" onclick="testSlowQueries()">测试慢查询</button>
+            <button class="test-button" onclick="testErrorRequests()">测试错误请求</button>
+            <button class="test-button" onclick="testPerformanceReport()">生成性能报告</button>
+            
+            <div id="performanceResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- 缓存机制测试 -->
+        <div class="test-section">
+            <h2>🚀 缓存机制测试</h2>
+            <div class="api-info">
+                <strong>测试范围：</strong> 数据缓存、缓存命中率、缓存管理<br>
+                <strong>缓存接口：</strong> GET /api/monitor/cache/*<br>
+                <strong>验证重点：</strong> 缓存效果、命中率统计、缓存清理
+            </div>
+            
+            <button class="test-button" onclick="testCacheStats()">测试缓存统计</button>
+            <button class="test-button" onclick="testCacheDetails()">测试缓存详情</button>
+            <button class="test-button" onclick="testCachePerformance()">测试缓存性能</button>
+            <button class="test-button" onclick="testCacheManagement()">测试缓存管理</button>
+            
+            <div id="cacheResult" class="result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const BASE_URL = 'http://localhost:8080';
+
+        async function makeRequest(url, options = {}) {
+            try {
+                const response = await fetch(`${BASE_URL}${url}`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' },
+                    ...options
+                });
+                return {
+                    success: response.ok,
+                    status: response.status,
+                    data: await response.json()
+                };
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        }
+
+        function showResult(elementId, result, testName) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            
+            if (result.success) {
+                element.className = 'result success';
+                element.textContent = `✅ ${testName} 成功\n\n${JSON.stringify(result.data, null, 2)}`;
+            } else {
+                element.className = 'result error';
+                element.textContent = `❌ ${testName} 失败\n\n${result.error || JSON.stringify(result.data, null, 2)}`;
+            }
+        }
+
+        async function testPerformanceOverview() {
+            const result = await makeRequest('/api/monitor/performance/overview');
+            showResult('performanceResult', result, '性能概览测试');
+        }
+
+        async function testApiStats() {
+            const result = await makeRequest('/api/monitor/performance/api-stats');
+            showResult('performanceResult', result, 'API统计测试');
+        }
+
+        async function testSlowQueries() {
+            const result = await makeRequest('/api/monitor/performance/slow-queries?limit=10');
+            showResult('performanceResult', result, '慢查询测试');
+        }
+
+        async function testErrorRequests() {
+            const result = await makeRequest('/api/monitor/performance/error-requests?limit=10');
+            showResult('performanceResult', result, '错误请求测试');
+        }
+
+        async function testPerformanceReport() {
+            const result = await makeRequest('/api/monitor/performance/report');
+            showResult('performanceResult', result, '性能报告测试');
+        }
+
+        async function testCacheStats() {
+            const result = await makeRequest('/api/monitor/cache/stats');
+            showResult('cacheResult', result, '缓存统计测试');
+        }
+
+        async function testCacheDetails() {
+            const result = await makeRequest('/api/monitor/cache/details');
+            showResult('cacheResult', result, '缓存详情测试');
+        }
+
+        async function testCachePerformance() {
+            // 测试缓存性能：先请求数据，再次请求验证缓存效果
+            const start1 = Date.now();
+            const result1 = await makeRequest('/api/sales/stats');
+            const time1 = Date.now() - start1;
+            
+            const start2 = Date.now();
+            const result2 = await makeRequest('/api/sales/stats');
+            const time2 = Date.now() - start2;
+            
+            const cacheEffect = time1 > time2 ? '缓存生效' : '缓存未生效';
+            const performanceData = {
+                firstRequest: `${time1}ms`,
+                secondRequest: `${time2}ms`,
+                cacheEffect: cacheEffect,
+                improvement: time1 > time2 ? `${((time1 - time2) / time1 * 100).toFixed(1)}%` : '0%'
+            };
+            
+            showResult('cacheResult', { success: true, data: performanceData }, '缓存性能测试');
+        }
+
+        async function testCacheManagement() {
+            // 测试缓存清理
+            const clearResult = await makeRequest('/api/monitor/cache/cleanup', { method: 'POST' });
+            showResult('cacheResult', clearResult, '缓存管理测试');
+        }
+    </script>
+</body>
+</html>

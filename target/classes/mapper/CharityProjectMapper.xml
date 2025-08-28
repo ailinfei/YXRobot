@@ -1,0 +1,415 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yxrobot.mapper.CharityProjectMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="CharityProjectResultMap" type="com.yxrobot.entity.CharityProject">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="description" property="description"/>
+        <result column="type" property="type"/>
+        <result column="status" property="status"/>
+        <result column="start_date" property="startDate"/>
+        <result column="end_date" property="endDate"/>
+        <result column="target_beneficiaries" property="targetBeneficiaries"/>
+        <result column="actual_beneficiaries" property="actualBeneficiaries"/>
+        <result column="budget" property="budget"/>
+        <result column="actual_cost" property="actualCost"/>
+        <result column="manager" property="manager"/>
+        <result column="manager_contact" property="managerContact"/>
+        <result column="institution_id" property="institutionId"/>
+        <result column="region" property="region"/>
+        <result column="priority" property="priority"/>
+        <result column="progress" property="progress"/>
+        <result column="tags" property="tags"/>
+        <result column="notes" property="notes"/>
+        <result column="created_at" property="createTime"/>
+        <result column="updated_at" property="updateTime"/>
+        <result column="created_by" property="createBy"/>
+        <result column="updated_by" property="updateBy"/>
+        <result column="is_deleted" property="deleted"/>
+    </resultMap>
+
+    <!-- 基础查询字段 -->
+    <sql id="Base_Column_List">
+        id, name, description, type, status, start_date, end_date, target_beneficiaries,
+        actual_beneficiaries, budget, actual_cost, manager, manager_contact, institution_id,
+        region, priority, progress, tags, notes, created_at, updated_at, created_by, updated_by, is_deleted
+    </sql>
+
+    <!-- 查询条件 -->
+    <sql id="Query_Where_Clause">
+        <where>
+            is_deleted = 0
+            <if test="keyword != null and keyword != ''">
+                AND (name LIKE CONCAT('%', #{keyword}, '%') 
+                     OR contact_person LIKE CONCAT('%', #{keyword}, '%')
+                     OR location LIKE CONCAT('%', #{keyword}, '%')
+                     OR description LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="type != null and type != ''">
+                AND type = #{type}
+            </if>
+            <if test="status != null and status != ''">
+                AND status = #{status}
+            </if>
+            <if test="region != null and region != ''">
+                AND location = #{region}
+            </if>
+        </where>
+    </sql>
+
+    <!-- 根据查询条件获取公益项目列表 -->
+    <select id="selectByQuery" resultMap="CharityProjectResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM charity_projects
+        <include refid="Query_Where_Clause"/>
+        ORDER BY created_at DESC
+        <if test="offset != null and limit != null">
+            LIMIT #{limit} OFFSET #{offset}
+        </if>
+    </select>
+
+    <!-- 根据查询条件统计项目总数 -->
+    <select id="countByQuery" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM charity_projects
+        <include refid="Query_Where_Clause"/>
+    </select>
+
+    <!-- 根据ID查询项目详情 -->
+    <select id="selectById" resultMap="CharityProjectResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM charity_projects
+        WHERE id = #{id} AND is_deleted = 0
+    </select>
+
+    <!-- 根据机构ID查询项目列表 -->
+    <select id="selectByInstitutionId" resultMap="CharityProjectResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM charity_projects
+        WHERE organizer = #{institutionId} AND is_deleted = 0
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 插入新项目 -->
+    <insert id="insert" parameterType="com.yxrobot.entity.CharityProject" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO charity_projects (
+            name, description, type, status, start_date, end_date, target_beneficiaries,
+            actual_beneficiaries, budget, actual_cost, manager, manager_contact, institution_id,
+            region, priority, progress, tags, notes, created_at, updated_at, created_by, updated_by, is_deleted
+        ) VALUES (
+            #{name}, #{description}, #{type}, #{status}, #{startDate}, #{endDate}, #{targetBeneficiaries},
+            #{actualBeneficiaries}, #{budget}, #{actualCost}, #{manager}, #{managerContact}, #{institutionId},
+            #{region}, #{priority}, #{progress}, #{tags}, #{notes}, #{createTime}, #{updateTime}, #{createBy}, #{updateBy}, #{deleted}
+        )
+    </insert>
+
+    <!-- 根据ID更新项目信息 -->
+    <update id="updateById" parameterType="com.yxrobot.entity.CharityProject">
+        UPDATE charity_projects
+        SET name = #{name},
+            description = #{description},
+            type = #{type},
+            status = #{status},
+            start_date = #{startDate},
+            end_date = #{endDate},
+            target_beneficiaries = #{targetBeneficiaries},
+            actual_beneficiaries = #{actualBeneficiaries},
+            budget = #{budget},
+            actual_cost = #{actualCost},
+            manager = #{manager},
+            manager_contact = #{managerContact},
+            institution_id = #{institutionId},
+            region = #{region},
+            priority = #{priority},
+            progress = #{progress},
+            tags = #{tags},
+            notes = #{notes},
+            updated_at = #{updateTime},
+            updated_by = #{updateBy}
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <!-- 根据ID软删除项目 -->
+    <update id="deleteById">
+        UPDATE charity_projects
+        SET is_deleted = 1, updated_at = NOW()
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <!-- 批量软删除项目 -->
+    <update id="batchDeleteByIds">
+        UPDATE charity_projects
+        SET is_deleted = 1, updated_at = NOW()
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        AND is_deleted = 0
+    </update>
+
+    <!-- 检查项目名称是否存在 -->
+    <select id="existsByName" resultType="java.lang.Boolean">
+        SELECT COUNT(*) > 0
+        FROM charity_projects
+        WHERE name = #{name} AND is_deleted = 0
+    </select>
+
+    <!-- 检查项目名称是否存在（排除指定ID） -->
+    <select id="existsByNameExcludeId" resultType="java.lang.Boolean">
+        SELECT COUNT(*) > 0
+        FROM charity_projects
+        WHERE name = #{name} AND id != #{excludeId} AND is_deleted = 0
+    </select>
+
+    <!-- 根据状态统计项目数量 -->
+    <select id="countByStatus" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM charity_projects
+        WHERE status = #{status} AND is_deleted = 0
+    </select>
+
+    <!-- 根据类型统计项目数量 -->
+    <select id="countByType" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM charity_projects
+        WHERE type = #{type} AND is_deleted = 0
+    </select>
+
+    <!-- 根据地区统计项目数量 -->
+    <select id="countByRegion" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM charity_projects
+        WHERE location = #{region} AND is_deleted = 0
+    </select>
+
+    <!-- 获取所有项目状态统计 -->
+    <select id="getStatusStatistics" resultType="java.util.Map">
+        SELECT 
+            status,
+            COUNT(*) as count,
+            CASE status
+                WHEN 'planning' THEN '规划中'
+                WHEN 'active' THEN '进行中'
+                WHEN 'completed' THEN '已完成'
+                WHEN 'suspended' THEN '暂停'
+                WHEN 'cancelled' THEN '已取消'
+                ELSE status
+            END as statusName
+        FROM charity_projects
+        WHERE is_deleted = 0
+        GROUP BY status
+        ORDER BY 
+            CASE status
+                WHEN 'active' THEN 1
+                WHEN 'planning' THEN 2
+                WHEN 'completed' THEN 3
+                WHEN 'suspended' THEN 4
+                WHEN 'cancelled' THEN 5
+                ELSE 6
+            END
+    </select>
+
+    <!-- 获取所有项目类型统计 -->
+    <select id="getTypeStatistics" resultType="java.util.Map">
+        SELECT 
+            type,
+            COUNT(*) as count,
+            CASE type
+                WHEN 'education' THEN '教育'
+                WHEN 'medical' THEN '医疗'
+                WHEN 'environment' THEN '环保'
+                WHEN 'poverty' THEN '扶贫'
+                WHEN 'disaster' THEN '救灾'
+                WHEN 'other' THEN '其他'
+                ELSE type
+            END as typeName
+        FROM charity_projects
+        WHERE is_deleted = 0
+        GROUP BY type
+        ORDER BY count DESC
+    </select>
+
+    <!-- 获取地区分布统计 -->
+    <select id="getRegionStatistics" resultType="java.util.Map">
+        SELECT 
+            region,
+            COUNT(*) as count
+        FROM charity_projects
+        WHERE is_deleted = 0
+        GROUP BY location
+        ORDER BY count DESC
+        LIMIT 10
+    </select>
+
+    <!-- 获取优先级分布统计 -->
+    <select id="getPriorityStatistics" resultType="java.util.Map">
+        SELECT 
+            'normal' as priority,
+            COUNT(*) as count,
+            '普通项目' as priorityName
+        FROM charity_projects
+        WHERE is_deleted = 0
+    </select>
+
+    <!-- 获取项目进度统计 -->
+    <select id="getProgressStatistics" resultType="java.util.Map">
+        SELECT 
+            CASE status
+                WHEN 'completed' THEN '已完成'
+                WHEN 'active' THEN '进行中'
+                WHEN 'planning' THEN '规划中'
+                ELSE '其他'
+            END as progress_range,
+            COUNT(*) as count
+        FROM charity_projects
+        WHERE is_deleted = 0
+        GROUP BY status
+        ORDER BY 
+            CASE status
+                WHEN 'completed' THEN 1
+                WHEN 'active' THEN 2
+                WHEN 'planning' THEN 3
+                ELSE 4
+            END
+    </select>
+
+    <!-- 获取活跃项目列表 -->
+    <select id="selectActiveProjects" resultMap="CharityProjectResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM charity_projects
+        WHERE is_deleted = 0 AND status = 'active'
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 获取即将结束的项目 -->
+    <select id="selectProjectsEndingSoon" resultMap="CharityProjectResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM charity_projects
+        WHERE is_deleted = 0 
+        AND status IN ('planning', 'active')
+        AND end_date IS NOT NULL
+        AND end_date BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL #{days} DAY)
+        ORDER BY end_date ASC
+    </select>
+
+    <!-- 获取最近创建的项目 -->
+    <select id="selectRecentProjects" resultMap="CharityProjectResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM charity_projects
+        WHERE is_deleted = 0
+        ORDER BY created_at DESC
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 更新项目状态 -->
+    <update id="updateStatus">
+        UPDATE charity_projects
+        SET status = #{status},
+            updated_at = NOW()
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <!-- 更新项目进度 -->
+    <update id="updateProgress">
+        UPDATE charity_projects
+        SET status = 'active',
+            updated_at = NOW()
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <!-- 批量更新项目状态 -->
+    <update id="batchUpdateStatus">
+        UPDATE charity_projects
+        SET status = #{status},
+            updated_at = NOW()
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        AND is_deleted = 0
+    </update>
+
+    <!-- 获取项目预算执行统计 -->
+    <select id="getBudgetExecutionStats" resultType="java.util.Map">
+        SELECT 
+            type,
+            COUNT(*) as project_count,
+            SUM(target_amount) as total_budget,
+            SUM(raised_amount) as total_cost,
+            CASE 
+                WHEN SUM(target_amount) > 0 
+                THEN ROUND(SUM(raised_amount) * 100.0 / SUM(target_amount), 2)
+                ELSE 0 
+            END as execution_rate
+        FROM charity_projects
+        WHERE is_deleted = 0 
+        AND status IN ('active', 'completed')
+        AND target_amount > 0
+        GROUP BY type
+        ORDER BY execution_rate DESC
+    </select>
+
+    <!-- 获取项目受益人统计 -->
+    <select id="getBeneficiaryStatistics" resultType="java.util.Map">
+        SELECT 
+            CASE 
+                WHEN beneficiaries >= 10000 THEN '10000人以上'
+                WHEN beneficiaries >= 5000 THEN '5000-9999人'
+                WHEN beneficiaries >= 1000 THEN '1000-4999人'
+                WHEN beneficiaries >= 500 THEN '500-999人'
+                WHEN beneficiaries >= 100 THEN '100-499人'
+                ELSE '100人以下'
+            END as beneficiary_range,
+            COUNT(*) as count
+        FROM charity_projects
+        WHERE is_deleted = 0 AND beneficiaries > 0
+        GROUP BY 
+            CASE 
+                WHEN beneficiaries >= 10000 THEN '10000人以上'
+                WHEN beneficiaries >= 5000 THEN '5000-9999人'
+                WHEN beneficiaries >= 1000 THEN '1000-4999人'
+                WHEN beneficiaries >= 500 THEN '500-999人'
+                WHEN beneficiaries >= 100 THEN '100-499人'
+                ELSE '100人以下'
+            END
+        ORDER BY 
+            CASE 
+                WHEN beneficiary_range = '10000人以上' THEN 1
+                WHEN beneficiary_range = '5000-9999人' THEN 2
+                WHEN beneficiary_range = '1000-4999人' THEN 3
+                WHEN beneficiary_range = '500-999人' THEN 4
+                WHEN beneficiary_range = '100-499人' THEN 5
+                ELSE 6
+            END
+    </select>
+
+    <!-- 获取项目时长统计 -->
+    <select id="getProjectDurationStats" resultType="java.util.Map">
+        SELECT 
+            id,
+            name,
+            start_date,
+            end_date,
+            CASE 
+                WHEN end_date IS NOT NULL 
+                THEN DATEDIFF(end_date, start_date)
+                ELSE DATEDIFF(NOW(), start_date)
+            END as duration_days,
+            CASE 
+                WHEN end_date IS NOT NULL AND DATEDIFF(end_date, start_date) >= 365 THEN '长期项目'
+                WHEN end_date IS NOT NULL AND DATEDIFF(end_date, start_date) >= 90 THEN '中期项目'
+                WHEN end_date IS NOT NULL THEN '短期项目'
+                WHEN DATEDIFF(NOW(), start_date) >= 365 THEN '长期项目'
+                WHEN DATEDIFF(NOW(), start_date) >= 90 THEN '中期项目'
+                ELSE '短期项目'
+            END as duration_type
+        FROM charity_projects
+        WHERE is_deleted = 0
+        ORDER BY duration_days DESC
+    </select>
+
+</mapper>

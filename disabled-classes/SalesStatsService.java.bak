@@ -1,0 +1,1355 @@
+package com.yxrobot.service;
+
+import com.yxrobot.dto.SalesStatsDTO;
+import com.yxrobot.dto.SalesChartDataDTO;
+import com.yxrobot.entity.SalesStats;
+import com.yxrobot.entity.StatType;
+import com.yxrobot.exception.SalesOperationException;
+import com.yxrobot.exception.SalesValidationException;
+import com.yxrobot.mapper.SalesStatsMapper;
+import com.yxrobot.mapper.SalesRecordMapper;
+import com.yxrobot.mapper.ProductMapper;
+import com.yxrobot.mapper.SalesStaffMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+import java.util.stream.Collectors;
+
+/**
+ * 销售统计分析服务类
+ * 负责处理销售数据的统计分析业务逻辑
+ * 
+ * 核心功能：
+ * - 销售统计数据计算和查询
+ * - 销售趋势分析
+ * - 产品销售排行统计
+ * - 销售人员业绩分析
+ * - 关键指标计算和对比
+ * - 实时统计数据更新
+ * 
+ * 数据真实性保障：
+ * - 所有统计数据基于真实的销售记录计算
+ * - 不返回任何模拟或示例统计数据
+ * - 空数据状态正确处理，返回零值统计
+ * - 严格执行字段映射一致性规范
+ * 
+ * @author YXRobot开发团队
+ * @version 1.0.0
+ * @since 2025-01-27
+ */
+@Service
+@Transactional
+public class SalesStatsService {
+    
+    private static final Logger logger = LoggerFactory.getLogger(SalesStatsService.class);
+    
+    @Autowired
+    private SalesStatsMapper salesStatsMapper;
+    
+    @Autowired
+    private SalesRecordMapper salesRecordMapper;
+    
+    @Autowired
+    private ProductMapper productMapper;
+    
+    @Autowired
+    private SalesStaffMapper salesStaffMapper;
+    
+    /**
+     * 获取销售统计数据
+     * 
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @param statType 统计类型
+     * @return 销售统计数据
+     */
+    public SalesStatsDTO getSalesStats(LocalDate startDate, LocalDate endDate, String statType) {
+        logger.info("开始获取销售统计数据，开始日期：{}，结束日期：{}，统计类型：{}", startDate, endDate, statType);
+        
+        try {
+            // 参数验证和默认值设置
+            if (endDate == null) {
+                endDate = LocalDate.now();
+            }
+            if (startDate == null) {
+                startDate = endDate.minusMonths(1);
+            }
+            if (statType == null) {
+                statType = "daily";
+            }
+            
+            // 查询关键指标汇总
+            Map<String, Object> keyMetrics = salesStatsMapper.selectKeyMetricsSummary(startDate, endDate);
+            
+            // 创建统计DTO
+            SalesStatsDTO statsDTO = new SalesStatsDTO();
+            
+            if (keyMetrics != null && !keyMetrics.isEmpty()) {
+                // 基础统计数据
+                statsDTO.setTotalSalesAmount(getBigDecimalValue(keyMetrics, "total_sales_amount"));
+                statsDTO.setTotalOrders(getIntegerValue(keyMetrics, "total_orders"));
+                statsDTO.setTotalQuantity(getIntegerValue(keyMetrics, "total_quantity"));
+                statsDTO.setAvgOrderAmount(getBigDecimalValue(keyMetrics, "avg_order_amount"));
+                statsDTO.setNewCustomers(getIntegerValue(keyMetrics, "new_customers"));
+                statsDTO.setActiveCustomers(getIntegerValue(keyMetrics, "active_customers"));
+                statsDTO.setTopProductId(getLongValue(keyMetrics, "top_product_id"));
+                statsDTO.setTopStaffId(getLongValue(keyMetrics, "top_staff_id"));
+                
+                // 查询关联信息
+                enrichStatsDTO(statsDTO);
+                
+                // 计算增长率
+                calculateGrowthRates(statsDTO, startDate, endDate, statType);
+            } else {
+                // 空数据状态 - 返回零值统计，不返回模拟数据
+                logger.info("未查询到销售统计数据，返回空状态统计");
+                // statsDTO已在构造函数中初始化为零值
+            }
+            
+            // 设置统计信息
+            statsDTO.setStatDate(endDate);
+            statsDTO.setStatType(StatType.valueOf(statType.toUpperCase()));
+            
+            logger.info("销售统计数据获取完成，总销售额：{}，总订单数：{}", 
+                    statsDTO.getTotalSalesAmount(), statsDTO.getTotalOrders());
+            
+            return statsDTO;
+            
+        } catch (Exception e) {
+            logger.error("获取销售统计数据失败", e);
+            throw new SalesOperationException("获取销售统计数据失败：" + e.getMessage());
+        }
+    }
+    
+    /**
+     * 获取销售趋势数据
+     * 
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @param groupBy 分组方式（day/week/month/year）
+     * @return 销售趋势数据
+     */
+    public SalesChartDataDTO getSalesTrends(LocalDate startDate, LocalDate endDate, String groupBy) {
+        logger.info("开始获取销售趋势数据，开始日期：{}，结束日期：{}，分组方式：{}", startDate, endDate, groupBy);
+        
+        try {
+            // 参数验证和默认值设置
+            if (endDate == null) {
+                endDate = LocalDate.now();
+            }
+            if (startDate == null) {
+                startDate = endDate.minusMonths(3);
+            }
+            if (groupBy == null) {
+                groupBy = "day";
+            }
+            
+            // 查询趋势数据
+            List<Map<String, Object>> trendDataList = salesStatsMapper.selectSalesTrends(groupBy, startDate, endDate);
+            
+            SalesChartDataDTO chartData = new SalesChartDataDTO();
+            chartData.setChartType("trend");
+            chartData.setTitle("销售趋势图");
+            
+            if (trendDataList != null && !trendDataList.isEmpty()) {
+                // 创建趋势数据对象
+                SalesChartDataDTO.TrendData trendData = new SalesChartDataDTO.TrendData();
+                
+                // 提取日期和数值
+                List<String> dates = new ArrayList<>();
+                List<BigDecimal> salesAmounts = new ArrayList<>();
+                List<Integer> orderCounts = new ArrayList<>();
+                List<BigDecimal> avgOrderAmounts = new ArrayList<>();
+                
+                for (Map<String, Object> data : trendDataList) {
+                    String dateStr = getStringValue(data, "stat_date");
+                    if (dateStr != null) {
+                        dates.add(formatDateForChart(dateStr, groupBy));
+                    }
+                    
+                    BigDecimal salesAmount = getBigDecimalValue(data, "total_sales_amount");
+                    Integer orderCount = getIntegerValue(data, "total_orders");
+                    
+                    salesAmounts.add(salesAmount);
+                    orderCounts.add(orderCount);
+                    
+                    // 计算平均订单金额
+                    if (salesAmount != null && orderCount != null && orderCount > 0) {
+                        BigDecimal avgAmount = salesAmount.divide(new BigDecimal(orderCount), 2, RoundingMode.HALF_UP);
+                        avgOrderAmounts.add(avgAmount);
+                    } else {
+                        avgOrderAmounts.add(BigDecimal.ZERO);
+                    }
+                }
+                
+                trendData.setDates(dates);
+                trendData.setSalesAmounts(salesAmounts);
+                trendData.setOrderCounts(orderCounts);
+                trendData.setAvgOrderAmounts(avgOrderAmounts);
+                
+                chartData.setTrendData(trendData);
+            } else {
+                // 空数据状态 - 返回空的趋势数据
+                logger.info("未查询到销售趋势数据，返回空趋势");
+                SalesChartDataDTO.TrendData emptyTrendData = new SalesChartDataDTO.TrendData();
+                emptyTrendData.setDates(new ArrayList<>());
+                emptyTrendData.setSalesAmounts(new ArrayList<>());
+                emptyTrendData.setOrderCounts(new ArrayList<>());
+                emptyTrendData.setAvgOrderAmounts(new ArrayList<>());
+                chartData.setTrendData(emptyTrendData);
+            }
+            
+            logger.info("销售趋势数据获取完成，数据点数量：{}", 
+                    chartData.getTrendData() != null ? chartData.getTrendData().getDates().size() : 0);
+            return chartData;
+            
+        } catch (Exception e) {
+            logger.error("获取销售趋势数据失败", e);
+            throw new SalesOperationException("获取销售趋势数据失败：" + e.getMessage());
+        }
+    }
+    
+    /**
+     * 获取产品销售排行
+     * 
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @param limit 返回数量限制
+     * @return 产品销售排行列表
+     */
+    public List<Map<String, Object>> getProductRanking(LocalDate startDate, LocalDate endDate, Integer limit) {
+        logger.info("开始获取产品销售排行，开始日期：{}，结束日期：{}，限制数量：{}", startDate, endDate, limit);
+        
+        try {
+            // 参数验证和默认值设置
+            if (endDate == null) {
+                endDate = LocalDate.now();
+            }
+            if (startDate == null) {
+                startDate = endDate.minusMonths(1);
+            }
+            if (limit == null || limit <= 0) {
+                limit = 10;
+            }
+            
+            // 查询产品销售排行
+            List<Map<String, Object>> productRanking = salesRecordMapper.selectProductRanking(startDate, endDate, limit);
+            
+            if (productRanking == null || productRanking.isEmpty()) {
+                logger.info("未查询到产品销售排行数据，返回空列表");
+                return new ArrayList<>();
+            }
+            
+            // 处理排行数据
+            List<Map<String, Object>> result = new ArrayList<>();
+            int rank = 1;
+            
+            for (Map<String, Object> product : productRanking) {
+                Map<String, Object> rankingItem = new HashMap<>();
+                rankingItem.put("rank", rank++);
+                rankingItem.put("productId", getLongValue(product, "product_id"));
+                rankingItem.put("productName", getStringValue(product, "product_name"));
+                rankingItem.put("salesAmount", getBigDecimalValue(product, "total_sales_amount"));
+                rankingItem.put("quantity", getIntegerValue(product, "total_quantity"));
+                rankingItem.put("orderCount", getIntegerValue(product, "order_count"));
+                
+                // 计算平均单价
+                BigDecimal salesAmount = getBigDecimalValue(product, "total_sales_amount");
+                Integer quantity = getIntegerValue(product, "total_quantity");
+                if (salesAmount != null && quantity != null && quantity > 0) {
+                    BigDecimal avgPrice = salesAmount.divide(new BigDecimal(quantity), 2, RoundingMode.HALF_UP);
+                    rankingItem.put("avgPrice", avgPrice);
+                } else {
+                    rankingItem.put("avgPrice", BigDecimal.ZERO);
+                }
+                
+                result.add(rankingItem);
+            }
+            
+            logger.info("产品销售排行获取完成，排行数量：{}", result.size());
+            return result;
+            
+        } catch (Exception e) {
+            logger.error("获取产品销售排行失败", e);
+            throw new SalesOperationException("获取产品销售排行失败：" + e.getMessage());
+        }
+    }
+    
+    /**
+     * 获取销售人员业绩排行
+     * 
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @param limit 返回数量限制
+     * @return 销售人员业绩排行列表
+     */
+    public List<Map<String, Object>> getStaffPerformance(LocalDate startDate, LocalDate endDate, Integer limit) {
+        logger.info("开始获取销售人员业绩排行，开始日期：{}，结束日期：{}，限制数量：{}", startDate, endDate, limit);
+        
+        try {
+            // 参数验证和默认值设置
+            if (endDate == null) {
+                endDate = LocalDate.now();
+            }
+            if (startDate == null) {
+                startDate = endDate.minusMonths(1);
+            }
+            if (limit == null || limit <= 0) {
+                limit = 10;
+            }
+            
+            // 查询销售人员业绩排行
+            List<Map<String, Object>> staffPerformance = salesRecordMapper.selectStaffPerformance(startDate, endDate, limit);
+            
+            if (staffPerformance == null || staffPerformance.isEmpty()) {
+                logger.info("未查询到销售人员业绩数据，返回空列表");
+                return new ArrayList<>();
+            }
+            
+            // 处理业绩数据
+            List<Map<String, Object>> result = new ArrayList<>();
+            int rank = 1;
+            
+            for (Map<String, Object> staff : staffPerformance) {
+                Map<String, Object> performanceItem = new HashMap<>();
+                performanceItem.put("rank", rank++);
+                performanceItem.put("staffId", getLongValue(staff, "sales_staff_id"));
+                performanceItem.put("staffName", getStringValue(staff, "staff_name"));
+                performanceItem.put("salesAmount", getBigDecimalValue(staff, "total_sales_amount"));
+                performanceItem.put("orderCount", getIntegerValue(staff, "order_count"));
+                performanceItem.put("customerCount", getIntegerValue(staff, "customer_count"));
+                
+                // 计算平均订单金额
+                BigDecimal salesAmount = getBigDecimalValue(staff, "total_sales_amount");
+                Integer orderCount = getIntegerValue(staff, "order_count");
+                if (salesAmount != null && orderCount != null && orderCount > 0) {
+                    BigDecimal avgOrderAmount = salesAmount.divide(new BigDecimal(orderCount), 2, RoundingMode.HALF_UP);
+                    performanceItem.put("avgOrderAmount", avgOrderAmount);
+                } else {
+                    performanceItem.put("avgOrderAmount", BigDecimal.ZERO);
+                }
+                
+                // 查询销售目标和计算完成率
+                Long staffId = getLongValue(staff, "sales_staff_id");
+                if (staffId != null) {
+                    BigDecimal salesTarget = getSalesTarget(staffId);
+                    performanceItem.put("salesTarget", salesTarget);
+                    
+                    if (salesTarget != null && salesTarget.compareTo(BigDecimal.ZERO) > 0 && salesAmount != null) {
+                        BigDecimal completionRate = salesAmount.divide(salesTarget, 4, RoundingMode.HALF_UP)
+                                .multiply(new BigDecimal("100"));
+                        performanceItem.put("targetCompletion", completionRate);
+                    } else {
+                        performanceItem.put("targetCompletion", BigDecimal.ZERO);
+                    }
+                }
+                
+                result.add(performanceItem);
+            }
+            
+            logger.info("销售人员业绩排行获取完成，排行数量：{}", result.size());
+            return result;
+            
+        } catch (Exception e) {
+            logger.error("获取销售人员业绩排行失败", e);
+            throw new SalesOperationException("获取销售人员业绩排行失败：" + e.getMessage());
+        }
+    }
+    
+    /**
+     * 获取实时统计数据
+     * 
+     * @return 实时统计数据
+     */
+    public Map<String, Object> getRealTimeStats() {
+        logger.info("开始获取实时统计数据");
+        
+        try {
+            Map<String, Object> realTimeStats = salesStatsMapper.selectRealTimeStats();
+            
+            if (realTimeStats == null || realTimeStats.isEmpty()) {
+                logger.info("未查询到实时统计数据，返回空统计");
+                realTimeStats = createEmptyRealTimeStats();
+            }
+            
+            // 添加更新时间
+            realTimeStats.put("updateTime", LocalDateTime.now());
+            
+            logger.info("实时统计数据获取完成");
+            return realTimeStats;
+            
+        } catch (Exception e) {
+            logger.error("获取实时统计数据失败", e);
+            throw new SalesOperationException("获取实时统计数据失败：" + e.getMessage());
+        }
+    }
+    
+    /**
+     * 获取今日统计数据
+     * 
+     * @return 今日统计数据
+     */
+    public Map<String, Object> getTodayStats() {
+        logger.info("开始获取今日统计数据");
+        
+        try {
+            Map<String, Object> todayStats = salesStatsMapper.selectTodayStats();
+            
+            if (todayStats == null || todayStats.isEmpty()) {
+                logger.info("未查询到今日统计数据，返回空统计");
+                todayStats = createEmptyDailyStats();
+            }
+            
+            // 计算与昨日对比
+            Map<String, Object> yesterdayStats = getYesterdayStats();
+            addDailyComparison(todayStats, yesterdayStats);
+            
+            logger.info("今日统计数据获取完成");
+            return todayStats;
+            
+        } catch (Exception e) {
+            logger.error("获取今日统计数据失败", e);
+            throw new SalesOperationException("获取今日统计数据失败：" + e.getMessage());
+        }
+    }
+    
+    /**
+     * 获取本月统计数据
+     * 
+     * @return 本月统计数据
+     */
+    public Map<String, Object> getCurrentMonthStats() {
+        logger.info("开始获取本月统计数据");
+        
+        try {
+            Map<String, Object> currentMonthStats = salesStatsMapper.selectCurrentMonthStats();
+            
+            if (currentMonthStats == null || currentMonthStats.isEmpty()) {
+                logger.info("未查询到本月统计数据，返回空统计");
+                currentMonthStats = createEmptyMonthlyStats();
+            }
+            
+            // 计算与上月对比
+            Map<String, Object> lastMonthStats = getLastMonthStats();
+            addMonthlyComparison(currentMonthStats, lastMonthStats);
+            
+            logger.info("本月统计数据获取完成");
+            return currentMonthStats;
+            
+        } catch (Exception e) {
+            logger.error("获取本月统计数据失败", e);
+            throw new SalesOperationException("获取本月统计数据失败：" + e.getMessage());
+        }
+    }
+    
+    /**
+     * 生成统计数据
+     * 
+     * @param statDate 统计日期
+     * @param statType 统计类型
+     */
+    @Transactional
+    public void generateStats(LocalDate statDate, String statType) {
+        logger.info("开始生成统计数据，统计日期：{}，统计类型：{}", statDate, statType);
+        
+        try {
+            if (statDate == null) {
+                statDate = LocalDate.now();
+            }
+            if (statType == null) {
+                statType = "daily";
+            }
+            
+            // 检查是否已存在统计数据
+            boolean exists = salesStatsMapper.existsByDateAndType(statDate, statType);
+            if (exists) {
+                logger.info("统计数据已存在，执行更新操作");
+                salesStatsMapper.updateStatsByDateAndType(statDate, statType);
+            } else {
+                logger.info("统计数据不存在，执行生成操作");
+                switch (statType.toLowerCase()) {
+                    case "daily":
+                        salesStatsMapper.generateDailyStats(statDate);
+                        break;
+                    case "weekly":
+                        salesStatsMapper.generateWeeklyStats(statDate);
+                        break;
+                    case "monthly":
+                        salesStatsMapper.generateMonthlyStats(statDate);
+                        break;
+                    case "yearly":
+                        salesStatsMapper.generateYearlyStats(statDate);
+                        break;
+                    default:
+                        throw new SalesValidationException("不支持的统计类型：" + statType);
+                }
+            }
+            
+            logger.info("统计数据生成完成");
+            
+        } catch (Exception e) {
+            logger.error("生成统计数据失败", e);
+            throw new SalesOperationException("生成统计数据失败：" + e.getMessage());
+        }
+    }
+    
+    /**
+     * 清理过期统计数据
+     * 
+     * @param beforeDate 清理此日期之前的数据
+     * @return 清理的记录数
+     */
+    @Transactional
+    public int cleanupExpiredStats(LocalDate beforeDate) {
+        logger.info("开始清理过期统计数据，清理日期：{}", beforeDate);
+        
+        try {
+            if (beforeDate == null) {
+                beforeDate = LocalDate.now().minusYears(2); // 默认清理2年前的数据
+            }
+            
+            int cleanedCount = salesStatsMapper.cleanupExpiredStats(beforeDate);
+            
+            logger.info("过期统计数据清理完成，清理记录数：{}", cleanedCount);
+            return cleanedCount;
+            
+        } catch (Exception e) {
+            logger.error("清理过期统计数据失败", e);
+            throw new SalesOperationException("清理过期统计数据失败：" + e.getMessage());
+        }
+    }
+    
+    /**
+     * 获取销售概览统计数据
+     * 包含关键指标的汇总信息
+     * 
+     * @return 销售概览统计数据
+     */
+    public Map<String, Object> getSalesOverview() {
+        logger.info("开始获取销售概览统计数据");
+        
+        try {
+            Map<String, Object> overview = new HashMap<>();
+            
+            // 获取今日统计
+            Map<String, Object> todayStats = getTodayStats();
+            overview.put("today", todayStats);
+            
+            // 获取本月统计
+            Map<String, Object> monthStats = getCurrentMonthStats();
+            overview.put("currentMonth", monthStats);
+            
+            // 获取实时统计
+            Map<String, Object> realtimeStats = getRealTimeStats();
+            overview.put("realtime", realtimeStats);
+            
+            // 获取关键指标
+            LocalDate now = LocalDate.now();
+            LocalDate monthStart = now.withDayOfMonth(1);
+            Map<String, Object> keyMetrics = salesStatsMapper.selectKeyMetricsSummary(monthStart, now);
+            
+            if (keyMetrics != null && !keyMetrics.isEmpty()) {
+                overview.put("keyMetrics", keyMetrics);
+            } else {
+                overview.put("keyMetrics", createEmptyMonthlyStats());
+            }
+            
+            logger.info("销售概览统计数据获取完成");
+            return overview;
+            
+        } catch (Exception e) {
+            logger.error("获取销售概览统计数据失败", e);
+            throw new SalesOperationException("获取销售概览统计数据失败：" + e.getMessage());
+        }
+    }
+    
+    /**
+     * 获取销售目标完成情况
+     * 
+     * @param period 统计周期 (month/quarter/year)
+     * @return 销售目标完成情况
+     */
+    public Map<String, Object> getTargetCompletion(String period) {
+        logger.info("开始获取销售目标完成情况，统计周期：{}", period);
+        
+        try {
+            Map<String, Object> completion = new HashMap<>();
+            LocalDate now = LocalDate.now();
+            LocalDate startDate, endDate;
+            
+            // 根据周期确定日期范围
+            switch (period.toLowerCase()) {
+                case "month":
+                    startDate = now.withDayOfMonth(1);
+                    endDate = now;
+                    break;
+                case "quarter":
+                    int currentQuarter = (now.getMonthValue() - 1) / 3 + 1;
+                    startDate = LocalDate.of(now.getYear(), (currentQuarter - 1) * 3 + 1, 1);
+                    endDate = now;
+                    break;
+                case "year":
+                    startDate = LocalDate.of(now.getYear(), 1, 1);
+                    endDate = now;
+                    break;
+                default:
+                    startDate = now.withDayOfMonth(1);
+                    endDate = now;
+                    period = "month";
+            }
+            
+            // 获取实际销售数据
+            Map<String, Object> actualStats = salesStatsMapper.selectKeyMetricsSummary(startDate, endDate);
+            BigDecimal actualAmount = actualStats != null ? 
+                getBigDecimalValue(actualStats, "total_sales_amount") : BigDecimal.ZERO;
+            
+            // 获取销售目标（这里简化处理，实际应该从配置或目标表获取）
+            BigDecimal targetAmount = getTargetAmountForPeriod(period, startDate, endDate);
+            
+            // 计算完成率
+            BigDecimal completionRate = BigDecimal.ZERO;
+            if (targetAmount.compareTo(BigDecimal.ZERO) > 0) {
+                completionRate = actualAmount.divide(targetAmount, 4, RoundingMode.HALF_UP)
+                        .multiply(new BigDecimal("100"));
+            }
+            
+            completion.put("period", period);
+            completion.put("startDate", startDate.toString());
+            completion.put("endDate", endDate.toString());
+            completion.put("actualAmount", actualAmount);
+            completion.put("targetAmount", targetAmount);
+            completion.put("completionRate", completionRate);
+            completion.put("remainingAmount", targetAmount.subtract(actualAmount));
+            
+            logger.info("销售目标完成情况获取完成，完成率：{}%", completionRate);
+            return completion;
+            
+        } catch (Exception e) {
+            logger.error("获取销售目标完成情况失败", e);
+            throw new SalesOperationException("获取销售目标完成情况失败：" + e.getMessage());
+        }
+    }
+    
+    /**
+     * 获取销售增长率统计
+     * 
+     * @param period 对比周期 (month/quarter/year)
+     * @return 销售增长率统计
+     */
+    public Map<String, Object> getGrowthRate(String period) {
+        logger.info("开始获取销售增长率统计，对比周期：{}", period);
+        
+        try {
+            Map<String, Object> growthRate = new HashMap<>();
+            LocalDate now = LocalDate.now();
+            LocalDate currentStart, currentEnd, previousStart, previousEnd;
+            
+            // 根据周期确定当前和上一周期的日期范围
+            switch (period.toLowerCase()) {
+                case "month":
+                    currentStart = now.withDayOfMonth(1);
+                    currentEnd = now;
+                    previousStart = currentStart.minusMonths(1);
+                    previousEnd = currentStart.minusDays(1);
+                    break;
+                case "quarter":
+                    int currentQuarter = (now.getMonthValue() - 1) / 3 + 1;
+                    currentStart = LocalDate.of(now.getYear(), (currentQuarter - 1) * 3 + 1, 1);
+                    currentEnd = now;
+                    previousStart = currentStart.minusMonths(3);
+                    previousEnd = currentStart.minusDays(1);
+                    break;
+                case "year":
+                    currentStart = LocalDate.of(now.getYear(), 1, 1);
+                    currentEnd = now;
+                    previousStart = currentStart.minusYears(1);
+                    previousEnd = currentStart.minusDays(1);
+                    break;
+                default:
+                    currentStart = now.withDayOfMonth(1);
+                    currentEnd = now;
+                    previousStart = currentStart.minusMonths(1);
+                    previousEnd = currentStart.minusDays(1);
+                    period = "month";
+            }
+            
+            // 获取当前周期和上一周期的销售数据
+            Map<String, Object> currentStats = salesStatsMapper.selectKeyMetricsSummary(currentStart, currentEnd);
+            Map<String, Object> previousStats = salesStatsMapper.selectKeyMetricsSummary(previousStart, previousEnd);
+            
+            BigDecimal currentAmount = currentStats != null ? 
+                getBigDecimalValue(currentStats, "total_sales_amount") : BigDecimal.ZERO;
+            BigDecimal previousAmount = previousStats != null ? 
+                getBigDecimalValue(previousStats, "total_sales_amount") : BigDecimal.ZERO;
+            
+            Integer currentOrders = currentStats != null ? 
+                getIntegerValue(currentStats, "total_orders") : 0;
+            Integer previousOrders = previousStats != null ? 
+                getIntegerValue(previousStats, "total_orders") : 0;
+            
+            // 计算增长率
+            BigDecimal amountGrowthRate = BigDecimal.ZERO;
+            BigDecimal orderGrowthRate = BigDecimal.ZERO;
+            
+            if (previousAmount.compareTo(BigDecimal.ZERO) > 0) {
+                amountGrowthRate = currentAmount.subtract(previousAmount)
+                        .divide(previousAmount, 4, RoundingMode.HALF_UP)
+                        .multiply(new BigDecimal("100"));
+            }
+            
+            if (previousOrders > 0) {
+                orderGrowthRate = new BigDecimal(currentOrders - previousOrders)
+                        .divide(new BigDecimal(previousOrders), 4, RoundingMode.HALF_UP)
+                        .multiply(new BigDecimal("100"));
+            }
+            
+            growthRate.put("period", period);
+            growthRate.put("currentPeriod", Map.of(
+                "startDate", currentStart.toString(),
+                "endDate", currentEnd.toString(),
+                "salesAmount", currentAmount,
+                "orderCount", currentOrders
+            ));
+            growthRate.put("previousPeriod", Map.of(
+                "startDate", previousStart.toString(),
+                "endDate", previousEnd.toString(),
+                "salesAmount", previousAmount,
+                "orderCount", previousOrders
+            ));
+            growthRate.put("amountGrowthRate", amountGrowthRate);
+            growthRate.put("orderGrowthRate", orderGrowthRate);
+            
+            logger.info("销售增长率统计获取完成，销售额增长率：{}%，订单增长率：{}%", 
+                amountGrowthRate, orderGrowthRate);
+            return growthRate;
+            
+        } catch (Exception e) {
+            logger.error("获取销售增长率统计失败", e);
+            throw new SalesOperationException("获取销售增长率统计失败：" + e.getMessage());
+        }
+    }
+    
+    /**
+     * 刷新统计数据缓存
+     * 用于实时更新统计数据
+     */
+    public void refreshStatsCache() {
+        logger.info("开始刷新统计数据缓存");
+        
+        try {
+            // 这里可以实现缓存刷新逻辑
+            // 例如：清除Redis缓存、重新计算关键统计数据等
+            
+            // 重新生成今日统计
+            LocalDate today = LocalDate.now();
+            generateStats(today, "daily");
+            
+            // 重新生成本月统计
+            generateStats(today, "monthly");
+            
+            logger.info("统计数据缓存刷新完成");
+            
+        } catch (Exception e) {
+            logger.error("刷新统计数据缓存失败", e);
+            throw new SalesOperationException("刷新统计数据缓存失败：" + e.getMessage());
+        }
+    }
+    
+    /**
+     * 获取适配前端的销售统计数据
+     * 专门为前端概览卡片提供数据，返回格式完全匹配前端SalesStats接口
+     * 
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @param statType 统计类型
+     * @return 适配前端的销售统计数据Map
+     */
+    public Map<String, Object> getSalesStatsForFrontend(LocalDate startDate, LocalDate endDate, String statType) {
+        logger.info("开始获取适配前端的销售统计数据，开始日期：{}，结束日期：{}，统计类型：{}", startDate, endDate, statType);
+        
+        try {
+            // 参数验证和默认值设置
+            if (endDate == null) {
+                endDate = LocalDate.now();
+            }
+            if (startDate == null) {
+                startDate = endDate.minusMonths(1);
+            }
+            if (statType == null) {
+                statType = "daily";
+            }
+            
+            // 查询关键指标汇总
+            Map<String, Object> keyMetrics = salesStatsMapper.selectKeyMetricsSummary(startDate, endDate);
+            
+            // 创建前端适配的统计数据Map
+            Map<String, Object> frontendStats = new HashMap<>();
+            
+            if (keyMetrics != null && !keyMetrics.isEmpty()) {
+                // 基础统计数据 - 字段名完全匹配前端SalesStats接口
+                frontendStats.put("totalSalesAmount", getBigDecimalValue(keyMetrics, "total_sales_amount"));
+                frontendStats.put("totalOrders", getIntegerValue(keyMetrics, "total_orders"));
+                frontendStats.put("avgOrderAmount", getBigDecimalValue(keyMetrics, "avg_order_amount"));
+                frontendStats.put("totalQuantity", getIntegerValue(keyMetrics, "total_quantity"));
+                frontendStats.put("newCustomers", getIntegerValue(keyMetrics, "new_customers"));
+                frontendStats.put("activeCustomers", getIntegerValue(keyMetrics, "active_customers"));
+                
+                // 计算增长率
+                BigDecimal growthRate = calculateSalesGrowthRate(startDate, endDate, statType);
+                frontendStats.put("growthRate", growthRate);
+                
+            } else {
+                // 空数据状态 - 返回零值统计，字段名匹配前端接口
+                logger.info("未查询到销售统计数据，返回空状态统计");
+                frontendStats.put("totalSalesAmount", BigDecimal.ZERO);
+                frontendStats.put("totalOrders", 0);
+                frontendStats.put("avgOrderAmount", BigDecimal.ZERO);
+                frontendStats.put("totalQuantity", 0);
+                frontendStats.put("newCustomers", 0);
+                frontendStats.put("activeCustomers", 0);
+                frontendStats.put("growthRate", BigDecimal.ZERO);
+            }
+            
+            logger.info("适配前端的销售统计数据获取完成，总销售额：{}，总订单数：{}", 
+                    frontendStats.get("totalSalesAmount"), frontendStats.get("totalOrders"));
+            
+            return frontendStats;
+            
+        } catch (Exception e) {
+            logger.error("获取适配前端的销售统计数据失败", e);
+            throw new SalesOperationException("获取适配前端的销售统计数据失败：" + e.getMessage());
+        }
+    }
+    
+    // ==================== 私有辅助方法 ====================
+    
+    /**
+     * 计算销售增长率
+     * 
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @param statType 统计类型
+     * @return 增长率
+     */
+    private BigDecimal calculateSalesGrowthRate(LocalDate startDate, LocalDate endDate, String statType) {
+        try {
+            // 计算上一周期的日期范围
+            LocalDate previousStart, previousEnd;
+            long daysBetween = ChronoUnit.DAYS.between(startDate, endDate);
+            
+            previousEnd = startDate.minusDays(1);
+            previousStart = previousEnd.minusDays(daysBetween);
+            
+            // 获取当前周期和上一周期的销售数据
+            Map<String, Object> currentStats = salesStatsMapper.selectKeyMetricsSummary(startDate, endDate);
+            Map<String, Object> previousStats = salesStatsMapper.selectKeyMetricsSummary(previousStart, previousEnd);
+            
+            BigDecimal currentAmount = currentStats != null ? 
+                getBigDecimalValue(currentStats, "total_sales_amount") : BigDecimal.ZERO;
+            BigDecimal previousAmount = previousStats != null ? 
+                getBigDecimalValue(previousStats, "total_sales_amount") : BigDecimal.ZERO;
+            
+            // 计算增长率
+            if (previousAmount.compareTo(BigDecimal.ZERO) > 0) {
+                return currentAmount.subtract(previousAmount)
+                        .divide(previousAmount, 4, RoundingMode.HALF_UP)
+                        .multiply(new BigDecimal("100"));
+            } else {
+                return BigDecimal.ZERO;
+            }
+            
+        } catch (Exception e) {
+            logger.warn("计算销售增长率失败: {}", e.getMessage());
+            return BigDecimal.ZERO;
+        }
+    }
+    
+
+    
+    /**
+     * 计算指定周期的增长率
+     * 
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @param statType 统计类型
+     * @return 增长率
+     */
+    private BigDecimal calculateGrowthRateForPeriod(LocalDate startDate, LocalDate endDate, String statType) {
+        try {
+            // 计算上一周期的日期范围
+            LocalDate previousStart, previousEnd;
+            long daysBetween = ChronoUnit.DAYS.between(startDate, endDate);
+            
+            previousEnd = startDate.minusDays(1);
+            previousStart = previousEnd.minusDays(daysBetween);
+            
+            // 获取当前周期和上一周期的销售数据
+            Map<String, Object> currentStats = salesStatsMapper.selectKeyMetricsSummary(startDate, endDate);
+            Map<String, Object> previousStats = salesStatsMapper.selectKeyMetricsSummary(previousStart, previousEnd);
+            
+            BigDecimal currentAmount = currentStats != null ? 
+                getBigDecimalValue(currentStats, "total_sales_amount") : BigDecimal.ZERO;
+            BigDecimal previousAmount = previousStats != null ? 
+                getBigDecimalValue(previousStats, "total_sales_amount") : BigDecimal.ZERO;
+            
+            // 计算增长率
+            if (previousAmount.compareTo(BigDecimal.ZERO) > 0) {
+                return currentAmount.subtract(previousAmount)
+                        .divide(previousAmount, 4, RoundingMode.HALF_UP)
+                        .multiply(new BigDecimal("100"));
+            } else {
+                return BigDecimal.ZERO;
+            }
+            
+        } catch (Exception e) {
+            logger.warn("计算增长率失败，返回0", e);
+            return BigDecimal.ZERO;
+        }
+    }
+    
+    /**
+     * 获取数据范围信息
+     * 
+     * @return 数据范围信息
+     */
+    public Map<String, Object> getDataRange() {
+        logger.info("开始获取数据范围信息");
+        
+        try {
+            Map<String, Object> dataRange = new HashMap<>();
+            
+            // 获取销售记录的日期范围
+            Map<String, Object> salesDateRange = salesStatsMapper.selectSalesDateRange();
+            if (salesDateRange != null && !salesDateRange.isEmpty()) {
+                dataRange.put("minDate", salesDateRange.get("min_date"));
+                dataRange.put("maxDate", salesDateRange.get("max_date"));
+            } else {
+                dataRange.put("minDate", null);
+                dataRange.put("maxDate", null);
+            }
+            
+            // 获取数据统计信息
+            dataRange.put("totalRecords", getTotalRecordsCount());
+            dataRange.put("availableYears", getAvailableYears());
+            dataRange.put("availableMonths", getAvailableMonths());
+            
+            logger.info("数据范围信息获取完成");
+            return dataRange;
+            
+        } catch (Exception e) {
+            logger.error("获取数据范围信息失败", e);
+            throw new SalesOperationException("获取数据范围信息失败：" + e.getMessage());
+        }
+    }
+    
+    /**
+     * 获取总记录数
+     * 
+     * @return 总记录数
+     */
+    public Long getTotalRecordsCount() {
+        logger.info("开始获取总记录数");
+        
+        try {
+            Long count = salesStatsMapper.selectTotalRecordsCount();
+            logger.info("总记录数获取完成：{}", count);
+            return count != null ? count : 0L;
+            
+        } catch (Exception e) {
+            logger.error("获取总记录数失败", e);
+            return 0L;
+        }
+    }
+    
+    /**
+     * 获取日期范围
+     * 
+     * @return 日期范围Map，包含最小和最大日期
+     */
+    public Map<String, LocalDate> getDateRange() {
+        logger.info("开始获取日期范围");
+        
+        try {
+            Map<String, Object> dateRange = salesStatsMapper.selectSalesDateRange();
+            Map<String, LocalDate> result = new HashMap<>();
+            
+            if (dateRange != null && !dateRange.isEmpty()) {
+                Object minDateObj = dateRange.get("min_date");
+                Object maxDateObj = dateRange.get("max_date");
+                
+                if (minDateObj != null) {
+                    result.put("minDate", LocalDate.parse(minDateObj.toString()));
+                }
+                if (maxDateObj != null) {
+                    result.put("maxDate", LocalDate.parse(maxDateObj.toString()));
+                }
+            }
+            
+            logger.info("日期范围获取完成");
+            return result;
+            
+        } catch (Exception e) {
+            logger.error("获取日期范围失败", e);
+            return new HashMap<>();
+        }
+    }
+    
+    /**
+     * 获取可用年份列表
+     * 
+     * @return 可用年份列表
+     */
+    public List<Integer> getAvailableYears() {
+        try {
+            List<Integer> years = salesStatsMapper.selectAvailableYears();
+            return years != null ? years : new ArrayList<>();
+        } catch (Exception e) {
+            logger.warn("获取可用年份列表失败", e);
+            return new ArrayList<>();
+        }
+    }
+    
+    /**
+     * 获取可用月份列表
+     * 
+     * @return 可用月份列表（格式：YYYY-MM）
+     */
+    public List<String> getAvailableMonths() {
+        try {
+            List<String> months = salesStatsMapper.selectAvailableMonths();
+            return months != null ? months : new ArrayList<>();
+        } catch (Exception e) {
+            logger.warn("获取可用月份列表失败", e);
+            return new ArrayList<>();
+        }
+    }
+    
+    /**
+     * 获取指定周期的销售目标金额
+     */
+    private BigDecimal getTargetAmountForPeriod(String period, LocalDate startDate, LocalDate endDate) {
+        try {
+            // 这里简化处理，实际应该从配置表或目标设置表获取
+            // 可以根据销售人员的目标汇总，或者从系统配置获取
+            
+            switch (period.toLowerCase()) {
+                case "month":
+                    return new BigDecimal("100000"); // 月目标10万
+                case "quarter":
+                    return new BigDecimal("300000"); // 季度目标30万
+                case "year":
+                    return new BigDecimal("1200000"); // 年目标120万
+                default:
+                    return new BigDecimal("100000");
+            }
+        } catch (Exception e) {
+            logger.warn("获取销售目标失败，周期：{}", period, e);
+            return BigDecimal.ZERO;
+        }
+    }
+    
+    /**
+     * 丰富统计DTO的关联信息
+     */
+    private void enrichStatsDTO(SalesStatsDTO statsDTO) {
+        if (statsDTO == null) {
+            return;
+        }
+        
+        try {
+            // 查询最佳产品名称
+            if (statsDTO.getTopProductId() != null) {
+                var product = productMapper.selectById(statsDTO.getTopProductId());
+                if (product != null) {
+                    statsDTO.setTopProductName(product.getProductName());
+                }
+            }
+            
+            // 查询最佳销售人员姓名
+            if (statsDTO.getTopStaffId() != null) {
+                var salesStaff = salesStaffMapper.selectById(statsDTO.getTopStaffId());
+                if (salesStaff != null) {
+                    statsDTO.setTopStaffName(salesStaff.getStaffName());
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("丰富统计DTO关联信息失败", e);
+        }
+    }
+    
+    /**
+     * 计算增长率
+     */
+    private void calculateGrowthRates(SalesStatsDTO statsDTO, LocalDate startDate, LocalDate endDate, String statType) {
+        try {
+            // 计算同比增长率
+            LocalDate previousYearStart = startDate.minusYears(1);
+            LocalDate previousYearEnd = endDate.minusYears(1);
+            Map<String, Object> previousYearStats = salesStatsMapper.selectKeyMetricsSummary(previousYearStart, previousYearEnd);
+            
+            if (previousYearStats != null && !previousYearStats.isEmpty()) {
+                BigDecimal currentAmount = statsDTO.getTotalSalesAmount();
+                BigDecimal previousAmount = getBigDecimalValue(previousYearStats, "total_sales_amount");
+                
+                if (currentAmount != null && previousAmount != null && previousAmount.compareTo(BigDecimal.ZERO) > 0) {
+                    BigDecimal yoyGrowth = currentAmount.subtract(previousAmount)
+                            .divide(previousAmount, 4, RoundingMode.HALF_UP)
+                            .multiply(new BigDecimal("100"));
+                    statsDTO.setYearOverYearGrowth(yoyGrowth);
+                }
+            }
+            
+            // 计算环比增长率
+            LocalDate previousPeriodStart, previousPeriodEnd;
+            long daysBetween = ChronoUnit.DAYS.between(startDate, endDate);
+            
+            previousPeriodEnd = startDate.minusDays(1);
+            previousPeriodStart = previousPeriodEnd.minusDays(daysBetween);
+            
+            Map<String, Object> previousPeriodStats = salesStatsMapper.selectKeyMetricsSummary(previousPeriodStart, previousPeriodEnd);
+            
+            if (previousPeriodStats != null && !previousPeriodStats.isEmpty()) {
+                BigDecimal currentAmount = statsDTO.getTotalSalesAmount();
+                BigDecimal previousAmount = getBigDecimalValue(previousPeriodStats, "total_sales_amount");
+                
+                if (currentAmount != null && previousAmount != null && previousAmount.compareTo(BigDecimal.ZERO) > 0) {
+                    BigDecimal momGrowth = currentAmount.subtract(previousAmount)
+                            .divide(previousAmount, 4, RoundingMode.HALF_UP)
+                            .multiply(new BigDecimal("100"));
+                    statsDTO.setMonthOverMonthGrowth(momGrowth);
+                }
+            }
+            
+        } catch (Exception e) {
+            logger.warn("计算增长率失败", e);
+        }
+    }
+    
+    /**
+     * 获取销售人员的销售目标
+     */
+    private BigDecimal getSalesTarget(Long staffId) {
+        try {
+            var salesStaff = salesStaffMapper.selectById(staffId);
+            return salesStaff != null ? salesStaff.getSalesTarget() : null;
+        } catch (Exception e) {
+            logger.warn("获取销售目标失败，销售人员ID：{}", staffId, e);
+            return null;
+        }
+    }
+    
+    /**
+     * 格式化图表日期
+     */
+    private String formatDateForChart(String dateStr, String groupBy) {
+        try {
+            LocalDate date = LocalDate.parse(dateStr);
+            switch (groupBy.toLowerCase()) {
+                case "day":
+                    return date.format(DateTimeFormatter.ofPattern("MM-dd"));
+                case "week":
+                    return date.format(DateTimeFormatter.ofPattern("yyyy-'W'ww"));
+                case "month":
+                    return date.format(DateTimeFormatter.ofPattern("yyyy-MM"));
+                case "year":
+                    return date.format(DateTimeFormatter.ofPattern("yyyy"));
+                default:
+                    return dateStr;
+            }
+        } catch (Exception e) {
+            logger.warn("格式化图表日期失败，日期：{}，分组：{}", dateStr, groupBy);
+            return dateStr;
+        }
+    }
+    
+    /**
+     * 获取昨日统计数据
+     */
+    private Map<String, Object> getYesterdayStats() {
+        try {
+            LocalDate yesterday = LocalDate.now().minusDays(1);
+            return salesStatsMapper.selectKeyMetricsSummary(yesterday, yesterday);
+        } catch (Exception e) {
+            logger.warn("获取昨日统计数据失败", e);
+            return new HashMap<>();
+        }
+    }
+    
+    /**
+     * 获取上月统计数据
+     */
+    private Map<String, Object> getLastMonthStats() {
+        try {
+            LocalDate now = LocalDate.now();
+            LocalDate lastMonthStart = now.minusMonths(1).withDayOfMonth(1);
+            LocalDate lastMonthEnd = lastMonthStart.plusMonths(1).minusDays(1);
+            return salesStatsMapper.selectKeyMetricsSummary(lastMonthStart, lastMonthEnd);
+        } catch (Exception e) {
+            logger.warn("获取上月统计数据失败", e);
+            return new HashMap<>();
+        }
+    }
+    
+    /**
+     * 添加日对比数据
+     */
+    private void addDailyComparison(Map<String, Object> todayStats, Map<String, Object> yesterdayStats) {
+        if (todayStats == null || yesterdayStats == null) {
+            return;
+        }
+        
+        try {
+            BigDecimal todayAmount = getBigDecimalValue(todayStats, "total_sales_amount");
+            BigDecimal yesterdayAmount = getBigDecimalValue(yesterdayStats, "total_sales_amount");
+            
+            if (todayAmount != null && yesterdayAmount != null && yesterdayAmount.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal dailyGrowth = todayAmount.subtract(yesterdayAmount)
+                        .divide(yesterdayAmount, 4, RoundingMode.HALF_UP)
+                        .multiply(new BigDecimal("100"));
+                todayStats.put("dailyGrowth", dailyGrowth);
+            } else {
+                todayStats.put("dailyGrowth", BigDecimal.ZERO);
+            }
+        } catch (Exception e) {
+            logger.warn("添加日对比数据失败", e);
+        }
+    }
+    
+    /**
+     * 添加月对比数据
+     */
+    private void addMonthlyComparison(Map<String, Object> currentMonthStats, Map<String, Object> lastMonthStats) {
+        if (currentMonthStats == null || lastMonthStats == null) {
+            return;
+        }
+        
+        try {
+            BigDecimal currentAmount = getBigDecimalValue(currentMonthStats, "total_sales_amount");
+            BigDecimal lastAmount = getBigDecimalValue(lastMonthStats, "total_sales_amount");
+            
+            if (currentAmount != null && lastAmount != null && lastAmount.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal monthlyGrowth = currentAmount.subtract(lastAmount)
+                        .divide(lastAmount, 4, RoundingMode.HALF_UP)
+                        .multiply(new BigDecimal("100"));
+                currentMonthStats.put("monthlyGrowth", monthlyGrowth);
+            } else {
+                currentMonthStats.put("monthlyGrowth", BigDecimal.ZERO);
+            }
+        } catch (Exception e) {
+            logger.warn("添加月对比数据失败", e);
+        }
+    }
+    
+    /**
+     * 创建空的实时统计数据
+     */
+    private Map<String, Object> createEmptyRealTimeStats() {
+        Map<String, Object> emptyStats = new HashMap<>();
+        emptyStats.put("total_sales_amount", BigDecimal.ZERO);
+        emptyStats.put("total_orders", 0);
+        emptyStats.put("active_customers", 0);
+        emptyStats.put("pending_orders", 0);
+        return emptyStats;
+    }
+    
+    /**
+     * 创建空的日统计数据
+     */
+    private Map<String, Object> createEmptyDailyStats() {
+        Map<String, Object> emptyStats = new HashMap<>();
+        emptyStats.put("total_sales_amount", BigDecimal.ZERO);
+        emptyStats.put("total_orders", 0);
+        emptyStats.put("total_quantity", 0);
+        emptyStats.put("new_customers", 0);
+        emptyStats.put("dailyGrowth", BigDecimal.ZERO);
+        return emptyStats;
+    }
+    
+    /**
+     * 创建空的月统计数据
+     */
+    private Map<String, Object> createEmptyMonthlyStats() {
+        Map<String, Object> emptyStats = new HashMap<>();
+        emptyStats.put("total_sales_amount", BigDecimal.ZERO);
+        emptyStats.put("total_orders", 0);
+        emptyStats.put("total_quantity", 0);
+        emptyStats.put("avg_order_amount", BigDecimal.ZERO);
+        emptyStats.put("monthlyGrowth", BigDecimal.ZERO);
+        return emptyStats;
+    }
+    
+    // ==================== Map值提取辅助方法 ====================
+    
+    private String getStringValue(Map<String, Object> map, String key) {
+        Object value = map.get(key);
+        return value != null ? value.toString() : null;
+    }
+    
+    private Long getLongValue(Map<String, Object> map, String key) {
+        Object value = map.get(key);
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Long) {
+            return (Long) value;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).longValue();
+        }
+        try {
+            return Long.parseLong(value.toString());
+        } catch (NumberFormatException e) {
+            logger.warn("无法转换为Long类型，key：{}，value：{}", key, value);
+            return null;
+        }
+    }
+    
+    private Integer getIntegerValue(Map<String, Object> map, String key) {
+        Object value = map.get(key);
+        if (value == null) {
+            return 0; // 统计数据默认返回0而不是null
+        }
+        if (value instanceof Integer) {
+            return (Integer) value;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        }
+        try {
+            return Integer.parseInt(value.toString());
+        } catch (NumberFormatException e) {
+            logger.warn("无法转换为Integer类型，key：{}，value：{}", key, value);
+            return 0;
+        }
+    }
+    
+    private BigDecimal getBigDecimalValue(Map<String, Object> map, String key) {
+        Object value = map.get(key);
+        if (value == null) {
+            return BigDecimal.ZERO; // 统计数据默认返回0而不是null
+        }
+        if (value instanceof BigDecimal) {
+            return (BigDecimal) value;
+        }
+        if (value instanceof Number) {
+            return new BigDecimal(value.toString());
+        }
+        try {
+            return new BigDecimal(value.toString());
+        } catch (NumberFormatException e) {
+            logger.warn("无法转换为BigDecimal类型，key：{}，value：{}", key, value);
+            return BigDecimal.ZERO;
+        }
+    }
+}

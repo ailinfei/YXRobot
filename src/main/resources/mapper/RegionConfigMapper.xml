@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yxrobot.mapper.RegionConfigMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="RegionConfigResultMap" type="com.yxrobot.entity.RegionConfig">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="region" property="region" jdbcType="VARCHAR"/>
+        <result column="country" property="country" jdbcType="VARCHAR"/>
+        <result column="language_code" property="languageCode" jdbcType="VARCHAR"/>
+        <result column="language_name" property="languageName" jdbcType="VARCHAR"/>
+        <result column="is_active" property="isActive" jdbcType="TINYINT"/>
+        <result column="sort_order" property="sortOrder" jdbcType="INTEGER"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+        <result column="updated_at" property="updatedAt" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <!-- 基础列 -->
+    <sql id="Base_Column_List">
+        id, region, country, language_code, language_name, 
+        is_active, sort_order, created_at, updated_at
+    </sql>
+
+    <!-- 根据ID查询 -->
+    <select id="selectById" resultMap="RegionConfigResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM region_configs
+        WHERE id = #{id}
+    </select>
+
+    <!-- 查询所有激活的区域配置 -->
+    <select id="selectAllActive" resultMap="RegionConfigResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM region_configs
+        WHERE is_active = TRUE
+        ORDER BY sort_order ASC, region ASC, language_name ASC
+    </select>
+
+    <!-- 根据地区查询配置 -->
+    <select id="selectByRegion" resultMap="RegionConfigResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM region_configs
+        WHERE region = #{region} AND is_active = 1
+        ORDER BY sort_order ASC, language_name ASC
+    </select>
+
+    <!-- 根据国家查询配置 -->
+    <select id="selectByCountry" resultMap="RegionConfigResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM region_configs
+        WHERE country = #{country} AND is_active = 1
+        ORDER BY sort_order ASC, region ASC, language_name ASC
+    </select>
+
+    <!-- 根据语言代码查询配置 -->
+    <select id="selectByLanguageCode" resultMap="RegionConfigResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM region_configs
+        WHERE language_code = #{languageCode} AND is_active = 1
+        ORDER BY sort_order ASC, region ASC
+    </select>
+
+    <!-- 查询所有不重复的地区 -->
+    <select id="selectDistinctRegions" resultType="string">
+        SELECT DISTINCT region
+        FROM region_configs
+        WHERE is_active = 1
+        ORDER BY region ASC
+    </select>
+
+    <!-- 查询所有不重复的国家 -->
+    <select id="selectDistinctCountries" resultType="string">
+        SELECT DISTINCT country
+        FROM region_configs
+        WHERE is_active = 1
+        ORDER BY country ASC
+    </select>
+
+    <!-- 查询所有不重复的语言 -->
+    <select id="selectDistinctLanguages" resultType="map">
+        SELECT DISTINCT 
+            language_code as code,
+            language_name as name
+        FROM region_configs
+        WHERE is_active = 1
+        ORDER BY language_name ASC
+    </select>
+
+    <!-- 插入区域配置 -->
+    <insert id="insert" parameterType="com.yxrobot.entity.RegionConfig" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO region_configs (
+            region, country, language_code, language_name, 
+            is_active, sort_order, created_at, updated_at
+        ) VALUES (
+            #{region}, #{country}, #{languageCode}, #{languageName},
+            #{isActive}, #{sortOrder}, NOW(), NOW()
+        )
+    </insert>
+
+    <!-- 更新区域配置 -->
+    <update id="update" parameterType="com.yxrobot.entity.RegionConfig">
+        UPDATE region_configs
+        <set>
+            <if test="region != null and region != ''">
+                region = #{region},
+            </if>
+            <if test="country != null and country != ''">
+                country = #{country},
+            </if>
+            <if test="languageCode != null and languageCode != ''">
+                language_code = #{languageCode},
+            </if>
+            <if test="languageName != null and languageName != ''">
+                language_name = #{languageName},
+            </if>
+            <if test="isActive != null">
+                is_active = #{isActive},
+            </if>
+            <if test="sortOrder != null">
+                sort_order = #{sortOrder},
+            </if>
+            updated_at = NOW()
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <!-- 删除区域配置 -->
+    <delete id="deleteById">
+        DELETE FROM region_configs
+        WHERE id = #{id}
+    </delete>
+
+    <!-- 更新激活状态 -->
+    <update id="updateActiveStatus">
+        UPDATE region_configs
+        SET is_active = #{isActive}, updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 检查区域和语言组合是否已存在 -->
+    <select id="checkExists" resultType="int">
+        SELECT COUNT(*)
+        FROM region_configs
+        WHERE region = #{region} 
+          AND language_code = #{languageCode}
+        <if test="excludeId != null">
+            AND id != #{excludeId}
+        </if>
+    </select>
+
+    <!-- 批量插入区域配置 -->
+    <insert id="batchInsert" parameterType="list">
+        INSERT INTO region_configs (
+            region, country, language_code, language_name, 
+            is_active, sort_order, created_at, updated_at
+        ) VALUES
+        <foreach collection="configs" item="config" separator=",">
+            (#{config.region}, #{config.country}, #{config.languageCode}, #{config.languageName},
+             #{config.isActive}, #{config.sortOrder}, NOW(), NOW())
+        </foreach>
+    </insert>
+
+    <!-- 验证地区和语言配置是否有效 -->
+    <select id="validateRegionLanguage" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM region_configs
+        WHERE region = #{region} 
+          AND language_code = #{languageCode}
+          AND is_active = 1
+    </select>
+
+</mapper>

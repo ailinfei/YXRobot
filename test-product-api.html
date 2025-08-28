@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>产品API测试</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .test-button { padding: 8px 16px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        .test-button:hover { background: #0056b3; }
+        .result { margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 3px; white-space: pre-wrap; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>产品API测试</h1>
+    <p>测试后端Product API是否能正确响应前端Products.vue的需求</p>
+
+    <div class="test-section">
+        <h3>1. 获取产品列表</h3>
+        <button class="test-button" onclick="testGetProducts()">测试获取产品列表</button>
+        <div id="getProductsResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>2. 创建产品</h3>
+        <button class="test-button" onclick="testCreateProduct()">测试创建产品</button>
+        <div id="createProductResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>3. 获取产品详情</h3>
+        <button class="test-button" onclick="testGetProduct()">测试获取产品详情</button>
+        <div id="getProductResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>4. 更新产品</h3>
+        <button class="test-button" onclick="testUpdateProduct()">测试更新产品</button>
+        <div id="updateProductResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>5. 发布产品</h3>
+        <button class="test-button" onclick="testPublishProduct()">测试发布产品</button>
+        <div id="publishProductResult" class="result"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8081/api/admin/products';
+        let testProductId = null;
+
+        async function makeRequest(url, options = {}) {
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+                const data = await response.json();
+                return { success: true, data };
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        }
+
+        async function testGetProducts() {
+            const resultDiv = document.getElementById('getProductsResult');
+            resultDiv.textContent = '测试中...';
+            
+            const result = await makeRequest(`${API_BASE}?page=1&size=10`);
+            
+            if (result.success) {
+                resultDiv.className = 'result success';
+                resultDiv.textContent = `✅ 成功获取产品列表\n响应数据：\n${JSON.stringify(result.data, null, 2)}`;
+            } else {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ 获取产品列表失败\n错误：${result.error}`;
+            }
+        }
+
+        async function testCreateProduct() {
+            const resultDiv = document.getElementById('createProductResult');
+            resultDiv.textContent = '测试中...';
+            
+            const productData = {
+                name: '测试产品-' + Date.now(),
+                model: 'TEST-' + Date.now(),
+                description: '这是一个测试产品',
+                price: 9999.99,
+                status: 'draft',
+                cover_image_url: 'https://example.com/test-image.jpg'
+            };
+            
+            const result = await makeRequest(API_BASE, {
+                method: 'POST',
+                body: JSON.stringify(productData)
+            });
+            
+            if (result.success && result.data.code === 200) {
+                testProductId = result.data.data.id;
+                resultDiv.className = 'result success';
+                resultDiv.textContent = `✅ 成功创建产品\n产品ID：${testProductId}\n响应数据：\n${JSON.stringify(result.data, null, 2)}`;
+            } else {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ 创建产品失败\n错误：${result.error || result.data.message}`;
+            }
+        }
+
+        async function testGetProduct() {
+            const resultDiv = document.getElementById('getProductResult');
+            
+            if (!testProductId) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '❌ 请先创建一个产品';
+                return;
+            }
+            
+            resultDiv.textContent = '测试中...';
+            
+            const result = await makeRequest(`${API_BASE}/${testProductId}`);
+            
+            if (result.success && result.data.code === 200) {
+                resultDiv.className = 'result success';
+                resultDiv.textContent = `✅ 成功获取产品详情\n响应数据：\n${JSON.stringify(result.data, null, 2)}`;
+            } else {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ 获取产品详情失败\n错误：${result.error || result.data.message}`;
+            }
+        }
+
+        async function testUpdateProduct() {
+            const resultDiv = document.getElementById('updateProductResult');
+            
+            if (!testProductId) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '❌ 请先创建一个产品';
+                return;
+            }
+            
+            resultDiv.textContent = '测试中...';
+            
+            const updateData = {
+                name: '更新后的测试产品',
+                description: '这是更新后的产品描述',
+                price: 8888.88
+            };
+            
+            const result = await makeRequest(`${API_BASE}/${testProductId}`, {
+                method: 'PUT',
+                body: JSON.stringify(updateData)
+            });
+            
+            if (result.success && result.data.code === 200) {
+                resultDiv.className = 'result success';
+                resultDiv.textContent = `✅ 成功更新产品\n响应数据：\n${JSON.stringify(result.data, null, 2)}`;
+            } else {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ 更新产品失败\n错误：${result.error || result.data.message}`;
+            }
+        }
+
+        async function testPublishProduct() {
+            const resultDiv = document.getElementById('publishProductResult');
+            
+            if (!testProductId) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '❌ 请先创建一个产品';
+                return;
+            }
+            
+            resultDiv.textContent = '测试中...';
+            
+            const result = await makeRequest(`${API_BASE}/${testProductId}/publish`, {
+                method: 'POST'
+            });
+            
+            if (result.success && result.data.code === 200) {
+                resultDiv.className = 'result success';
+                resultDiv.textContent = `✅ 成功发布产品\n响应数据：\n${JSON.stringify(result.data, null, 2)}`;
+            } else {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ 发布产品失败\n错误：${result.error || result.data.message}`;
+            }
+        }
+
+        // 页面加载时显示说明
+        window.onload = function() {
+            console.log('产品API测试页面已加载');
+            console.log('API基础URL:', API_BASE);
+        };
+    </script>
+</body>
+</html>

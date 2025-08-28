@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yxrobot.mapper.NewsCategoryMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="NewsCategoryResultMap" type="com.yxrobot.entity.NewsCategory">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="name" property="name" jdbcType="VARCHAR"/>
+        <result column="description" property="description" jdbcType="VARCHAR"/>
+        <result column="sort_order" property="sortOrder" jdbcType="INTEGER"/>
+        <result column="is_enabled" property="isEnabled" jdbcType="TINYINT"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+        <result column="updated_at" property="updatedAt" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <!-- 基础字段 -->
+    <sql id="Base_Column_List">
+        id, name, description, sort_order, is_enabled, created_at, updated_at
+    </sql>
+
+    <!-- 插入新闻分类 -->
+    <insert id="insert" parameterType="com.yxrobot.entity.NewsCategory" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO news_categories (
+            name, description, sort_order, is_enabled, created_at, updated_at
+        ) VALUES (
+            #{name}, #{description}, #{sortOrder}, #{isEnabled}, NOW(), NOW()
+        )
+    </insert>
+
+    <!-- 根据ID删除新闻分类 -->
+    <delete id="deleteById" parameterType="java.lang.Long">
+        DELETE FROM news_categories WHERE id = #{id}
+    </delete>
+
+    <!-- 更新新闻分类 -->
+    <update id="updateById" parameterType="com.yxrobot.entity.NewsCategory">
+        UPDATE news_categories
+        <set>
+            <if test="name != null and name != ''">name = #{name},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="sortOrder != null">sort_order = #{sortOrder},</if>
+            <if test="isEnabled != null">is_enabled = #{isEnabled},</if>
+            updated_at = NOW()
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据ID查询新闻分类 -->
+    <select id="selectById" parameterType="java.lang.Long" resultMap="NewsCategoryResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM news_categories
+        WHERE id = #{id}
+    </select>
+
+    <!-- 根据名称查询新闻分类 -->
+    <select id="selectByName" parameterType="java.lang.String" resultMap="NewsCategoryResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM news_categories
+        WHERE name = #{name}
+    </select>
+
+    <!-- 查询所有启用的新闻分类 -->
+    <select id="selectAllEnabled" resultMap="NewsCategoryResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM news_categories
+        WHERE is_enabled = 1
+        ORDER BY sort_order ASC, created_at DESC
+    </select>
+
+    <!-- 查询所有新闻分类 -->
+    <select id="selectAll" resultMap="NewsCategoryResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM news_categories
+        ORDER BY sort_order ASC, created_at DESC
+    </select>
+
+    <!-- 分页查询新闻分类 -->
+    <select id="selectByPage" resultMap="NewsCategoryResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM news_categories
+        ORDER BY sort_order ASC, created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 统计新闻分类总数 -->
+    <select id="countAll" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM news_categories
+    </select>
+
+    <!-- 统计启用的新闻分类数量 -->
+    <select id="countEnabled" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM news_categories WHERE is_enabled = 1
+    </select>
+
+    <!-- 检查分类名称是否存在 -->
+    <select id="existsByName" parameterType="java.lang.String" resultType="java.lang.Boolean">
+        SELECT COUNT(*) > 0 FROM news_categories WHERE name = #{name}
+    </select>
+
+    <!-- 检查分类名称是否存在（排除指定ID） -->
+    <select id="existsByNameExcludeId" resultType="java.lang.Boolean">
+        SELECT COUNT(*) > 0 FROM news_categories 
+        WHERE name = #{name} AND id != #{id}
+    </select>
+
+    <!-- 批量更新排序权重 -->
+    <update id="batchUpdateSortOrder">
+        <foreach collection="categories" item="category" separator=";">
+            UPDATE news_categories 
+            SET sort_order = #{category.sortOrder}, updated_at = NOW()
+            WHERE id = #{category.id}
+        </foreach>
+    </update>
+
+    <!-- 启用/禁用分类 -->
+    <update id="updateEnabledStatus">
+        UPDATE news_categories 
+        SET is_enabled = #{isEnabled}, updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+</mapper>

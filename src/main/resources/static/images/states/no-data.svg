@@ -1,0 +1,19 @@
+<svg width="200" height="150" viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景 -->
+  <rect width="200" height="150" fill="#F9FAFB"/>
+  
+  <!-- 文件夹图标 -->
+  <g transform="translate(75, 40)">
+    <rect x="0" y="15" width="50" height="35" rx="3" fill="#E5E7EB" stroke="#D1D5DB" stroke-width="2"/>
+    <rect x="0" y="10" width="20" height="8" rx="2" fill="#E5E7EB" stroke="#D1D5DB" stroke-width="2"/>
+    
+    <!-- 空状态线条 -->
+    <line x1="10" y1="25" x2="40" y2="25" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round"/>
+    <line x1="10" y1="32" x2="35" y2="32" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round"/>
+    <line x1="10" y1="39" x2="30" y2="39" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round"/>
+  </g>
+  
+  <!-- 文字 -->
+  <text x="100" y="110" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#6B7280">暂无数据</text>
+  <text x="100" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#9CA3AF">No Data Available</text>
+</svg>

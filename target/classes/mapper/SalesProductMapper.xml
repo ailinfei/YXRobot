@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yxrobot.mapper.SalesProductMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.yxrobot.entity.SalesProduct">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="product_name" property="productName" jdbcType="VARCHAR"/>
+        <result column="product_code" property="productCode" jdbcType="VARCHAR"/>
+        <result column="category" property="category" jdbcType="VARCHAR"/>
+        <result column="brand" property="brand" jdbcType="VARCHAR"/>
+        <result column="model" property="model" jdbcType="VARCHAR"/>
+        <result column="unit_price" property="unitPrice" jdbcType="DECIMAL"/>
+        <result column="cost_price" property="costPrice" jdbcType="DECIMAL"/>
+        <result column="stock_quantity" property="stockQuantity" jdbcType="INTEGER"/>
+        <result column="unit" property="unit" jdbcType="VARCHAR"/>
+        <result column="description" property="description" jdbcType="LONGVARCHAR"/>
+        <result column="specifications" property="specifications" jdbcType="LONGVARCHAR"/>
+        <result column="is_active" property="isActive" jdbcType="BOOLEAN"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+        <result column="updated_at" property="updatedAt" jdbcType="TIMESTAMP"/>
+        <result column="is_deleted" property="isDeleted" jdbcType="BOOLEAN"/>
+    </resultMap>
+
+    <!-- 基础列 -->
+    <sql id="Base_Column_List">
+        id, product_name, product_code, category, brand, model, 
+        unit_price, cost_price, stock_quantity, unit, description, 
+        specifications, is_active, created_at, updated_at, is_deleted
+    </sql>
+
+    <!-- 插入销售产品记录 -->
+    <insert id="insert" parameterType="com.yxrobot.entity.SalesProduct" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sales_products (
+            product_name, product_code, category, brand, model,
+            unit_price, cost_price, stock_quantity, unit, description,
+            specifications, is_active, created_at, updated_at, is_deleted
+        ) VALUES (
+            #{productName}, #{productCode}, #{category}, #{brand}, #{model},
+            #{unitPrice}, #{costPrice}, #{stockQuantity}, #{unit}, #{description},
+            #{specifications}, #{isActive}, #{createdAt}, #{updatedAt}, #{isDeleted}
+        )
+    </insert>
+
+    <!-- 批量插入销售产品记录 -->
+    <insert id="insertBatch" parameterType="java.util.List">
+        INSERT INTO sales_products (
+            product_name, product_code, category, brand, model,
+            unit_price, cost_price, stock_quantity, unit, description,
+            specifications, is_active, created_at, updated_at, is_deleted
+        ) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.productName}, #{item.productCode}, #{item.category}, #{item.brand}, #{item.model},
+             #{item.unitPrice}, #{item.costPrice}, #{item.stockQuantity}, #{item.unit}, #{item.description},
+             #{item.specifications}, #{item.isActive}, #{item.createdAt}, #{item.updatedAt}, #{item.isDeleted})
+        </foreach>
+    </insert>
+
+    <!-- 根据ID查询销售产品 -->
+    <select id="selectById" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM sales_products
+        WHERE id = #{id} AND is_deleted = 0
+    </select>
+
+    <!-- 根据产品编码查询 -->
+    <select id="selectByProductCode" parameterType="java.lang.String" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM sales_products
+        WHERE product_code = #{productCode} AND is_deleted = 0
+    </select>
+
+    <!-- 根据类别查询产品列表 -->
+    <select id="selectByCategory" parameterType="java.lang.String" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM sales_products
+        WHERE category = #{category} AND is_deleted = 0 AND is_active = 1
+        ORDER BY product_name ASC
+    </select>
+
+    <!-- 查询所有启用的销售产品 -->
+    <select id="selectAllActive" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM sales_products
+        WHERE is_deleted = 0 AND is_active = 1
+        ORDER BY category ASC, product_name ASC
+    </select>
+
+    <!-- 查询所有销售产品记录 -->
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM sales_products
+        WHERE is_deleted = 0
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 分页查询销售产品 -->
+    <select id="selectByPage" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM sales_products
+        WHERE is_deleted = 0
+        <if test="category != null and category != ''">
+            AND category = #{category}
+        </if>
+        <if test="productName != null and productName != ''">
+            AND product_name LIKE CONCAT('%', #{productName}, '%')
+        </if>
+        <if test="isActive != null">
+            AND is_active = #{isActive}
+        </if>
+        ORDER BY created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 统计产品数量 -->
+    <select id="countByCondition" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM sales_products
+        WHERE is_deleted = 0
+        <if test="category != null and category != ''">
+            AND category = #{category}
+        </if>
+        <if test="productName != null and productName != ''">
+            AND product_name LIKE CONCAT('%', #{productName}, '%')
+        </if>
+        <if test="isActive != null">
+            AND is_active = #{isActive}
+        </if>
+    </select>
+
+    <!-- 更新销售产品记录 -->
+    <update id="updateById" parameterType="com.yxrobot.entity.SalesProduct">
+        UPDATE sales_products
+        SET product_name = #{productName},
+            product_code = #{productCode},
+            category = #{category},
+            brand = #{brand},
+            model = #{model},
+            unit_price = #{unitPrice},
+            cost_price = #{costPrice},
+            stock_quantity = #{stockQuantity},
+            unit = #{unit},
+            description = #{description},
+            specifications = #{specifications},
+            is_active = #{isActive},
+            updated_at = #{updatedAt}
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <!-- 更新库存数量 -->
+    <update id="updateStockQuantity">
+        UPDATE sales_products
+        SET stock_quantity = stock_quantity + #{quantity},
+            updated_at = NOW()
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <!-- 根据ID删除销售产品记录（逻辑删除） -->
+    <update id="deleteById" parameterType="java.lang.Long">
+        UPDATE sales_products
+        SET is_deleted = 1, updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 启用/禁用产品 -->
+    <update id="updateActiveStatus">
+        UPDATE sales_products
+        SET is_active = #{isActive}, updated_at = NOW()
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <!-- 查询低库存产品 -->
+    <select id="selectLowStockProducts" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM sales_products
+        WHERE is_deleted = 0 AND is_active = 1 AND stock_quantity &lt;= #{threshold}
+        ORDER BY stock_quantity ASC
+    </select>
+
+    <!-- 根据品牌查询产品 -->
+    <select id="selectByBrand" parameterType="java.lang.String" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM sales_products
+        WHERE brand = #{brand} AND is_deleted = 0 AND is_active = 1
+        ORDER BY product_name ASC
+    </select>
+
+    <!-- 查询产品类别列表 -->
+    <select id="selectDistinctCategories" resultType="java.lang.String">
+        SELECT DISTINCT category
+        FROM sales_products
+        WHERE is_deleted = 0 AND is_active = 1
+        ORDER BY category ASC
+    </select>
+
+    <!-- 查询品牌列表 -->
+    <select id="selectDistinctBrands" resultType="java.lang.String">
+        SELECT DISTINCT brand
+        FROM sales_products
+        WHERE is_deleted = 0 AND is_active = 1 AND brand IS NOT NULL
+        ORDER BY brand ASC
+    </select>
+
+</mapper>

@@ -1,0 +1,284 @@
+package com.yxrobot.controller;
+
+import com.yxrobot.dto.*;
+import com.yxrobot.service.SalesService;
+import com.yxrobot.service.SalesStatsService;
+import com.yxrobot.service.SalesAnalysisService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
+
+import javax.validation.constraints.Min;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * 销售记录管理控制器 - 简化版
+ * 只保留前端Sales.vue实际使用的5个核心API接口
+ * 注意：保留其他Service类不删除，以免影响其他页面功能
+ * 
+ * @author YXRobot开发团队
+ * @version 2.0
+ * @since 2025-01-28
+ */
+@RestController
+@RequestMapping("/api/sales")
+@Validated
+public class SalesControllerClean {
+    
+    private static final Logger logger = LoggerFactory.getLogger(SalesControllerClean.class);
+    
+    @Autowired
+    private SalesService salesService;
+    
+    @Autowired
+    private SalesStatsService salesStatsService;
+    
+    @Autowired
+    private SalesAnalysisService salesAnalysisService;
+
+    /**
+     * 获取销售记录列表
+     * 前端调用：GET /api/sales/records?page=1&pageSize=20&keyword=xxx&status=xxx&startDate=xxx&endDate=xxx
+     * 
+     * @param page 页码，默认1
+     * @param pageSize 每页大小，默认20
+     * @param keyword 搜索关键词（订单号或客户名称）
+     * @param status 订单状态筛选
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @return 销售记录列表响应
+     */
+    @GetMapping("/records")
+    public ResponseEntity<Map<String, Object>> getSalesRecords(
+            @RequestParam(required = false, defaultValue = "1") Integer page,
+            @RequestParam(required = false, defaultValue = "20") Integer pageSize,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        
+        logger.info("获取销售记录列表 - 页码: {}, 页面大小: {}, 关键词: {}, 状态: {}", 
+                   page, pageSize, keyword, status);
+        
+        try {
+            // 构建查询参数
+            SalesRecordQueryDTO queryDTO = new SalesRecordQueryDTO();
+            queryDTO.setPage(page);
+            queryDTO.setPageSize(pageSize);
+            queryDTO.setKeyword(keyword);
+            queryDTO.setStatus(status);
+            
+            // 处理日期参数
+            if (StringUtils.hasText(startDate)) {
+                queryDTO.setStartDate(LocalDate.parse(startDate, DateTimeFormatter.ISO_LOCAL_DATE));
+            }
+            if (StringUtils.hasText(endDate)) {
+                queryDTO.setEndDate(LocalDate.parse(endDate, DateTimeFormatter.ISO_LOCAL_DATE));
+            }
+            
+            // 查询销售记录
+            Map<String, Object> result = salesService.getSalesRecordsOptimized(queryDTO);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", result);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            logger.error("获取销售记录列表失败", e);
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 500);
+            response.put("message", "查询失败: " + e.getMessage());
+            return ResponseEntity.ok(response);
+        }
+    }
+
+    /**
+     * 删除销售记录
+     * 前端调用：DELETE /api/sales/records/{id}
+     * 
+     * @param id 销售记录ID
+     * @return 删除结果
+     */
+    @DeleteMapping("/records/{id}")
+    public ResponseEntity<Map<String, Object>> deleteSalesRecord(
+            @PathVariable @Min(value = 1, message = "ID必须大于0") Long id) {
+        
+        logger.info("删除销售记录 - ID: {}", id);
+        
+        try {
+            boolean success = salesService.deleteSalesRecord(id);
+            
+            Map<String, Object> response = new HashMap<>();
+            if (success) {
+                response.put("code", 200);
+                response.put("message", "删除成功");
+            } else {
+                response.put("code", 404);
+                response.put("message", "销售记录不存在");
+            }
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            logger.error("删除销售记录失败 - ID: {}", id, e);
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 500);
+            response.put("message", "删除失败: " + e.getMessage());
+            return ResponseEntity.ok(response);
+        }
+    }
+
+    /**
+     * 获取销售统计数据
+     * 前端调用：GET /api/sales/stats?startDate=xxx&endDate=xxx
+     * 
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @return 销售统计数据
+     */
+    @GetMapping("/stats")
+    public ResponseEntity<Map<String, Object>> getSalesStats(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        
+        logger.info("获取销售统计数据 - 开始日期: {}, 结束日期: {}", startDate, endDate);
+        
+        try {
+            LocalDate start = null;
+            LocalDate end = null;
+            
+            // 解析日期参数
+            if (StringUtils.hasText(startDate)) {
+                start = LocalDate.parse(startDate, DateTimeFormatter.ISO_LOCAL_DATE);
+            }
+            if (StringUtils.hasText(endDate)) {
+                end = LocalDate.parse(endDate, DateTimeFormatter.ISO_LOCAL_DATE);
+            }
+            
+            // 获取统计数据
+            Map<String, Object> stats = salesStatsService.getSalesStatsForFrontend(start, end, "daily");
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", stats);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            logger.error("获取销售统计数据失败", e);
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 500);
+            response.put("message", "查询失败: " + e.getMessage());
+            return ResponseEntity.ok(response);
+        }
+    }
+
+    /**
+     * 获取销售趋势图表数据
+     * 前端调用：GET /api/sales/charts/trends?startDate=xxx&endDate=xxx&groupBy=day
+     * 
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @param groupBy 分组方式（day、week、month）
+     * @return 销售趋势图表数据
+     */
+    @GetMapping("/charts/trends")
+    public ResponseEntity<Map<String, Object>> getTrendChartData(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            @RequestParam(required = false, defaultValue = "day") String groupBy) {
+        
+        logger.info("获取销售趋势图表数据 - 开始日期: {}, 结束日期: {}, 分组: {}", 
+                   startDate, endDate, groupBy);
+        
+        try {
+            LocalDate start = null;
+            LocalDate end = null;
+            
+            // 解析日期参数
+            if (StringUtils.hasText(startDate)) {
+                start = LocalDate.parse(startDate, DateTimeFormatter.ISO_LOCAL_DATE);
+            }
+            if (StringUtils.hasText(endDate)) {
+                end = LocalDate.parse(endDate, DateTimeFormatter.ISO_LOCAL_DATE);
+            }
+            
+            // 获取趋势图表数据
+            Map<String, Object> chartData = salesAnalysisService.getTrendChartData(start, end, groupBy);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", chartData);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            logger.error("获取销售趋势图表数据失败", e);
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 500);
+            response.put("message", "查询失败: " + e.getMessage());
+            return ResponseEntity.ok(response);
+        }
+    }
+
+    /**
+     * 获取销售分布图表数据
+     * 前端调用：GET /api/sales/charts/distribution?type=product&startDate=xxx&endDate=xxx
+     * 
+     * @param type 分布类型（product、region、channel）
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @return 销售分布图表数据
+     */
+    @GetMapping("/charts/distribution")
+    public ResponseEntity<Map<String, Object>> getDistributionData(
+            @RequestParam(required = false, defaultValue = "product") String type,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        
+        logger.info("获取销售分布图表数据 - 类型: {}, 开始日期: {}, 结束日期: {}", 
+                   type, startDate, endDate);
+        
+        try {
+            LocalDate start = null;
+            LocalDate end = null;
+            
+            // 解析日期参数
+            if (StringUtils.hasText(startDate)) {
+                start = LocalDate.parse(startDate, DateTimeFormatter.ISO_LOCAL_DATE);
+            }
+            if (StringUtils.hasText(endDate)) {
+                end = LocalDate.parse(endDate, DateTimeFormatter.ISO_LOCAL_DATE);
+            }
+            
+            // 获取分布图表数据
+            Map<String, Object> chartData = salesAnalysisService.getDistributionChartData(type, start, end);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", chartData);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            logger.error("获取销售分布图表数据失败", e);
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 500);
+            response.put("message", "查询失败: " + e.getMessage());
+            return ResponseEntity.ok(response);
+        }
+    }
+}

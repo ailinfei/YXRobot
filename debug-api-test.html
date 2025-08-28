@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API调试测试</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        .result { margin: 10px 0; padding: 10px; background: #f5f5f5; }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e8; color: #2e7d32; }
+        button { padding: 8px 16px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>YXRobot API调试测试</h1>
+    
+    <div class="test-section">
+        <h3>1. 测试新闻API直接访问</h3>
+        <button onclick="testNewsAPI()">测试 /api/news</button>
+        <div id="newsResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>2. 测试分类API</h3>
+        <button onclick="testCategoriesAPI()">测试 /api/news/category-list</button>
+        <div id="categoriesResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>3. 测试标签API</h3>
+        <button onclick="testTagsAPI()">测试 /api/news/tag-list</button>
+        <div id="tagsResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>4. 测试前端请求工具</h3>
+        <button onclick="testFrontendRequest()">模拟前端请求</button>
+        <div id="frontendResult" class="result"></div>
+    </div>
+
+    <script>
+        // 测试新闻API
+        async function testNewsAPI() {
+            const resultDiv = document.getElementById('newsResult');
+            try {
+                const response = await fetch('/api/news');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <strong>成功!</strong><br>
+                        状态码: ${response.status}<br>
+                        数据总数: ${data.data?.total || 0}<br>
+                        列表长度: ${data.data?.list?.length || 0}<br>
+                        <details>
+                            <summary>完整响应</summary>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </details>
+                    `;
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${data.message || '未知错误'}`);
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<strong>错误:</strong> ${error.message}`;
+            }
+        }
+
+        // 测试分类API
+        async function testCategoriesAPI() {
+            const resultDiv = document.getElementById('categoriesResult');
+            try {
+                const response = await fetch('/api/news/category-list');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <strong>成功!</strong><br>
+                        状态码: ${response.status}<br>
+                        分类数量: ${data.data?.length || 0}<br>
+                        <details>
+                            <summary>分类列表</summary>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </details>
+                    `;
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${data.message || '未知错误'}`);
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<strong>错误:</strong> ${error.message}`;
+            }
+        }
+
+        // 测试标签API
+        async function testTagsAPI() {
+            const resultDiv = document.getElementById('tagsResult');
+            try {
+                const response = await fetch('/api/news/tag-list');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <strong>成功!</strong><br>
+                        状态码: ${response.status}<br>
+                        标签数量: ${data.data?.length || 0}<br>
+                        <details>
+                            <summary>标签列表</summary>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </details>
+                    `;
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${data.message || '未知错误'}`);
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<strong>错误:</strong> ${error.message}`;
+            }
+        }
+
+        // 模拟前端请求
+        async function testFrontendRequest() {
+            const resultDiv = document.getElementById('frontendResult');
+            try {
+                // 模拟前端的请求方式
+                const response = await fetch('/api/news', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <strong>前端请求成功!</strong><br>
+                        状态码: ${response.status}<br>
+                        响应头: ${response.headers.get('content-type')}<br>
+                        数据结构: ${typeof data}<br>
+                        Code: ${data.code}<br>
+                        Message: ${data.message}<br>
+                        数据总数: ${data.data?.total || 0}<br>
+                        <details>
+                            <summary>响应数据结构</summary>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </details>
+                    `;
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${data.message || '未知错误'}`);
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<strong>前端请求错误:</strong> ${error.message}`;
+            }
+        }
+
+        // 页面加载时自动测试
+        window.onload = function() {
+            console.log('页面加载完成，开始自动测试...');
+            testNewsAPI();
+        };
+    </script>
+</body>
+</html>

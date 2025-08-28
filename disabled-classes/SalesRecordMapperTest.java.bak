@@ -1,0 +1,477 @@
+package com.yxrobot.mapper;
+
+import com.yxrobot.dto.SalesRecordDTO;
+import com.yxrobot.dto.SalesRecordQueryDTO;
+import com.yxrobot.entity.PaymentStatus;
+import com.yxrobot.entity.SalesRecord;
+import com.yxrobot.entity.SalesStatus;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.test.context.ActiveProfiles;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * 销售记录Mapper测试类
+ * 
+ * @author YXRobot开发团队
+ * @version 1.0.0
+ * @since 2025-01-27
+ */
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@ActiveProfiles("test")
+class SalesRecordMapperTest {
+    
+    @Autowired
+    private SalesRecordMapper salesRecordMapper;
+    
+    private SalesRecord testSalesRecord;
+    
+    @BeforeEach
+    void setUp() {
+        // 初始化测试数据
+        testSalesRecord = new SalesRecord();
+        testSalesRecord.setOrderNumber("SO20250127TEST001");
+        testSalesRecord.setCustomerId(1L);
+        testSalesRecord.setProductId(1L);
+        testSalesRecord.setSalesStaffId(1L);
+        testSalesRecord.setQuantity(2);
+        testSalesRecord.setUnitPrice(new BigDecimal("1000.00"));
+        testSalesRecord.setSalesAmount(new BigDecimal("2000.00"));
+        testSalesRecord.setDiscountAmount(new BigDecimal("100.00"));
+        testSalesRecord.setOrderDate(LocalDate.now());
+        testSalesRecord.setStatus(SalesStatus.PENDING);
+        testSalesRecord.setPaymentStatus(PaymentStatus.UNPAID);
+        testSalesRecord.setPaymentMethod("银行转账");
+        testSalesRecord.setRegion("北京");
+        testSalesRecord.setChannel("线上");
+        testSalesRecord.setNotes("测试订单");
+        testSalesRecord.setCreatedAt(LocalDateTime.now());
+        testSalesRecord.setUpdatedAt(LocalDateTime.now());
+        testSalesRecord.setIsDeleted(0);
+    }
+}    
+ 
+   @Test
+    void testInsert_Success() {
+        // 执行插入
+        int result = salesRecordMapper.insert(testSalesRecord);
+        
+        // 验证结果
+        assertEquals(1, result);
+        assertNotNull(testSalesRecord.getId());
+        assertTrue(testSalesRecord.getId() > 0);
+    }
+    
+    @Test
+    void testSelectById_Success() {
+        // 先插入数据
+        salesRecordMapper.insert(testSalesRecord);
+        Long recordId = testSalesRecord.getId();
+        
+        // 执行查询
+        SalesRecord result = salesRecordMapper.selectById(recordId);
+        
+        // 验证结果
+        assertNotNull(result);
+        assertEquals(recordId, result.getId());
+        assertEquals(testSalesRecord.getOrderNumber(), result.getOrderNumber());
+        assertEquals(testSalesRecord.getCustomerId(), result.getCustomerId());
+        assertEquals(testSalesRecord.getSalesAmount(), result.getSalesAmount());
+        assertEquals(testSalesRecord.getStatus(), result.getStatus());
+    }
+    
+    @Test
+    void testSelectById_NotFound() {
+        // 查询不存在的ID
+        SalesRecord result = salesRecordMapper.selectById(99999L);
+        
+        // 验证结果
+        assertNull(result);
+    }
+    
+    @Test
+    void testSelectDTOById_Success() {
+        // 先插入数据
+        salesRecordMapper.insert(testSalesRecord);
+        Long recordId = testSalesRecord.getId();
+        
+        // 执行查询
+        SalesRecordDTO result = salesRecordMapper.selectDTOById(recordId);
+        
+        // 验证结果
+        assertNotNull(result);
+        assertEquals(recordId, result.getId());
+        assertEquals(testSalesRecord.getOrderNumber(), result.getOrderNumber());
+        assertEquals(testSalesRecord.getSalesAmount(), result.getSalesAmount());
+    }
+    
+    @Test
+    void testUpdateById_Success() {
+        // 先插入数据
+        salesRecordMapper.insert(testSalesRecord);
+        Long recordId = testSalesRecord.getId();
+        
+        // 修改数据
+        testSalesRecord.setSalesAmount(new BigDecimal("3000.00"));
+        testSalesRecord.setStatus(SalesStatus.CONFIRMED);
+        testSalesRecord.setPaymentStatus(PaymentStatus.PAID);
+        testSalesRecord.setUpdatedAt(LocalDateTime.now());
+        
+        // 执行更新
+        int result = salesRecordMapper.updateById(testSalesRecord);
+        
+        // 验证结果
+        assertEquals(1, result);
+        
+        // 查询验证更新结果
+        SalesRecord updated = salesRecordMapper.selectById(recordId);
+        assertNotNull(updated);
+        assertEquals(new BigDecimal("3000.00"), updated.getSalesAmount());
+        assertEquals(SalesStatus.CONFIRMED, updated.getStatus());
+        assertEquals(PaymentStatus.PAID, updated.getPaymentStatus());
+    } 
+   
+    @Test
+    void testDeleteById_Success() {
+        // 先插入数据
+        salesRecordMapper.insert(testSalesRecord);
+        Long recordId = testSalesRecord.getId();
+        
+        // 执行软删除
+        int result = salesRecordMapper.deleteById(recordId);
+        
+        // 验证结果
+        assertEquals(1, result);
+        
+        // 查询验证删除结果（软删除后数据仍存在但is_deleted=1）
+        SalesRecord deleted = salesRecordMapper.selectById(recordId);
+        assertNull(deleted); // selectById应该过滤已删除的记录
+    }
+    
+    @Test
+    void testSelectByQuery_WithKeyword() {
+        // 插入测试数据
+        salesRecordMapper.insert(testSalesRecord);
+        
+        SalesRecord record2 = new SalesRecord();
+        record2.setOrderNumber("SO20250127TEST002");
+        record2.setCustomerId(2L);
+        record2.setProductId(2L);
+        record2.setSalesStaffId(2L);
+        record2.setQuantity(1);
+        record2.setUnitPrice(new BigDecimal("1500.00"));
+        record2.setSalesAmount(new BigDecimal("1500.00"));
+        record2.setDiscountAmount(BigDecimal.ZERO);
+        record2.setOrderDate(LocalDate.now());
+        record2.setStatus(SalesStatus.CONFIRMED);
+        record2.setPaymentStatus(PaymentStatus.PAID);
+        record2.setPaymentMethod("现金");
+        record2.setRegion("上海");
+        record2.setChannel("线下");
+        record2.setNotes("另一个测试订单");
+        record2.setCreatedAt(LocalDateTime.now());
+        record2.setUpdatedAt(LocalDateTime.now());
+        record2.setIsDeleted(0);
+        salesRecordMapper.insert(record2);
+        
+        // 构建查询条件
+        SalesRecordQueryDTO queryDTO = new SalesRecordQueryDTO();
+        queryDTO.setKeyword("TEST001");
+        queryDTO.setPage(1);
+        queryDTO.setPageSize(10);
+        
+        // 执行查询
+        List<SalesRecordDTO> results = salesRecordMapper.selectByQuery(queryDTO);
+        
+        // 验证结果
+        assertNotNull(results);
+        assertEquals(1, results.size());
+        assertEquals(testSalesRecord.getOrderNumber(), results.get(0).getOrderNumber());
+    }
+    
+    @Test
+    void testSelectByQuery_WithStatus() {
+        // 插入测试数据
+        salesRecordMapper.insert(testSalesRecord);
+        
+        SalesRecord confirmedRecord = new SalesRecord();
+        confirmedRecord.setOrderNumber("SO20250127CONFIRMED001");
+        confirmedRecord.setCustomerId(1L);
+        confirmedRecord.setProductId(1L);
+        confirmedRecord.setSalesStaffId(1L);
+        confirmedRecord.setQuantity(1);
+        confirmedRecord.setUnitPrice(new BigDecimal("2000.00"));
+        confirmedRecord.setSalesAmount(new BigDecimal("2000.00"));
+        confirmedRecord.setDiscountAmount(BigDecimal.ZERO);
+        confirmedRecord.setOrderDate(LocalDate.now());
+        confirmedRecord.setStatus(SalesStatus.CONFIRMED);
+        confirmedRecord.setPaymentStatus(PaymentStatus.PAID);
+        confirmedRecord.setPaymentMethod("银行转账");
+        confirmedRecord.setRegion("北京");
+        confirmedRecord.setChannel("线上");
+        confirmedRecord.setCreatedAt(LocalDateTime.now());
+        confirmedRecord.setUpdatedAt(LocalDateTime.now());
+        confirmedRecord.setIsDeleted(0);
+        salesRecordMapper.insert(confirmedRecord);
+        
+        // 构建查询条件
+        SalesRecordQueryDTO queryDTO = new SalesRecordQueryDTO();
+        queryDTO.setStatus(SalesStatus.PENDING);
+        queryDTO.setPage(1);
+        queryDTO.setPageSize(10);
+        
+        // 执行查询
+        List<SalesRecordDTO> results = salesRecordMapper.selectByQuery(queryDTO);
+        
+        // 验证结果
+        assertNotNull(results);
+        assertEquals(1, results.size());
+        assertEquals(SalesStatus.PENDING, results.get(0).getStatus());
+    } 
+   
+    @Test
+    void testSelectByQuery_WithDateRange() {
+        // 插入测试数据
+        salesRecordMapper.insert(testSalesRecord);
+        
+        SalesRecord oldRecord = new SalesRecord();
+        oldRecord.setOrderNumber("SO20241201OLD001");
+        oldRecord.setCustomerId(1L);
+        oldRecord.setProductId(1L);
+        oldRecord.setSalesStaffId(1L);
+        oldRecord.setQuantity(1);
+        oldRecord.setUnitPrice(new BigDecimal("1000.00"));
+        oldRecord.setSalesAmount(new BigDecimal("1000.00"));
+        oldRecord.setDiscountAmount(BigDecimal.ZERO);
+        oldRecord.setOrderDate(LocalDate.of(2024, 12, 1));
+        oldRecord.setStatus(SalesStatus.COMPLETED);
+        oldRecord.setPaymentStatus(PaymentStatus.PAID);
+        oldRecord.setPaymentMethod("银行转账");
+        oldRecord.setRegion("北京");
+        oldRecord.setChannel("线上");
+        oldRecord.setCreatedAt(LocalDateTime.now());
+        oldRecord.setUpdatedAt(LocalDateTime.now());
+        oldRecord.setIsDeleted(0);
+        salesRecordMapper.insert(oldRecord);
+        
+        // 构建查询条件（查询今天的记录）
+        SalesRecordQueryDTO queryDTO = new SalesRecordQueryDTO();
+        queryDTO.setStartDate(LocalDate.now());
+        queryDTO.setEndDate(LocalDate.now());
+        queryDTO.setPage(1);
+        queryDTO.setPageSize(10);
+        
+        // 执行查询
+        List<SalesRecordDTO> results = salesRecordMapper.selectByQuery(queryDTO);
+        
+        // 验证结果
+        assertNotNull(results);
+        assertEquals(1, results.size());
+        assertEquals(testSalesRecord.getOrderNumber(), results.get(0).getOrderNumber());
+    }
+    
+    @Test
+    void testCountByQuery() {
+        // 插入测试数据
+        salesRecordMapper.insert(testSalesRecord);
+        
+        SalesRecord record2 = new SalesRecord();
+        record2.setOrderNumber("SO20250127COUNT002");
+        record2.setCustomerId(1L);
+        record2.setProductId(1L);
+        record2.setSalesStaffId(1L);
+        record2.setQuantity(1);
+        record2.setUnitPrice(new BigDecimal("1500.00"));
+        record2.setSalesAmount(new BigDecimal("1500.00"));
+        record2.setDiscountAmount(BigDecimal.ZERO);
+        record2.setOrderDate(LocalDate.now());
+        record2.setStatus(SalesStatus.PENDING);
+        record2.setPaymentStatus(PaymentStatus.UNPAID);
+        record2.setPaymentMethod("银行转账");
+        record2.setRegion("北京");
+        record2.setChannel("线上");
+        record2.setCreatedAt(LocalDateTime.now());
+        record2.setUpdatedAt(LocalDateTime.now());
+        record2.setIsDeleted(0);
+        salesRecordMapper.insert(record2);
+        
+        // 构建查询条件
+        SalesRecordQueryDTO queryDTO = new SalesRecordQueryDTO();
+        queryDTO.setStatus(SalesStatus.PENDING);
+        
+        // 执行统计查询
+        Long count = salesRecordMapper.countByQuery(queryDTO);
+        
+        // 验证结果
+        assertNotNull(count);
+        assertEquals(2L, count);
+    }
+    
+    @Test
+    void testExistsByOrderNumber_True() {
+        // 插入测试数据
+        salesRecordMapper.insert(testSalesRecord);
+        
+        // 检查订单号是否存在
+        boolean exists = salesRecordMapper.existsByOrderNumber(testSalesRecord.getOrderNumber());
+        
+        // 验证结果
+        assertTrue(exists);
+    }
+    
+    @Test
+    void testExistsByOrderNumber_False() {
+        // 检查不存在的订单号
+        boolean exists = salesRecordMapper.existsByOrderNumber("NONEXISTENT-ORDER");
+        
+        // 验证结果
+        assertFalse(exists);
+    }   
+ 
+    @Test
+    void testBatchDeleteByIds_Success() {
+        // 插入多个测试数据
+        salesRecordMapper.insert(testSalesRecord);
+        Long id1 = testSalesRecord.getId();
+        
+        SalesRecord record2 = new SalesRecord();
+        record2.setOrderNumber("SO20250127BATCH002");
+        record2.setCustomerId(1L);
+        record2.setProductId(1L);
+        record2.setSalesStaffId(1L);
+        record2.setQuantity(1);
+        record2.setUnitPrice(new BigDecimal("1500.00"));
+        record2.setSalesAmount(new BigDecimal("1500.00"));
+        record2.setDiscountAmount(BigDecimal.ZERO);
+        record2.setOrderDate(LocalDate.now());
+        record2.setStatus(SalesStatus.PENDING);
+        record2.setPaymentStatus(PaymentStatus.UNPAID);
+        record2.setPaymentMethod("银行转账");
+        record2.setRegion("北京");
+        record2.setChannel("线上");
+        record2.setCreatedAt(LocalDateTime.now());
+        record2.setUpdatedAt(LocalDateTime.now());
+        record2.setIsDeleted(0);
+        salesRecordMapper.insert(record2);
+        Long id2 = record2.getId();
+        
+        SalesRecord record3 = new SalesRecord();
+        record3.setOrderNumber("SO20250127BATCH003");
+        record3.setCustomerId(1L);
+        record3.setProductId(1L);
+        record3.setSalesStaffId(1L);
+        record3.setQuantity(1);
+        record3.setUnitPrice(new BigDecimal("2000.00"));
+        record3.setSalesAmount(new BigDecimal("2000.00"));
+        record3.setDiscountAmount(BigDecimal.ZERO);
+        record3.setOrderDate(LocalDate.now());
+        record3.setStatus(SalesStatus.PENDING);
+        record3.setPaymentStatus(PaymentStatus.UNPAID);
+        record3.setPaymentMethod("银行转账");
+        record3.setRegion("北京");
+        record3.setChannel("线上");
+        record3.setCreatedAt(LocalDateTime.now());
+        record3.setUpdatedAt(LocalDateTime.now());
+        record3.setIsDeleted(0);
+        salesRecordMapper.insert(record3);
+        Long id3 = record3.getId();
+        
+        // 执行批量删除
+        List<Long> idsToDelete = Arrays.asList(id1, id2, id3);
+        int result = salesRecordMapper.batchDeleteByIds(idsToDelete);
+        
+        // 验证结果
+        assertEquals(3, result);
+        
+        // 验证数据已被软删除
+        assertNull(salesRecordMapper.selectById(id1));
+        assertNull(salesRecordMapper.selectById(id2));
+        assertNull(salesRecordMapper.selectById(id3));
+    }
+    
+    @Test
+    void testBatchUpdateStatus_Success() {
+        // 插入多个测试数据
+        salesRecordMapper.insert(testSalesRecord);
+        Long id1 = testSalesRecord.getId();
+        
+        SalesRecord record2 = new SalesRecord();
+        record2.setOrderNumber("SO20250127STATUS002");
+        record2.setCustomerId(1L);
+        record2.setProductId(1L);
+        record2.setSalesStaffId(1L);
+        record2.setQuantity(1);
+        record2.setUnitPrice(new BigDecimal("1500.00"));
+        record2.setSalesAmount(new BigDecimal("1500.00"));
+        record2.setDiscountAmount(BigDecimal.ZERO);
+        record2.setOrderDate(LocalDate.now());
+        record2.setStatus(SalesStatus.PENDING);
+        record2.setPaymentStatus(PaymentStatus.UNPAID);
+        record2.setPaymentMethod("银行转账");
+        record2.setRegion("北京");
+        record2.setChannel("线上");
+        record2.setCreatedAt(LocalDateTime.now());
+        record2.setUpdatedAt(LocalDateTime.now());
+        record2.setIsDeleted(0);
+        salesRecordMapper.insert(record2);
+        Long id2 = record2.getId();
+        
+        // 执行批量状态更新
+        List<Long> idsToUpdate = Arrays.asList(id1, id2);
+        int result = salesRecordMapper.batchUpdateStatus(idsToUpdate, SalesStatus.CONFIRMED);
+        
+        // 验证结果
+        assertEquals(2, result);
+        
+        // 验证状态已更新
+        SalesRecord updated1 = salesRecordMapper.selectById(id1);
+        SalesRecord updated2 = salesRecordMapper.selectById(id2);
+        assertNotNull(updated1);
+        assertNotNull(updated2);
+        assertEquals(SalesStatus.CONFIRMED, updated1.getStatus());
+        assertEquals(SalesStatus.CONFIRMED, updated2.getStatus());
+    }
+    
+    @Test
+    void testGetSalesAmountByDateRange() {
+        // 插入测试数据
+        salesRecordMapper.insert(testSalesRecord);
+        
+        SalesRecord record2 = new SalesRecord();
+        record2.setOrderNumber("SO20250127AMOUNT002");
+        record2.setCustomerId(1L);
+        record2.setProductId(1L);
+        record2.setSalesStaffId(1L);
+        record2.setQuantity(1);
+        record2.setUnitPrice(new BigDecimal("3000.00"));
+        record2.setSalesAmount(new BigDecimal("3000.00"));
+        record2.setDiscountAmount(BigDecimal.ZERO);
+        record2.setOrderDate(LocalDate.now());
+        record2.setStatus(SalesStatus.COMPLETED);
+        record2.setPaymentStatus(PaymentStatus.PAID);
+        record2.setPaymentMethod("银行转账");
+        record2.setRegion("北京");
+        record2.setChannel("线上");
+        record2.setCreatedAt(LocalDateTime.now());
+        record2.setUpdatedAt(LocalDateTime.now());
+        record2.setIsDeleted(0);
+        salesRecordMapper.insert(record2);
+        
+        // 查询今天的销售总额
+        BigDecimal totalAmount = salesRecordMapper.getSalesAmountByDateRange(
+            LocalDate.now(), LocalDate.now());
+        
+        // 验证结果
+        assertNotNull(totalAmount);
+        assertEquals(new BigDecimal("5000.00"), totalAmount);
+    }
+}

@@ -1,0 +1,169 @@
+{
+  "groups": [
+    {
+      "name": "platform.link.performance",
+      "type": "com.yxrobot.config.PerformanceConfig",
+      "sourceType": "com.yxrobot.config.PerformanceConfig"
+    },
+    {
+      "name": "platform.link.performance.cache",
+      "type": "com.yxrobot.config.PerformanceConfig$Cache",
+      "sourceType": "com.yxrobot.config.PerformanceConfig",
+      "sourceMethod": "getCache()"
+    },
+    {
+      "name": "platform.link.performance.monitoring",
+      "type": "com.yxrobot.config.PerformanceConfig$Monitoring",
+      "sourceType": "com.yxrobot.config.PerformanceConfig",
+      "sourceMethod": "getMonitoring()"
+    },
+    {
+      "name": "platform.link.performance.stats",
+      "type": "com.yxrobot.config.PerformanceConfig$Stats",
+      "sourceType": "com.yxrobot.config.PerformanceConfig",
+      "sourceMethod": "getStats()"
+    },
+    {
+      "name": "platform.link.performance.validation",
+      "type": "com.yxrobot.config.PerformanceConfig$Validation",
+      "sourceType": "com.yxrobot.config.PerformanceConfig",
+      "sourceMethod": "getValidation()"
+    }
+  ],
+  "properties": [
+    {
+      "name": "platform.link.performance.cache.enable-warmup",
+      "type": "java.lang.Boolean",
+      "description": "是否启用缓存预热",
+      "sourceType": "com.yxrobot.config.PerformanceConfig$Cache",
+      "defaultValue": true
+    },
+    {
+      "name": "platform.link.performance.cache.region-config-expire-hours",
+      "type": "java.lang.Integer",
+      "description": "区域配置缓存过期时间（小时）",
+      "sourceType": "com.yxrobot.config.PerformanceConfig$Cache",
+      "defaultValue": 24
+    },
+    {
+      "name": "platform.link.performance.cache.stats-expire-minutes",
+      "type": "java.lang.Integer",
+      "description": "统计数据缓存过期时间（分钟）",
+      "sourceType": "com.yxrobot.config.PerformanceConfig$Cache",
+      "defaultValue": 30
+    },
+    {
+      "name": "platform.link.performance.cache.validation-result-expire-minutes",
+      "type": "java.lang.Integer",
+      "description": "验证结果缓存过期时间（分钟）",
+      "sourceType": "com.yxrobot.config.PerformanceConfig$Cache",
+      "defaultValue": 60
+    },
+    {
+      "name": "platform.link.performance.monitoring.enabled",
+      "type": "java.lang.Boolean",
+      "description": "是否启用监控",
+      "sourceType": "com.yxrobot.config.PerformanceConfig$Monitoring",
+      "defaultValue": true
+    },
+    {
+      "name": "platform.link.performance.monitoring.failure-rate-alert-threshold",
+      "type": "java.lang.Double",
+      "description": "失败率告警阈值（百分比）",
+      "sourceType": "com.yxrobot.config.PerformanceConfig$Monitoring",
+      "defaultValue": 20
+    },
+    {
+      "name": "platform.link.performance.monitoring.health-check-interval-minutes",
+      "type": "java.lang.Integer",
+      "description": "健康检查间隔（分钟）",
+      "sourceType": "com.yxrobot.config.PerformanceConfig$Monitoring",
+      "defaultValue": 5
+    },
+    {
+      "name": "platform.link.performance.monitoring.inactive-rate-alert-threshold",
+      "type": "java.lang.Double",
+      "description": "非活跃率告警阈值（百分比）",
+      "sourceType": "com.yxrobot.config.PerformanceConfig$Monitoring",
+      "defaultValue": 30
+    },
+    {
+      "name": "platform.link.performance.monitoring.performance-monitor-interval-minutes",
+      "type": "java.lang.Integer",
+      "description": "性能监控间隔（分钟）",
+      "sourceType": "com.yxrobot.config.PerformanceConfig$Monitoring",
+      "defaultValue": 15
+    },
+    {
+      "name": "platform.link.performance.monitoring.response-time-alert-threshold-ms",
+      "type": "java.lang.Integer",
+      "description": "响应时间告警阈值（毫秒）",
+      "sourceType": "com.yxrobot.config.PerformanceConfig$Monitoring",
+      "defaultValue": 5000
+    },
+    {
+      "name": "platform.link.performance.stats.calculation-batch-size",
+      "type": "java.lang.Integer",
+      "description": "统计数据计算批次大小",
+      "sourceType": "com.yxrobot.config.PerformanceConfig$Stats",
+      "defaultValue": 1000
+    },
+    {
+      "name": "platform.link.performance.stats.enable-real-time-stats",
+      "type": "java.lang.Boolean",
+      "description": "是否启用实时统计",
+      "sourceType": "com.yxrobot.config.PerformanceConfig$Stats",
+      "defaultValue": true
+    },
+    {
+      "name": "platform.link.performance.stats.history-retention-days",
+      "type": "java.lang.Integer",
+      "description": "历史数据保留天数",
+      "sourceType": "com.yxrobot.config.PerformanceConfig$Stats",
+      "defaultValue": 90
+    },
+    {
+      "name": "platform.link.performance.stats.refresh-interval-minutes",
+      "type": "java.lang.Integer",
+      "description": "统计数据刷新间隔（分钟）",
+      "sourceType": "com.yxrobot.config.PerformanceConfig$Stats",
+      "defaultValue": 30
+    },
+    {
+      "name": "platform.link.performance.validation.connection-timeout-ms",
+      "type": "java.lang.Integer",
+      "description": "连接超时时间（毫秒）",
+      "sourceType": "com.yxrobot.config.PerformanceConfig$Validation",
+      "defaultValue": 10000
+    },
+    {
+      "name": "platform.link.performance.validation.max-batch-size",
+      "type": "java.lang.Integer",
+      "description": "批量验证最大数量",
+      "sourceType": "com.yxrobot.config.PerformanceConfig$Validation",
+      "defaultValue": 100
+    },
+    {
+      "name": "platform.link.performance.validation.max-concurrent-validations",
+      "type": "java.lang.Integer",
+      "description": "最大并发验证数",
+      "sourceType": "com.yxrobot.config.PerformanceConfig$Validation",
+      "defaultValue": 20
+    },
+    {
+      "name": "platform.link.performance.validation.read-timeout-ms",
+      "type": "java.lang.Integer",
+      "description": "读取超时时间（毫秒）",
+      "sourceType": "com.yxrobot.config.PerformanceConfig$Validation",
+      "defaultValue": 15000
+    },
+    {
+      "name": "platform.link.performance.validation.retry-count",
+      "type": "java.lang.Integer",
+      "description": "重试次数",
+      "sourceType": "com.yxrobot.config.PerformanceConfig$Validation",
+      "defaultValue": 2
+    }
+  ],
+  "hints": []
+}

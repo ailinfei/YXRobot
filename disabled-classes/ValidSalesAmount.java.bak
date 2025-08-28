@@ -1,0 +1,36 @@
+package com.yxrobot.validation;
+
+import javax.validation.Constraint;
+import javax.validation.Payload;
+import java.lang.annotation.*;
+
+/**
+ * 销售金额验证注解
+ * 验证销售金额是否在合理范围内
+ * 
+ * @author YXRobot开发团队
+ * @version 1.0.0
+ * @since 2025-01-27
+ */
+@Target({ElementType.FIELD, ElementType.PARAMETER})
+@Retention(RetentionPolicy.RUNTIME)
+@Constraint(validatedBy = ValidSalesAmountValidator.class)
+@Documented
+public @interface ValidSalesAmount {
+    
+    String message() default "销售金额必须在0.01-999999.99之间";
+    
+    Class<?>[] groups() default {};
+    
+    Class<? extends Payload>[] payload() default {};
+    
+    /**
+     * 最小值
+     */
+    double min() default 0.01;
+    
+    /**
+     * 最大值
+     */
+    double max() default 999999.99;
+}

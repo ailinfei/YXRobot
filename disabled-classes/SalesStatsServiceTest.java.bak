@@ -1,0 +1,378 @@
+package com.yxrobot.service;
+
+import com.yxrobot.dto.SalesStatsDTO;
+import com.yxrobot.mapper.SalesRecordMapper;
+import com.yxrobot.mapper.SalesStatsMapper;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+/**
+ * 销售统计服务测试类
+ * 
+ * @author YXRobot开发团队
+ * @version 1.0.0
+ * @since 2025-01-27
+ */
+@ExtendWith(MockitoExtension.class)
+class SalesStatsServiceTest {
+    
+    @Mock
+    private SalesStatsMapper salesStatsMapper;
+    
+    @Mock
+    private SalesRecordMapper salesRecordMapper;
+    
+    @InjectMocks
+    private SalesStatsService salesStatsService;
+    
+    private LocalDate startDate;
+    private LocalDate endDate;
+    
+    @BeforeEach
+    void setUp() {
+        startDate = LocalDate.of(2025, 1, 1);
+        endDate = LocalDate.of(2025, 1, 27);
+    }
+    
+    @Test
+    void testGetSalesStats_Success() {
+        // 模拟统计数据
+        when(salesStatsMapper.getTotalSalesAmount(startDate, endDate))
+            .thenReturn(new BigDecimal("100000.00"));
+        when(salesStatsMapper.getTotalOrders(startDate, endDate))
+            .thenReturn(50L);
+        when(salesStatsMapper.getTotalQuantity(startDate, endDate))
+            .thenReturn(100L);
+        when(salesStatsMapper.getNewCustomers(startDate, endDate))
+            .thenReturn(10L);
+        when(salesStatsMapper.getActiveCustomers(startDate, endDate))
+            .thenReturn(25L);
+        
+        // 执行测试
+        SalesStatsDTO result = salesStatsService.getSalesStats(startDate, endDate);
+        
+        // 验证结果
+        assertNotNull(result);
+        assertEquals(new BigDecimal("100000.00"), result.getTotalSalesAmount());
+        assertEquals(50L, result.getTotalOrders());
+        assertEquals(new BigDecimal("2000.00"), result.getAvgOrderAmount()); // 100000/50
+        assertEquals(100L, result.getTotalQuantity());
+        assertEquals(10L, result.getNewCustomers());
+        assertEquals(25L, result.getActiveCustomers());
+        
+        // 验证方法调用
+        verify(salesStatsMapper, times(1)).getTotalSalesAmount(startDate, endDate);
+        verify(salesStatsMapper, times(1)).getTotalOrders(startDate, endDate);
+        verify(salesStatsMapper, times(1)).getTotalQuantity(startDate, endDate);
+        verify(salesStatsMapper, times(1)).getNewCustomers(startDate, endDate);
+        verify(salesStatsMapper, times(1)).getActiveCustomers(startDate, endDate);
+    }
+} 
+   
+    @Test
+    void testGetSalesStats_ZeroOrders() {
+        // 模拟零订单情况
+        when(salesStatsMapper.getTotalSalesAmount(startDate, endDate))
+            .thenReturn(BigDecimal.ZERO);
+        when(salesStatsMapper.getTotalOrders(startDate, endDate))
+            .thenReturn(0L);
+        when(salesStatsMapper.getTotalQuantity(startDate, endDate))
+            .thenReturn(0L);
+        when(salesStatsMapper.getNewCustomers(startDate, endDate))
+            .thenReturn(0L);
+        when(salesStatsMapper.getActiveCustomers(startDate, endDate))
+            .thenReturn(0L);
+        
+        // 执行测试
+        SalesStatsDTO result = salesStatsService.getSalesStats(startDate, endDate);
+        
+        // 验证结果
+        assertNotNull(result);
+        assertEquals(BigDecimal.ZERO, result.getTotalSalesAmount());
+        assertEquals(0L, result.getTotalOrders());
+        assertEquals(BigDecimal.ZERO, result.getAvgOrderAmount()); // 避免除零错误
+        assertEquals(0L, result.getTotalQuantity());
+        assertEquals(0L, result.getNewCustomers());
+        assertEquals(0L, result.getActiveCustomers());
+    }
+    
+    @Test
+    void testGetSalesTrends_AmountType() {
+        // 准备测试数据
+        List<Map<String, Object>> mockTrendData = Arrays.asList(
+            Map.of("date", "2025-01-01", "value", new BigDecimal("1000.00")),
+            Map.of("date", "2025-01-02", "value", new BigDecimal("1500.00")),
+            Map.of("date", "2025-01-03", "value", new BigDecimal("2000.00"))
+        );
+        
+        // 模拟Mapper调用
+        when(salesStatsMapper.getSalesAmountTrends(startDate, endDate))
+            .thenReturn(mockTrendData);
+        
+        // 执行测试
+        Map<String, Object> result = salesStatsService.getSalesTrends(startDate, endDate, "amount");
+        
+        // 验证结果
+        assertNotNull(result);
+        assertTrue(result.containsKey("dates"));
+        assertTrue(result.containsKey("values"));
+        assertTrue(result.containsKey("comparison"));
+        
+        @SuppressWarnings("unchecked")
+        List<String> dates = (List<String>) result.get("dates");
+        @SuppressWarnings("unchecked")
+        List<BigDecimal> values = (List<BigDecimal>) result.get("values");
+        
+        assertEquals(3, dates.size());
+        assertEquals(3, values.size());
+        assertEquals("2025-01-01", dates.get(0));
+        assertEquals(new BigDecimal("1000.00"), values.get(0));
+        
+        // 验证方法调用
+        verify(salesStatsMapper, times(1)).getSalesAmountTrends(startDate, endDate);
+    }
+    
+    @Test
+    void testGetSalesTrends_OrdersType() {
+        // 准备测试数据
+        List<Map<String, Object>> mockTrendData = Arrays.asList(
+            Map.of("date", "2025-01-01", "value", 10L),
+            Map.of("date", "2025-01-02", "value", 15L),
+            Map.of("date", "2025-01-03", "value", 20L)
+        );
+        
+        // 模拟Mapper调用
+        when(salesStatsMapper.getOrderCountTrends(startDate, endDate))
+            .thenReturn(mockTrendData);
+        
+        // 执行测试
+        Map<String, Object> result = salesStatsService.getSalesTrends(startDate, endDate, "orders");
+        
+        // 验证结果
+        assertNotNull(result);
+        assertTrue(result.containsKey("dates"));
+        assertTrue(result.containsKey("values"));
+        
+        @SuppressWarnings("unchecked")
+        List<String> dates = (List<String>) result.get("dates");
+        @SuppressWarnings("unchecked")
+        List<Long> values = (List<Long>) result.get("values");
+        
+        assertEquals(3, dates.size());
+        assertEquals(3, values.size());
+        assertEquals("2025-01-01", dates.get(0));
+        assertEquals(10L, values.get(0));
+        
+        // 验证方法调用
+        verify(salesStatsMapper, times(1)).getOrderCountTrends(startDate, endDate);
+    }
+    
+    @Test
+    void testGetSalesTrends_CustomersType() {
+        // 准备测试数据
+        List<Map<String, Object>> mockTrendData = Arrays.asList(
+            Map.of("date", "2025-01-01", "value", 5L),
+            Map.of("date", "2025-01-02", "value", 8L),
+            Map.of("date", "2025-01-03", "value", 12L)
+        );
+        
+        // 模拟Mapper调用
+        when(salesStatsMapper.getCustomerTrends(startDate, endDate))
+            .thenReturn(mockTrendData);
+        
+        // 执行测试
+        Map<String, Object> result = salesStatsService.getSalesTrends(startDate, endDate, "customers");
+        
+        // 验证结果
+        assertNotNull(result);
+        assertTrue(result.containsKey("dates"));
+        assertTrue(result.containsKey("values"));
+        
+        // 验证方法调用
+        verify(salesStatsMapper, times(1)).getCustomerTrends(startDate, endDate);
+    }
+    
+    @Test
+    void testGetSalesTrends_InvalidType() {
+        // 执行测试并验证异常
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            salesStatsService.getSalesTrends(startDate, endDate, "invalid");
+        });
+        
+        assertEquals("不支持的趋势类型: invalid", exception.getMessage());
+        
+        // 验证没有调用任何Mapper方法
+        verify(salesStatsMapper, never()).getSalesAmountTrends(any(), any());
+        verify(salesStatsMapper, never()).getOrderCountTrends(any(), any());
+        verify(salesStatsMapper, never()).getCustomerTrends(any(), any());
+    } 
+   
+    @Test
+    void testGetProductRanking_Success() {
+        // 准备测试数据
+        List<Map<String, Object>> mockRankingData = Arrays.asList(
+            Map.of("productId", 1L, "productName", "产品A", "salesAmount", new BigDecimal("10000.00"), 
+                   "quantity", 50L, "orderCount", 25L),
+            Map.of("productId", 2L, "productName", "产品B", "salesAmount", new BigDecimal("8000.00"), 
+                   "quantity", 40L, "orderCount", 20L),
+            Map.of("productId", 3L, "productName", "产品C", "salesAmount", new BigDecimal("6000.00"), 
+                   "quantity", 30L, "orderCount", 15L)
+        );
+        
+        // 模拟Mapper调用
+        when(salesStatsMapper.getProductRanking(startDate, endDate, 10))
+            .thenReturn(mockRankingData);
+        
+        // 执行测试
+        List<Map<String, Object>> result = salesStatsService.getProductRanking(startDate, endDate, 10);
+        
+        // 验证结果
+        assertNotNull(result);
+        assertEquals(3, result.size());
+        
+        Map<String, Object> firstProduct = result.get(0);
+        assertEquals(1L, firstProduct.get("productId"));
+        assertEquals("产品A", firstProduct.get("productName"));
+        assertEquals(new BigDecimal("10000.00"), firstProduct.get("salesAmount"));
+        assertEquals(50L, firstProduct.get("quantity"));
+        assertEquals(25L, firstProduct.get("orderCount"));
+        
+        // 验证方法调用
+        verify(salesStatsMapper, times(1)).getProductRanking(startDate, endDate, 10);
+    }
+    
+    @Test
+    void testGetProductRanking_EmptyResult() {
+        // 模拟空结果
+        when(salesStatsMapper.getProductRanking(startDate, endDate, 10))
+            .thenReturn(Arrays.asList());
+        
+        // 执行测试
+        List<Map<String, Object>> result = salesStatsService.getProductRanking(startDate, endDate, 10);
+        
+        // 验证结果
+        assertNotNull(result);
+        assertEquals(0, result.size());
+        
+        // 验证方法调用
+        verify(salesStatsMapper, times(1)).getProductRanking(startDate, endDate, 10);
+    }
+    
+    @Test
+    void testGetStaffPerformance_Success() {
+        // 准备测试数据
+        List<Map<String, Object>> mockPerformanceData = Arrays.asList(
+            Map.of("staffId", 1L, "staffName", "张三", "salesAmount", new BigDecimal("15000.00"), 
+                   "orderCount", 30L, "targetCompletion", 0.75),
+            Map.of("staffId", 2L, "staffName", "李四", "salesAmount", new BigDecimal("12000.00"), 
+                   "orderCount", 25L, "targetCompletion", 0.60),
+            Map.of("staffId", 3L, "staffName", "王五", "salesAmount", new BigDecimal("10000.00"), 
+                   "orderCount", 20L, "targetCompletion", 0.50)
+        );
+        
+        // 模拟Mapper调用
+        when(salesStatsMapper.getStaffPerformance(startDate, endDate, 10))
+            .thenReturn(mockPerformanceData);
+        
+        // 执行测试
+        List<Map<String, Object>> result = salesStatsService.getStaffPerformance(startDate, endDate, 10);
+        
+        // 验证结果
+        assertNotNull(result);
+        assertEquals(3, result.size());
+        
+        Map<String, Object> firstStaff = result.get(0);
+        assertEquals(1L, firstStaff.get("staffId"));
+        assertEquals("张三", firstStaff.get("staffName"));
+        assertEquals(new BigDecimal("15000.00"), firstStaff.get("salesAmount"));
+        assertEquals(30L, firstStaff.get("orderCount"));
+        assertEquals(0.75, firstStaff.get("targetCompletion"));
+        
+        // 验证方法调用
+        verify(salesStatsMapper, times(1)).getStaffPerformance(startDate, endDate, 10);
+    }
+    
+    @Test
+    void testGetStaffPerformance_EmptyResult() {
+        // 模拟空结果
+        when(salesStatsMapper.getStaffPerformance(startDate, endDate, 10))
+            .thenReturn(Arrays.asList());
+        
+        // 执行测试
+        List<Map<String, Object>> result = salesStatsService.getStaffPerformance(startDate, endDate, 10);
+        
+        // 验证结果
+        assertNotNull(result);
+        assertEquals(0, result.size());
+        
+        // 验证方法调用
+        verify(salesStatsMapper, times(1)).getStaffPerformance(startDate, endDate, 10);
+    }
+    
+    @Test
+    void testCalculateGrowthRate_PositiveGrowth() {
+        // 测试正增长
+        BigDecimal currentValue = new BigDecimal("1200.00");
+        BigDecimal previousValue = new BigDecimal("1000.00");
+        
+        // 执行测试
+        BigDecimal growthRate = salesStatsService.calculateGrowthRate(currentValue, previousValue);
+        
+        // 验证结果 ((1200-1000)/1000)*100 = 20%
+        assertEquals(new BigDecimal("20.00"), growthRate);
+    }
+    
+    @Test
+    void testCalculateGrowthRate_NegativeGrowth() {
+        // 测试负增长
+        BigDecimal currentValue = new BigDecimal("800.00");
+        BigDecimal previousValue = new BigDecimal("1000.00");
+        
+        // 执行测试
+        BigDecimal growthRate = salesStatsService.calculateGrowthRate(currentValue, previousValue);
+        
+        // 验证结果 ((800-1000)/1000)*100 = -20%
+        assertEquals(new BigDecimal("-20.00"), growthRate);
+    }
+    
+    @Test
+    void testCalculateGrowthRate_ZeroPrevious() {
+        // 测试前期值为零的情况
+        BigDecimal currentValue = new BigDecimal("1000.00");
+        BigDecimal previousValue = BigDecimal.ZERO;
+        
+        // 执行测试
+        BigDecimal growthRate = salesStatsService.calculateGrowthRate(currentValue, previousValue);
+        
+        // 验证结果（前期为零时返回100%）
+        assertEquals(new BigDecimal("100.00"), growthRate);
+    }
+    
+    @Test
+    void testCalculateGrowthRate_BothZero() {
+        // 测试两个值都为零的情况
+        BigDecimal currentValue = BigDecimal.ZERO;
+        BigDecimal previousValue = BigDecimal.ZERO;
+        
+        // 执行测试
+        BigDecimal growthRate = salesStatsService.calculateGrowthRate(currentValue, previousValue);
+        
+        // 验证结果（都为零时返回0%）
+        assertEquals(BigDecimal.ZERO, growthRate);
+    }
+}

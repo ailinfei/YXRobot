@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据库字段修复验证测试</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
+        .test-section h2 {
+            color: #34495e;
+            margin-top: 0;
+        }
+        .test-button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        .test-button:hover {
+            background-color: #2980b9;
+        }
+        .success {
+            background-color: #27ae60;
+        }
+        .error {
+            background-color: #e74c3c;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #ecf0f1;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 3px;
+            color: white;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .status.success {
+            background-color: #27ae60;
+        }
+        .status.error {
+            background-color: #e74c3c;
+        }
+        .status.pending {
+            background-color: #f39c12;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        .field-mapping {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 15px;
+        }
+        .mapping-column {
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 数据库字段修复验证测试</h1>
+        
+        <!-- 1. 数据库连接测试 -->
+        <div class="test-section">
+            <h2>1. 数据库连接测试</h2>
+            <button class="test-button" onclick="testDatabaseConnection()">测试数据库连接</button>
+            <span id="db-status" class="status pending">待测试</span>
+            <div id="db-result" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- 2. 字段结构验证 -->
+        <div class="test-section">
+            <h2>2. 数据库字段结构验证</h2>
+            <button class="test-button" onclick="testFieldStructure()">验证字段结构</button>
+            <span id="field-status" class="status pending">待测试</span>
+            <div id="field-result" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- 3. API接口测试 -->
+        <div class="test-section">
+            <h2>3. 销售记录API接口测试</h2>
+            <button class="test-button" onclick="testSalesRecordsAPI()">测试销售记录列表API</button>
+            <button class="test-button" onclick="testSalesStatsAPI()">测试销售统计API</button>
+            <button class="test-button" onclick="testCustomersAPI()">测试客户列表API</button>
+            <button class="test-button" onclick="testProductsAPI()">测试产品列表API</button>
+            <button class="test-button" onclick="testStaffAPI()">测试销售人员API</button>
+            <span id="api-status" class="status pending">待测试</span>
+            <div id="api-result" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- 4. 字段映射验证 -->
+        <div class="test-section">
+            <h2>4. 前后端字段映射验证</h2>
+            <button class="test-button" onclick="testFieldMapping()">验证字段映射</button>
+            <span id="mapping-status" class="status pending">待测试</span>
+            
+            <div class="field-mapping">
+                <div class="mapping-column">
+                    <h3>前端期望字段 (camelCase)</h3>
+                    <ul>
+                        <li>customerName</li>
+                        <li>customerPhone</li>
+                        <li>productName</li>
+                        <li>staffName</li>
+                        <li>orderNumber</li>
+                        <li>salesAmount</li>
+                        <li>orderDate</li>
+                        <li>paymentStatus</li>
+                    </ul>
+                </div>
+                <div class="mapping-column">
+                    <h3>数据库字段 (snake_case)</h3>
+                    <ul>
+                        <li>customer_name</li>
+                        <li>phone (customers表)</li>
+                        <li>product_name</li>
+                        <li>staff_name</li>
+                        <li>order_number</li>
+                        <li>sales_amount</li>
+                        <li>order_date</li>
+                        <li>payment_status</li>
+                    </ul>
+                </div>
+            </div>
+            <div id="mapping-result" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- 5. 数据完整性测试 -->
+        <div class="test-section">
+            <h2>5. 数据完整性测试</h2>
+            <button class="test-button" onclick="testDataIntegrity()">测试数据完整性</button>
+            <span id="integrity-status" class="status pending">待测试</span>
+            <div id="integrity-result" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- 6. 创建测试销售记录 -->
+        <div class="test-section">
+            <h2>6. 创建测试销售记录</h2>
+            <button class="test-button" onclick="createTestSalesRecord()">创建测试销售记录</button>
+            <button class="test-button" onclick="clearTestData()">清理测试数据</button>
+            <span id="create-status" class="status pending">待测试</span>
+            <div id="create-result" class="result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8081/api';
+        
+        // 工具函数
+        function updateStatus(elementId, status, text) {
+            const element = document.getElementById(elementId);
+            element.className = `status ${status}`;
+            element.textContent = text;
+        }
+        
+        function showResult(elementId, content) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.textContent = content;
+        }
+        
+        async function makeRequest(url, options = {}) {
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+                
+                const data = await response.json();
+                return {
+                    success: response.ok,
+                    status: response.status,
+                    data: data
+                };
+            } catch (error) {
+                return {
+                    success: false,
+                    error: error.message
+                };
+            }
+        }
+        
+        // 1. 测试数据库连接
+        async function testDatabaseConnection() {
+            updateStatus('db-status', 'pending', '测试中...');
+            
+            const result = await makeRequest(`${API_BASE}/sales/records?page=1&size=1`);
+            
+            if (result.success) {
+                updateStatus('db-status', 'success', '连接成功');
+                showResult('db-result', `✅ 数据库连接正常\n响应状态: ${result.status}\n响应时间: ${new Date().toLocaleTimeString()}`);
+            } else {
+                updateStatus('db-status', 'error', '连接失败');
+                showResult('db-result', `❌ 数据库连接失败\n错误信息: ${result.error || '未知错误'}`);
+            }
+        }
+        
+        // 2. 测试字段结构
+        async function testFieldStructure() {
+            updateStatus('field-status', 'pending', '验证中...');
+            
+            const result = await makeRequest(`${API_BASE}/sales/records?page=1&size=1`);
+            
+            if (result.success && result.data && result.data.data) {
+                const records = result.data.data.list || [];
+                
+                if (records.length > 0) {
+                    const record = records[0];
+                    const requiredFields = [
+                        'id', 'orderNumber', 'customerName', 'customerPhone', 
+                        'productName', 'staffName', 'salesAmount', 'orderDate'
+                    ];
+                    
+                    const missingFields = requiredFields.filter(field => !(field in record));
+                    const existingFields = Object.keys(record);
+                    
+                    if (missingFields.length === 0) {
+                        updateStatus('field-status', 'success', '字段完整');
+                        showResult('field-result', 
+                            `✅ 所有必需字段都存在\n\n现有字段:\n${existingFields.join(', ')}\n\n示例数据:\n${JSON.stringify(record, null, 2)}`
+                        );
+                    } else {
+                        updateStatus('field-status', 'error', '字段缺失');
+                        showResult('field-result', 
+                            `❌ 缺少字段: ${missingFields.join(', ')}\n\n现有字段:\n${existingFields.join(', ')}`
+                        );
+                    }
+                } else {
+                    updateStatus('field-status', 'success', '无数据');
+                    showResult('field-result', '✅ API响应正常，但暂无销售记录数据\n这是正常的空状态');
+                }
+            } else {
+                updateStatus('field-status', 'error', '验证失败');
+                showResult('field-result', `❌ 字段结构验证失败\n错误: ${result.error || '无法获取数据'}`);
+            }
+        }
+        
+        // 3. 测试销售记录API
+        async function testSalesRecordsAPI() {
+            updateStatus('api-status', 'pending', '测试中...');
+            
+            const result = await makeRequest(`${API_BASE}/sales/records`);
+            
+            if (result.success) {
+                updateStatus('api-status', 'success', 'API正常');
+                showResult('api-result', 
+                    `✅ 销售记录API测试成功\n\n响应数据:\n${JSON.stringify(result.data, null, 2)}`
+                );
+            } else {
+                updateStatus('api-status', 'error', 'API失败');
+                showResult('api-result', `❌ 销售记录API测试失败\n错误: ${result.error}`);
+            }
+        }
+        
+        // 测试销售统计API
+        async function testSalesStatsAPI() {
+            const result = await makeRequest(`${API_BASE}/sales/stats`);
+            
+            if (result.success) {
+                showResult('api-result', 
+                    `✅ 销售统计API测试成功\n\n统计数据:\n${JSON.stringify(result.data, null, 2)}`
+                );
+            } else {
+                showResult('api-result', `❌ 销售统计API测试失败\n错误: ${result.error}`);
+            }
+        }
+        
+        // 测试客户列表API
+        async function testCustomersAPI() {
+            const result = await makeRequest(`${API_BASE}/sales/customers`);
+            
+            if (result.success) {
+                showResult('api-result', 
+                    `✅ 客户列表API测试成功\n\n客户数据:\n${JSON.stringify(result.data, null, 2)}`
+                );
+            } else {
+                showResult('api-result', `❌ 客户列表API测试失败\n错误: ${result.error}`);
+            }
+        }
+        
+        // 测试产品列表API
+        async function testProductsAPI() {
+            const result = await makeRequest(`${API_BASE}/sales/products`);
+            
+            if (result.success) {
+                showResult('api-result', 
+                    `✅ 产品列表API测试成功\n\n产品数据:\n${JSON.stringify(result.data, null, 2)}`
+                );
+            } else {
+                showResult('api-result', `❌ 产品列表API测试失败\n错误: ${result.error}`);
+            }
+        }
+        
+        // 测试销售人员API
+        async function testStaffAPI() {
+            const result = await makeRequest(`${API_BASE}/sales/staff`);
+            
+            if (result.success) {
+                showResult('api-result', 
+                    `✅ 销售人员API测试成功\n\n人员数据:\n${JSON.stringify(result.data, null, 2)}`
+                );
+            } else {
+                showResult('api-result', `❌ 销售人员API测试失败\n错误: ${result.error}`);
+            }
+        }
+        
+        // 4. 测试字段映射
+        async function testFieldMapping() {
+            updateStatus('mapping-status', 'pending', '验证中...');
+            
+            const result = await makeRequest(`${API_BASE}/sales/records?page=1&size=1`);
+            
+            if (result.success && result.data && result.data.data) {
+                const records = result.data.data.list || [];
+                
+                if (records.length > 0) {
+                    const record = records[0];
+                    
+                    // 检查关键字段映射
+                    const fieldMappings = [
+                        { frontend: 'customerName', backend: 'customerName', required: true },
+                        { frontend: 'customerPhone', backend: 'customerPhone', required: true },
+                        { frontend: 'productName', backend: 'productName', required: true },
+                        { frontend: 'staffName', backend: 'staffName', required: true },
+                        { frontend: 'orderNumber', backend: 'orderNumber', required: true },
+                        { frontend: 'salesAmount', backend: 'salesAmount', required: true }
+                    ];
+                    
+                    const mappingResults = fieldMappings.map(mapping => {
+                        const exists = mapping.backend in record;
+                        return {
+                            ...mapping,
+                            exists,
+                            value: exists ? record[mapping.backend] : null
+                        };
+                    });
+                    
+                    const missingMappings = mappingResults.filter(m => m.required && !m.exists);
+                    
+                    if (missingMappings.length === 0) {
+                        updateStatus('mapping-status', 'success', '映射正确');
+                        showResult('mapping-result', 
+                            `✅ 字段映射验证成功\n\n字段映射详情:\n${mappingResults.map(m => 
+                                `${m.frontend} -> ${m.backend}: ${m.exists ? '✅' : '❌'} ${m.exists ? `(${m.value})` : ''}`
+                            ).join('\n')}`
+                        );
+                    } else {
+                        updateStatus('mapping-status', 'error', '映射错误');
+                        showResult('mapping-result', 
+                            `❌ 字段映射验证失败\n\n缺少字段:\n${missingMappings.map(m => m.frontend).join(', ')}`
+                        );
+                    }
+                } else {
+                    updateStatus('mapping-status', 'success', '无数据验证');
+                    showResult('mapping-result', '⚠️ 暂无销售记录数据，无法验证字段映射\n建议先创建测试数据');
+                }
+            } else {
+                updateStatus('mapping-status', 'error', '验证失败');
+                showResult('mapping-result', `❌ 字段映射验证失败\n错误: ${result.error}`);
+            }
+        }
+        
+        // 5. 测试数据完整性
+        async function testDataIntegrity() {
+            updateStatus('integrity-status', 'pending', '测试中...');
+            
+            try {
+                // 测试多个API的数据完整性
+                const [recordsResult, customersResult, productsResult, staffResult] = await Promise.all([
+                    makeRequest(`${API_BASE}/sales/records`),
+                    makeRequest(`${API_BASE}/sales/customers`),
+                    makeRequest(`${API_BASE}/sales/products`),
+                    makeRequest(`${API_BASE}/sales/staff`)
+                ]);
+                
+                const results = {
+                    records: recordsResult.success,
+                    customers: customersResult.success,
+                    products: productsResult.success,
+                    staff: staffResult.success
+                };
+                
+                const successCount = Object.values(results).filter(Boolean).length;
+                const totalCount = Object.keys(results).length;
+                
+                if (successCount === totalCount) {
+                    updateStatus('integrity-status', 'success', '数据完整');
+                    showResult('integrity-result', 
+                        `✅ 数据完整性测试通过 (${successCount}/${totalCount})\n\n详细结果:\n${Object.entries(results).map(([key, success]) => 
+                            `${key}: ${success ? '✅' : '❌'}`
+                        ).join('\n')}\n\n基础数据统计:\n客户数量: ${customersResult.data?.data?.length || 0}\n产品数量: ${productsResult.data?.data?.length || 0}\n销售人员数量: ${staffResult.data?.data?.length || 0}`
+                    );
+                } else {
+                    updateStatus('integrity-status', 'error', '数据不完整');
+                    showResult('integrity-result', 
+                        `❌ 数据完整性测试失败 (${successCount}/${totalCount})\n\n详细结果:\n${Object.entries(results).map(([key, success]) => 
+                            `${key}: ${success ? '✅' : '❌'}`
+                        ).join('\n')}`
+                    );
+                }
+            } catch (error) {
+                updateStatus('integrity-status', 'error', '测试失败');
+                showResult('integrity-result', `❌ 数据完整性测试失败\n错误: ${error.message}`);
+            }
+        }
+        
+        // 6. 创建测试销售记录
+        async function createTestSalesRecord() {
+            updateStatus('create-status', 'pending', '创建中...');
+            
+            // 首先获取客户、产品、销售人员数据
+            const [customersResult, productsResult, staffResult] = await Promise.all([
+                makeRequest(`${API_BASE}/sales/customers`),
+                makeRequest(`${API_BASE}/sales/products`),
+                makeRequest(`${API_BASE}/sales/staff`)
+            ]);
+            
+            if (!customersResult.success || !productsResult.success || !staffResult.success) {
+                updateStatus('create-status', 'error', '获取基础数据失败');
+                showResult('create-result', '❌ 无法获取客户、产品或销售人员数据');
+                return;
+            }
+            
+            const customers = customersResult.data.data || [];
+            const products = productsResult.data.data || [];
+            const staff = staffResult.data.data || [];
+            
+            if (customers.length === 0 || products.length === 0 || staff.length === 0) {
+                updateStatus('create-status', 'error', '基础数据不足');
+                showResult('create-result', '❌ 缺少必要的基础数据（客户、产品或销售人员）');
+                return;
+            }
+            
+            // 创建测试销售记录
+            const testRecord = {
+                orderNumber: `TEST${Date.now()}`,
+                customerId: customers[0].id,
+                productId: products[0].id,
+                salesStaffId: staff[0].id,
+                quantity: 1,
+                unitPrice: products[0].unitPrice || 1000,
+                salesAmount: products[0].unitPrice || 1000,
+                discountAmount: 0,
+                orderDate: new Date().toISOString().split('T')[0],
+                status: 'pending',
+                paymentStatus: 'unpaid',
+                paymentMethod: '银行转账',
+                region: '测试地区',
+                channel: '线上',
+                notes: '这是一个测试销售记录，用于验证数据库字段修复'
+            };
+            
+            const createResult = await makeRequest(`${API_BASE}/sales/records`, {
+                method: 'POST',
+                body: JSON.stringify(testRecord)
+            });
+            
+            if (createResult.success) {
+                updateStatus('create-status', 'success', '创建成功');
+                showResult('create-result', 
+                    `✅ 测试销售记录创建成功\n\n创建的记录:\n${JSON.stringify(createResult.data, null, 2)}\n\n现在可以测试前端页面是否能正确显示这条记录`
+                );
+            } else {
+                updateStatus('create-status', 'error', '创建失败');
+                showResult('create-result', `❌ 测试销售记录创建失败\n错误: ${createResult.error}`);
+            }
+        }
+        
+        // 清理测试数据
+        async function clearTestData() {
+            const result = await makeRequest(`${API_BASE}/sales/records`);
+            
+            if (result.success && result.data && result.data.data) {
+                const records = result.data.data.list || [];
+                const testRecords = records.filter(record => 
+                    record.orderNumber && record.orderNumber.startsWith('TEST')
+                );
+                
+                if (testRecords.length > 0) {
+                    // 删除测试记录
+                    const deletePromises = testRecords.map(record => 
+                        makeRequest(`${API_BASE}/sales/records/${record.id}`, { method: 'DELETE' })
+                    );
+                    
+                    const deleteResults = await Promise.all(deletePromises);
+                    const successCount = deleteResults.filter(r => r.success).length;
+                    
+                    showResult('create-result', 
+                        `🧹 清理完成\n删除了 ${successCount}/${testRecords.length} 条测试记录`
+                    );
+                } else {
+                    showResult('create-result', '🧹 没有找到需要清理的测试记录');
+                }
+            }
+        }
+        
+        // 页面加载时自动测试数据库连接
+        window.onload = function() {
+            console.log('数据库字段修复验证测试页面已加载');
+            // 可以在这里自动执行一些基础测试
+        };
+    </script>
+</body>
+</html>

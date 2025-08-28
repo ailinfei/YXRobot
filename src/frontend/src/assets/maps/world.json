@@ -1,0 +1,413 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "China",
+        "name_zh": "中国"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              73.5,
+              53.5
+            ],
+            [
+              134.8,
+              53.5
+            ],
+            [
+              134.8,
+              18.2
+            ],
+            [
+              73.5,
+              18.2
+            ],
+            [
+              73.5,
+              53.5
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "United States",
+        "name_zh": "美国"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -171.8,
+              71.4
+            ],
+            [
+              -66.9,
+              71.4
+            ],
+            [
+              -66.9,
+              18.9
+            ],
+            [
+              -171.8,
+              18.9
+            ],
+            [
+              -171.8,
+              71.4
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Japan",
+        "name_zh": "日本"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              129.4,
+              45.5
+            ],
+            [
+              145.8,
+              45.5
+            ],
+            [
+              145.8,
+              30.3
+            ],
+            [
+              129.4,
+              30.3
+            ],
+            [
+              129.4,
+              45.5
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Germany",
+        "name_zh": "德国"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              5.9,
+              55.1
+            ],
+            [
+              15.0,
+              55.1
+            ],
+            [
+              15.0,
+              47.3
+            ],
+            [
+              5.9,
+              47.3
+            ],
+            [
+              5.9,
+              55.1
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "United Kingdom",
+        "name_zh": "英国"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -8.6,
+              60.8
+            ],
+            [
+              1.8,
+              60.8
+            ],
+            [
+              1.8,
+              49.9
+            ],
+            [
+              -8.6,
+              49.9
+            ],
+            [
+              -8.6,
+              60.8
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "France",
+        "name_zh": "法国"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -5.1,
+              51.1
+            ],
+            [
+              9.6,
+              51.1
+            ],
+            [
+              9.6,
+              41.3
+            ],
+            [
+              -5.1,
+              41.3
+            ],
+            [
+              -5.1,
+              51.1
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "South Korea",
+        "name_zh": "韩国"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              124.6,
+              38.6
+            ],
+            [
+              131.9,
+              38.6
+            ],
+            [
+              131.9,
+              33.1
+            ],
+            [
+              124.6,
+              33.1
+            ],
+            [
+              124.6,
+              38.6
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Canada",
+        "name_zh": "加拿大"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -141.0,
+              83.1
+            ],
+            [
+              -52.6,
+              83.1
+            ],
+            [
+              -52.6,
+              41.7
+            ],
+            [
+              -141.0,
+              41.7
+            ],
+            [
+              -141.0,
+              83.1
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Australia",
+        "name_zh": "澳大利亚"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              113.3,
+              -10.7
+            ],
+            [
+              153.6,
+              -10.7
+            ],
+            [
+              153.6,
+              -43.6
+            ],
+            [
+              113.3,
+              -43.6
+            ],
+            [
+              113.3,
+              -10.7
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Brazil",
+        "name_zh": "巴西"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9,
+              5.3
+            ],
+            [
+              -34.8,
+              5.3
+            ],
+            [
+              -34.8,
+              -33.8
+            ],
+            [
+              -73.9,
+              -33.8
+            ],
+            [
+              -73.9,
+              5.3
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "India",
+        "name_zh": "印度"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              68.2,
+              37.1
+            ],
+            [
+              97.4,
+              37.1
+            ],
+            [
+              97.4,
+              6.8
+            ],
+            [
+              68.2,
+              6.8
+            ],
+            [
+              68.2,
+              37.1
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Russia",
+        "name_zh": "俄罗斯"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              19.6,
+              81.9
+            ],
+            [
+              180.0,
+              81.9
+            ],
+            [
+              180.0,
+              41.2
+            ],
+            [
+              19.6,
+              41.2
+            ],
+            [
+              19.6,
+              81.9
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yxrobot.mapper.NewsTagRelationMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="NewsTagRelationResultMap" type="com.yxrobot.entity.NewsTagRelation">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="news_id" property="newsId" jdbcType="BIGINT"/>
+        <result column="tag_id" property="tagId" jdbcType="BIGINT"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <!-- 标签结果映射 -->
+    <resultMap id="NewsTagResultMap" type="com.yxrobot.entity.NewsTag">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="name" property="name" jdbcType="VARCHAR"/>
+        <result column="color" property="color" jdbcType="VARCHAR"/>
+        <result column="usage_count" property="usageCount" jdbcType="INTEGER"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+        <result column="updated_at" property="updatedAt" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <!-- 基础字段 -->
+    <sql id="Base_Column_List">
+        id, news_id, tag_id, created_at
+    </sql>
+
+    <!-- 插入新闻标签关联 -->
+    <insert id="insert" parameterType="com.yxrobot.entity.NewsTagRelation" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO news_tag_relations (
+            news_id, tag_id, created_at
+        ) VALUES (
+            #{newsId}, #{tagId}, NOW()
+        )
+    </insert>
+
+    <!-- 批量插入新闻标签关联 -->
+    <insert id="batchInsert">
+        INSERT INTO news_tag_relations (news_id, tag_id, created_at)
+        VALUES
+        <foreach collection="relations" item="relation" separator=",">
+            (#{relation.newsId}, #{relation.tagId}, NOW())
+        </foreach>
+    </insert>
+
+    <!-- 根据ID删除关联 -->
+    <delete id="deleteById" parameterType="java.lang.Long">
+        DELETE FROM news_tag_relations WHERE id = #{id}
+    </delete>
+
+    <!-- 根据新闻ID删除所有关联 -->
+    <delete id="deleteByNewsId" parameterType="java.lang.Long">
+        DELETE FROM news_tag_relations WHERE news_id = #{newsId}
+    </delete>
+
+    <!-- 根据标签ID删除所有关联 -->
+    <delete id="deleteByTagId" parameterType="java.lang.Long">
+        DELETE FROM news_tag_relations WHERE tag_id = #{tagId}
+    </delete>
+
+    <!-- 删除指定新闻和标签的关联 -->
+    <delete id="deleteByNewsIdAndTagId">
+        DELETE FROM news_tag_relations 
+        WHERE news_id = #{newsId} AND tag_id = #{tagId}
+    </delete>
+
+    <!-- 批量删除新闻的标签关联 -->
+    <delete id="batchDeleteByNewsIdAndTagIds">
+        DELETE FROM news_tag_relations 
+        WHERE news_id = #{newsId} AND tag_id IN
+        <foreach collection="tagIds" item="tagId" open="(" separator="," close=")">
+            #{tagId}
+        </foreach>
+    </delete>
+
+    <!-- 根据新闻ID查询关联的标签 -->
+    <select id="selectTagsByNewsId" parameterType="java.lang.Long" resultMap="NewsTagResultMap">
+        SELECT t.id, t.name, t.color, t.usage_count, t.created_at, t.updated_at
+        FROM news_tag_relations ntr
+        INNER JOIN news_tags t ON ntr.tag_id = t.id
+        WHERE ntr.news_id = #{newsId}
+        ORDER BY t.usage_count DESC, t.created_at DESC
+    </select>
+
+    <!-- 根据标签ID查询关联的新闻ID列表 -->
+    <select id="selectNewsIdsByTagId" parameterType="java.lang.Long" resultType="java.lang.Long">
+        SELECT news_id
+        FROM news_tag_relations
+        WHERE tag_id = #{tagId}
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 根据新闻ID查询标签ID列表 -->
+    <select id="selectTagIdsByNewsId" parameterType="java.lang.Long" resultType="java.lang.Long">
+        SELECT tag_id
+        FROM news_tag_relations
+        WHERE news_id = #{newsId}
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 检查新闻和标签的关联是否存在 -->
+    <select id="existsByNewsIdAndTagId" resultType="java.lang.Boolean">
+        SELECT COUNT(*) > 0 
+        FROM news_tag_relations 
+        WHERE news_id = #{newsId} AND tag_id = #{tagId}
+    </select>
+
+    <!-- 统计新闻的标签数量 -->
+    <select id="countTagsByNewsId" parameterType="java.lang.Long" resultType="java.lang.Integer">
+        SELECT COUNT(*) 
+        FROM news_tag_relations 
+        WHERE news_id = #{newsId}
+    </select>
+
+    <!-- 统计标签关联的新闻数量 -->
+    <select id="countNewsByTagId" parameterType="java.lang.Long" resultType="java.lang.Integer">
+        SELECT COUNT(*) 
+        FROM news_tag_relations 
+        WHERE tag_id = #{tagId}
+    </select>
+
+    <!-- 批量查询新闻的标签 -->
+    <select id="selectTagsByNewsIds" resultMap="NewsTagResultMap">
+        SELECT DISTINCT t.id, t.name, t.color, t.usage_count, t.created_at, t.updated_at
+        FROM news_tag_relations ntr
+        INNER JOIN news_tags t ON ntr.tag_id = t.id
+        WHERE ntr.news_id IN
+        <foreach collection="newsIds" item="newsId" open="(" separator="," close=")">
+            #{newsId}
+        </foreach>
+        ORDER BY t.usage_count DESC, t.created_at DESC
+    </select>
+
+    <!-- 更新新闻的标签关联（先删除后插入） -->
+    <update id="updateNewsTagRelations">
+        <!-- 先删除现有关联 -->
+        DELETE FROM news_tag_relations WHERE news_id = #{newsId};
+        
+        <!-- 插入新的关联 -->
+        <if test="tagIds != null and tagIds.size() > 0">
+            INSERT INTO news_tag_relations (news_id, tag_id, created_at)
+            VALUES
+            <foreach collection="tagIds" item="tagId" separator=",">
+                (#{newsId}, #{tagId}, NOW())
+            </foreach>
+        </if>
+    </update>
+
+</mapper>

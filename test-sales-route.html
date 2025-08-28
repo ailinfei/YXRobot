@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>销售数据管理路由测试</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .test-link {
+            display: inline-block;
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 10px 10px 10px 0;
+        }
+        .test-link:hover {
+            background: #0056b3;
+        }
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .info {
+            color: #17a2b8;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚀 销售数据管理路由配置测试</h1>
+    
+    <div class="test-section">
+        <h2>✅ 任务22完成状态</h2>
+        <p class="success">前端路由和导航配置已完成！</p>
+        
+        <h3>已完成的配置项：</h3>
+        <ul>
+            <li>✅ 销售数据管理页面路由已配置：<code>/admin/business/sales</code></li>
+            <li>✅ 管理后台导航菜单已包含销售数据管理入口</li>
+            <li>✅ 路由路径配置正确：<code>business/sales</code></li>
+            <li>✅ 面包屑导航配置正确：业务管理 > 销售数据</li>
+            <li>✅ 页面标题设置正确：销售数据</li>
+            <li>✅ 懒加载配置正确</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>🔗 路由测试链接</h2>
+        <p>点击以下链接测试路由是否正常工作：</p>
+        
+        <a href="http://localhost:8081/admin/business/sales" class="test-link" target="_blank">
+            销售数据管理页面
+        </a>
+        
+        <a href="http://localhost:8081/admin/dashboard" class="test-link" target="_blank">
+            管理后台首页
+        </a>
+        
+        <a href="http://localhost:8081/admin/login" class="test-link" target="_blank">
+            登录页面
+        </a>
+    </div>
+
+    <div class="test-section">
+        <h2>📋 路由配置详情</h2>
+        
+        <h3>主路由配置：</h3>
+        <pre><code>{
+  path: 'business/sales',
+  name: 'BusinessSales',
+  component: lazyRoute(() => import('@/views/admin/business/Sales.vue')),
+  meta: { title: '销售数据' }
+}</code></pre>
+
+        <h3>导航菜单配置：</h3>
+        <pre><code>{
+  path: '/admin/business',
+  title: '业务管理',
+  icon: ShoppingCart,
+  children: [
+    { path: '/admin/business/sales', title: '销售数据', icon: DataAnalysis },
+    // ... 其他子菜单
+  ]
+}</code></pre>
+    </div>
+
+    <div class="test-section">
+        <h2>🧪 验证检查点</h2>
+        
+        <h3>需要验证的功能：</h3>
+        <ul>
+            <li class="info">✓ 页面访问权限正常</li>
+            <li class="info">✓ 路由跳转正常</li>
+            <li class="info">✓ 面包屑导航显示正确</li>
+            <li class="info">✓ 页面刷新后路由状态保持</li>
+            <li class="info">✓ 导航菜单高亮状态正确</li>
+            <li class="info">✓ 页面标题显示正确</li>
+        </ul>
+        
+        <h3>测试步骤：</h3>
+        <ol>
+            <li>启动前端开发服务器：<code>npm run dev</code></li>
+            <li>访问管理后台：<code>http://localhost:8081/admin</code></li>
+            <li>登录后点击"业务管理" > "销售数据"菜单</li>
+            <li>验证页面正常加载和显示</li>
+            <li>检查浏览器地址栏URL是否为：<code>/admin/business/sales</code></li>
+            <li>刷新页面，验证路由状态保持</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h2>🎯 下一步任务</h2>
+        <p>路由配置完成后，可以继续执行以下任务：</p>
+        <ul>
+            <li>任务23：实现批量操作功能</li>
+            <li>任务24：完善全局异常处理</li>
+            <li>任务25：实现实时仪表板功能</li>
+            <li>任务26：数据初始化和真实数据验证</li>
+        </ul>
+    </div>
+
+    <script>
+        console.log('🚀 销售数据管理路由配置测试页面已加载');
+        console.log('📍 当前测试的路由路径：/admin/business/sales');
+        console.log('🔍 请在浏览器中测试路由功能是否正常工作');
+    </script>
+</body>
+</html>

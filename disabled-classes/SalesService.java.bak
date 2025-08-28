@@ -1,0 +1,1232 @@
+package com.yxrobot.service;
+
+import com.yxrobot.dto.SalesRecordDTO;
+import com.yxrobot.dto.SalesRecordFormDTO;
+import com.yxrobot.dto.SalesRecordQueryDTO;
+import com.yxrobot.entity.SalesRecord;
+import com.yxrobot.entity.SalesStatus;
+import com.yxrobot.entity.PaymentStatus;
+import com.yxrobot.exception.SalesRecordNotFoundException;
+import com.yxrobot.exception.SalesValidationException;
+import com.yxrobot.exception.SalesOperationException;
+import com.yxrobot.mapper.SalesRecordMapper;
+// import com.yxrobot.mapper.CustomerMapper;
+import com.yxrobot.mapper.ProductMapper;
+// import com.yxrobot.mapper.SalesStaffMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
+import javax.validation.Valid;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+/**
+ * 销售记录管理服务类
+ * 负责处理销售记录相关的业务逻辑
+ * 
+ * 核心功能：
+ * - 销售记录的CRUD操作
+ * - 销售数据验证和业务规则检查
+ * - 分页查询和条件筛选
+ * - 销售金额计算和状态管理
+ * 
+ * 数据真实性保障：
+ * - 所有数据来源于数据库查询，不返回模拟数据
+ * - 空数据状态正确处理，不填充示例数据
+ * - 严格执行字段映射一致性规范
+ * 
+ * @author YXRobot开发团队
+ * @version 1.0.0
+ * @since 2025-01-26
+ */
+@Service
+@Transactional
+public class SalesService {
+    
+    private static final Logger logger = LoggerFactory.getLogger(SalesService.class);
+    
+    @Autowired
+    private SalesRecordMapper salesRecordMapper;
+    
+    // @Autowired
+    // private CustomerMapper customerMapper;
+    
+    // @Autowired
+    // private SalesStaffMapper salesStaffMapper;
+    
+    // @Autowired
+    // private SalesValidationService salesValidationService;
+    
+    @Autowired
+    private SalesProductService salesProductService;
+    
+    /**
+     * 分页查询销售记录列表 - 优化版本，支持前端列表功能
+     * 
+     * 功能特性：
+     * - 支持分页、搜索、筛选
+     * - 包含完整的关联信息（客户、产品、销售人员）
+     * - 返回数据格式与前端SalesRecord接口完全匹配
+     * - 优化查询性能，支持大数据量
+     * 
+     * @param query 查询条件
+     * @return 分页结果，包含销售记录列表和总数
+     */
+    public Map<String, Object> getSalesRecords(SalesRecordQueryDTO query) {
+        logger.info("开始查询销售记录列表，查询条件：{}", query);
+        
+        try {
+            // 参数验证和默认值设置
+            query = validateAndSetDefaults(query);
+            
+            // 计算偏移量
+            int offset = (query.getPage() - 1) * query.getSize();
+            query.setOffset(offset);
+            
+            // 优化查询：直接查询销售记录DTO列表（包含关联数据）
+            List<SalesRecordDTO> salesRecordDTOs = salesRecordMapper.selectDTOList(query);
+            
+            // 确保关联数据完整性（补充可能缺失的关联信息）
+            enrichSalesRecordDTOs(salesRecordDTOs);
+            
+            // 查询总数（使用优化的计数查询）
+            Long totalCount = salesRecordMapper.selectCountWithDetails(query);
+            
+            // 构建返回结果（匹配前端PageResponse接口）
+            Map<String, Object> result = buildPageResponse(salesRecordDTOs, totalCount, query);
+            
+            logger.info("销售记录查询完成，返回{}条记录，总数：{}", salesRecordDTOs.size(), totalCount);
+            return result;
+            
+        } catch (Exception e) {
+            logger.error("查询销售记录列表失败", e);
+            throw new SalesOperationException("查询销售记录列表失败：" + e.getMessage());
+        }
+    }
+    
+    /**
+     * 根据ID查询销售记录详情
+     * 
+     * @param id 销售记录ID
+     * @return 销售记录详情
+     */
+    public SalesRecordDTO getSalesRecordById(Long id) {
+        logger.info("开始查询销售记录详情，ID：{}", id);
+        
+        if (id == null) {
+            throw new SalesValidationException("销售记录ID不能为空");
+        }
+        
+        try {
+            SalesRecord salesRecord = salesRecordMapper.selectById(id);
+            if (salesRecord == null) {
+                throw new SalesRecordNotFoundException("销售记录不存在，ID：" + id);
+            }
+            
+            // 转换为DTO
+            SalesRecordDTO dto = convertToSalesRecordDTO(salesRecord);
+            
+            // 查询关联信息
+            enrichSalesRecordDTO(dto);
+            
+            logger.info("销售记录详情查询完成，订单号：{}", dto.getOrderNumber());
+            return dto;
+            
+        } catch (SalesRecordNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            logger.error("查询销售记录详情失败，ID：{}", id, e);
+            throw new SalesOperationException("查询销售记录详情失败：" + e.getMessage());
+        }
+    }   
+ 
+    /**
+     * 创建销售记录
+     * 
+     * @param formDTO 销售记录表单数据
+     * @return 创建的销售记录
+     */
+    public SalesRecordDTO createSalesRecord(@Valid SalesRecordFormDTO formDTO) {
+        logger.info("开始创建销售记录，订单号：{}", formDTO.getOrderNumber());
+        
+        try {
+            // 数据验证
+            salesValidationService.validateSalesRecordForm(formDTO, true);
+            salesValidationService.validateRequiredFields(formDTO);
+            
+            // 转换为实体对象
+            SalesRecord salesRecord = convertToSalesRecord(formDTO);
+            
+            // 计算销售金额
+            BigDecimal salesAmount = calculateSalesAmount(formDTO);
+            salesRecord.setSalesAmount(salesAmount);
+            
+            // 设置创建时间
+            salesRecord.setCreatedAt(LocalDateTime.now());
+            salesRecord.setUpdatedAt(LocalDateTime.now());
+            salesRecord.setIsDeleted(false);
+            
+            // 插入数据库
+            int result = salesRecordMapper.insert(salesRecord);
+            if (result <= 0) {
+                throw new SalesOperationException("创建销售记录失败");
+            }
+            
+            // 查询创建的记录并返回
+            SalesRecordDTO dto = getSalesRecordById(salesRecord.getId());
+            
+            logger.info("销售记录创建成功，ID：{}，订单号：{}", salesRecord.getId(), salesRecord.getOrderNumber());
+            return dto;
+            
+        } catch (SalesValidationException | SalesOperationException e) {
+            throw e;
+        } catch (Exception e) {
+            logger.error("创建销售记录失败", e);
+            throw new SalesOperationException("创建销售记录失败：" + e.getMessage());
+        }
+    }
+    
+    /**
+     * 更新销售记录
+     * 
+     * @param id 销售记录ID
+     * @param formDTO 销售记录表单数据
+     * @return 更新后的销售记录
+     */
+    public SalesRecordDTO updateSalesRecord(Long id, @Valid SalesRecordFormDTO formDTO) {
+        logger.info("开始更新销售记录，ID：{}，订单号：{}", id, formDTO.getOrderNumber());
+        
+        if (id == null) {
+            throw new SalesValidationException("销售记录ID不能为空");
+        }
+        
+        try {
+            // 检查记录是否存在
+            SalesRecord existingSalesRecord = salesRecordMapper.selectById(id);
+            if (existingSalesRecord == null) {
+                throw new SalesRecordNotFoundException("销售记录不存在，ID：" + id);
+            }
+            
+            // 数据验证
+            formDTO.setId(id);
+            salesValidationService.validateSalesRecordForm(formDTO, false);
+            salesValidationService.validateRequiredFields(formDTO);
+            
+            // 转换为实体对象
+            SalesRecord salesRecord = convertToSalesRecord(formDTO);
+            salesRecord.setId(id);
+            
+            // 计算销售金额
+            BigDecimal salesAmount = calculateSalesAmount(formDTO);
+            salesRecord.setSalesAmount(salesAmount);
+            
+            // 设置更新时间
+            salesRecord.setUpdatedAt(LocalDateTime.now());
+            
+            // 更新数据库
+            int result = salesRecordMapper.updateById(salesRecord);
+            if (result <= 0) {
+                throw new SalesOperationException("更新销售记录失败");
+            }
+            
+            // 查询更新后的记录并返回
+            SalesRecordDTO dto = getSalesRecordById(id);
+            
+            logger.info("销售记录更新成功，ID：{}，订单号：{}", id, dto.getOrderNumber());
+            return dto;
+            
+        } catch (SalesRecordNotFoundException | SalesValidationException | SalesOperationException e) {
+            throw e;
+        } catch (Exception e) {
+            logger.error("更新销售记录失败，ID：{}", id, e);
+            throw new SalesOperationException("更新销售记录失败：" + e.getMessage());
+        }
+    }
+    
+    /**
+     * 删除销售记录（软删除）- 优化版本，支持前端删除操作
+     * 
+     * 功能特性：
+     * - 执行软删除，保留数据完整性
+     * - 验证记录存在性和删除权限
+     * - 提供详细的操作日志
+     * - 支持事务回滚
+     * 
+     * @param id 销售记录ID
+     */
+    public void deleteSalesRecord(Long id) {
+        logger.info("开始删除销售记录，ID：{}", id);
+        
+        if (id == null) {
+            throw new SalesValidationException("销售记录ID不能为空");
+        }
+        
+        try {
+            // 检查记录是否存在且未被删除
+            SalesRecord existingSalesRecord = salesRecordMapper.selectById(id);
+            if (existingSalesRecord == null) {
+                throw new SalesRecordNotFoundException("销售记录不存在，ID：" + id);
+            }
+            
+            // 验证删除权限（可以根据业务需求添加更多验证）
+            validateDeletePermission(existingSalesRecord);
+            
+            // 记录删除前的信息用于日志
+            String orderNumber = existingSalesRecord.getOrderNumber();
+            
+            // 执行软删除
+            int result = salesRecordMapper.softDeleteById(id);
+            if (result <= 0) {
+                throw new SalesOperationException("删除销售记录失败，可能记录已被删除");
+            }
+            
+            logger.info("销售记录删除成功，ID：{}，订单号：{}", id, orderNumber);
+            
+        } catch (SalesRecordNotFoundException | SalesValidationException | SalesOperationException e) {
+            throw e;
+        } catch (Exception e) {
+            logger.error("删除销售记录失败，ID：{}", id, e);
+            throw new SalesOperationException("删除销售记录失败：" + e.getMessage());
+        }
+    }
+    
+    /**
+     * 批量删除销售记录（软删除）
+     * 
+     * @param ids 销售记录ID列表
+     */
+    public void batchDeleteSalesRecords(List<Long> ids) {
+        logger.info("开始批量删除销售记录，数量：{}", ids != null ? ids.size() : 0);
+        
+        if (ids == null || ids.isEmpty()) {
+            throw new SalesValidationException("销售记录ID列表不能为空");
+        }
+        
+        try {
+            // 执行批量软删除
+            int result = salesRecordMapper.softDeleteByIds(ids);
+            if (result <= 0) {
+                throw new SalesOperationException("批量删除销售记录失败");
+            }
+            
+            logger.info("批量删除销售记录成功，删除数量：{}", result);
+            
+        } catch (SalesValidationException | SalesOperationException e) {
+            throw e;
+        } catch (Exception e) {
+            logger.error("批量删除销售记录失败", e);
+            throw new SalesOperationException("批量删除销售记录失败：" + e.getMessage());
+        }
+    }
+    
+    /**
+     * 更新销售记录状态
+     * 
+     * @param id 销售记录ID
+     * @param status 新状态
+     */
+    public void updateSalesRecordStatus(Long id, SalesStatus status) {
+        logger.info("开始更新销售记录状态，ID：{}，状态：{}", id, status);
+        
+        if (id == null) {
+            throw new SalesValidationException("销售记录ID不能为空");
+        }
+        if (status == null) {
+            throw new SalesValidationException("销售状态不能为空");
+        }
+        
+        try {
+            // 检查记录是否存在
+            SalesRecord existingSalesRecord = salesRecordMapper.selectById(id);
+            if (existingSalesRecord == null) {
+                throw new SalesRecordNotFoundException("销售记录不存在，ID：" + id);
+            }
+            
+            // 验证状态转换是否合法
+            validateStatusTransition(existingSalesRecord.getStatus(), status);
+            
+            // 更新状态
+            int result = salesRecordMapper.updateStatus(id, status.name());
+            if (result <= 0) {
+                throw new SalesOperationException("更新销售记录状态失败");
+            }
+            
+            logger.info("销售记录状态更新成功，ID：{}，状态：{}", id, status);
+            
+        } catch (SalesRecordNotFoundException | SalesValidationException | SalesOperationException e) {
+            throw e;
+        } catch (Exception e) {
+            logger.error("更新销售记录状态失败，ID：{}", id, e);
+            throw new SalesOperationException("更新销售记录状态失败：" + e.getMessage());
+        }
+    }
+    
+    /**
+     * 更新付款状态
+     * 
+     * @param id 销售记录ID
+     * @param paymentStatus 新付款状态
+     */
+    public void updatePaymentStatus(Long id, PaymentStatus paymentStatus) {
+        logger.info("开始更新付款状态，ID：{}，付款状态：{}", id, paymentStatus);
+        
+        if (id == null) {
+            throw new SalesValidationException("销售记录ID不能为空");
+        }
+        if (paymentStatus == null) {
+            throw new SalesValidationException("付款状态不能为空");
+        }
+        
+        try {
+            // 检查记录是否存在
+            SalesRecord existingSalesRecord = salesRecordMapper.selectById(id);
+            if (existingSalesRecord == null) {
+                throw new SalesRecordNotFoundException("销售记录不存在，ID：" + id);
+            }
+            
+            // 更新付款状态
+            int result = salesRecordMapper.updatePaymentStatus(id, paymentStatus.name());
+            if (result <= 0) {
+                throw new SalesOperationException("更新付款状态失败");
+            }
+            
+            logger.info("付款状态更新成功，ID：{}，付款状态：{}", id, paymentStatus);
+            
+        } catch (SalesRecordNotFoundException | SalesValidationException | SalesOperationException e) {
+            throw e;
+        } catch (Exception e) {
+            logger.error("更新付款状态失败，ID：{}", id, e);
+            throw new SalesOperationException("更新付款状态失败：" + e.getMessage());
+        }
+    }   
+ 
+    /**
+     * 批量更新销售记录状态
+     * 
+     * @param ids 销售记录ID列表
+     * @param status 新状态
+     */
+    public void batchUpdateSalesRecordStatus(List<Long> ids, SalesStatus status) {
+        logger.info("开始批量更新销售记录状态，数量：{}，状态：{}", ids != null ? ids.size() : 0, status);
+        
+        if (ids == null || ids.isEmpty()) {
+            throw new SalesValidationException("销售记录ID列表不能为空");
+        }
+        if (status == null) {
+            throw new SalesValidationException("销售状态不能为空");
+        }
+        
+        try {
+            // 执行批量状态更新
+            int result = salesRecordMapper.batchUpdateStatus(ids, status.name());
+            if (result <= 0) {
+                throw new SalesOperationException("批量更新销售记录状态失败");
+            }
+            
+            logger.info("批量更新销售记录状态成功，更新数量：{}", result);
+            
+        } catch (SalesValidationException | SalesOperationException e) {
+            throw e;
+        } catch (Exception e) {
+            logger.error("批量更新销售记录状态失败", e);
+            throw new SalesOperationException("批量更新销售记录状态失败：" + e.getMessage());
+        }
+    }
+    
+    /**
+     * 检查订单号是否存在
+     * 
+     * @param orderNumber 订单号
+     * @param excludeId 排除的ID（用于更新时检查）
+     * @return 是否存在
+     */
+    public boolean isOrderNumberExists(String orderNumber, Long excludeId) {
+        if (!StringUtils.hasText(orderNumber)) {
+            return false;
+        }
+        
+        try {
+            if (excludeId != null) {
+                return salesRecordMapper.existsByOrderNumberExcludeId(orderNumber, excludeId);
+            } else {
+                return salesRecordMapper.existsByOrderNumber(orderNumber);
+            }
+        } catch (Exception e) {
+            logger.error("检查订单号是否存在失败，订单号：{}", orderNumber, e);
+            return false;
+        }
+    }
+    
+    /**
+     * 获取销售记录总数 - 用于性能监控和统计
+     * 
+     * @param query 查询条件（可选）
+     * @return 总记录数
+     */
+    public Long getTotalSalesRecordsCount(SalesRecordQueryDTO query) {
+        try {
+            if (query == null) {
+                // 获取所有未删除记录的总数
+                query = new SalesRecordQueryDTO();
+            }
+            return salesRecordMapper.selectCountWithDetails(query);
+        } catch (Exception e) {
+            logger.error("获取销售记录总数失败", e);
+            return 0L;
+        }
+    }
+    
+    // ==================== 高级搜索和筛选功能 ====================
+    
+    /**
+     * 获取搜索建议
+     * 根据关键词提供搜索建议，包括订单号、客户名称、产品名称等
+     * 
+     * @param keyword 搜索关键词
+     * @return 搜索建议列表
+     */
+    public List<Map<String, Object>> getSearchSuggestions(String keyword) {
+        logger.info("获取搜索建议，关键词：{}", keyword);
+        
+        if (!StringUtils.hasText(keyword) || keyword.length() < 2) {
+            return List.of(); // 关键词太短，返回空列表
+        }
+        
+        try {
+            List<Map<String, Object>> suggestions = salesRecordMapper.getSearchSuggestions(keyword);
+            logger.info("搜索建议获取完成，返回{}条建议", suggestions.size());
+            return suggestions;
+        } catch (Exception e) {
+            logger.error("获取搜索建议失败，关键词：{}", keyword, e);
+            return List.of();
+        }
+    }
+    
+    /**
+     * 获取筛选选项
+     * 返回所有可用的筛选选项，包括地区、渠道、付款方式等
+     * 
+     * @return 筛选选项Map
+     */
+    public Map<String, Object> getFilterOptions() {
+        logger.info("获取筛选选项");
+        
+        try {
+            Map<String, Object> options = new HashMap<>();
+            
+            // 获取地区选项
+            List<Map<String, Object>> regions = salesRecordMapper.getRegionOptions();
+            options.put("regions", regions);
+            
+            // 获取渠道选项
+            List<Map<String, Object>> channels = salesRecordMapper.getChannelOptions();
+            options.put("channels", channels);
+            
+            // 获取付款方式选项
+            List<Map<String, Object>> paymentMethods = salesRecordMapper.getPaymentMethodOptions();
+            options.put("paymentMethods", paymentMethods);
+            
+            // 获取销售金额范围统计
+            List<Map<String, Object>> amountRanges = salesRecordMapper.getSalesAmountRangeStats();
+            options.put("amountRanges", amountRanges);
+            
+            // 获取状态选项
+            List<Map<String, Object>> statusOptions = List.of(
+                Map.of("value", "pending", "label", "待确认", "color", "warning"),
+                Map.of("value", "confirmed", "label", "已确认", "color", "primary"),
+                Map.of("value", "delivered", "label", "已交付", "color", "info"),
+                Map.of("value", "completed", "label", "已完成", "color", "success"),
+                Map.of("value", "cancelled", "label", "已取消", "color", "danger")
+            );
+            options.put("statusOptions", statusOptions);
+            
+            // 获取付款状态选项
+            List<Map<String, Object>> paymentStatusOptions = List.of(
+                Map.of("value", "unpaid", "label", "未付款", "color", "danger"),
+                Map.of("value", "partial", "label", "部分付款", "color", "warning"),
+                Map.of("value", "paid", "label", "已付款", "color", "success"),
+                Map.of("value", "refunded", "label", "已退款", "color", "info")
+            );
+            options.put("paymentStatusOptions", paymentStatusOptions);
+            
+            logger.info("筛选选项获取完成");
+            return options;
+            
+        } catch (Exception e) {
+            logger.error("获取筛选选项失败", e);
+            throw new SalesOperationException("获取筛选选项失败：" + e.getMessage());
+        }
+    }
+    
+    /**
+     * 快速筛选 - 今日订单
+     * 
+     * @return 今日订单列表
+     */
+    public List<SalesRecordDTO> getTodayOrders() {
+        logger.info("获取今日订单");
+        
+        try {
+            List<SalesRecord> salesRecords = salesRecordMapper.selectTodayOrders();
+            List<SalesRecordDTO> dtos = salesRecords.stream()
+                    .map(this::convertToSalesRecordDTO)
+                    .collect(Collectors.toList());
+            
+            // 丰富关联信息
+            dtos.forEach(this::enrichSalesRecordDTO);
+            
+            logger.info("今日订单获取完成，共{}条", dtos.size());
+            return dtos;
+            
+        } catch (Exception e) {
+            logger.error("获取今日订单失败", e);
+            throw new SalesOperationException("获取今日订单失败：" + e.getMessage());
+        }
+    }
+    
+    /**
+     * 快速筛选 - 本周订单
+     * 
+     * @return 本周订单列表
+     */
+    public List<SalesRecordDTO> getThisWeekOrders() {
+        logger.info("获取本周订单");
+        
+        try {
+            List<SalesRecord> salesRecords = salesRecordMapper.selectThisWeekOrders();
+            List<SalesRecordDTO> dtos = salesRecords.stream()
+                    .map(this::convertToSalesRecordDTO)
+                    .collect(Collectors.toList());
+            
+            // 丰富关联信息
+            dtos.forEach(this::enrichSalesRecordDTO);
+            
+            logger.info("本周订单获取完成，共{}条", dtos.size());
+            return dtos;
+            
+        } catch (Exception e) {
+            logger.error("获取本周订单失败", e);
+            throw new SalesOperationException("获取本周订单失败：" + e.getMessage());
+        }
+    }
+    
+    /**
+     * 快速筛选 - 本月订单
+     * 
+     * @return 本月订单列表
+     */
+    public List<SalesRecordDTO> getThisMonthOrders() {
+        logger.info("获取本月订单");
+        
+        try {
+            List<SalesRecord> salesRecords = salesRecordMapper.selectThisMonthOrders();
+            List<SalesRecordDTO> dtos = salesRecords.stream()
+                    .map(this::convertToSalesRecordDTO)
+                    .collect(Collectors.toList());
+            
+            // 丰富关联信息
+            dtos.forEach(this::enrichSalesRecordDTO);
+            
+            logger.info("本月订单获取完成，共{}条", dtos.size());
+            return dtos;
+            
+        } catch (Exception e) {
+            logger.error("获取本月订单失败", e);
+            throw new SalesOperationException("获取本月订单失败：" + e.getMessage());
+        }
+    }
+    
+    /**
+     * 快速筛选 - 待处理订单
+     * 
+     * @return 待处理订单列表
+     */
+    public List<SalesRecordDTO> getPendingOrders() {
+        logger.info("获取待处理订单");
+        
+        try {
+            List<SalesRecord> salesRecords = salesRecordMapper.selectPendingOrders();
+            List<SalesRecordDTO> dtos = salesRecords.stream()
+                    .map(this::convertToSalesRecordDTO)
+                    .collect(Collectors.toList());
+            
+            // 丰富关联信息
+            dtos.forEach(this::enrichSalesRecordDTO);
+            
+            logger.info("待处理订单获取完成，共{}条", dtos.size());
+            return dtos;
+            
+        } catch (Exception e) {
+            logger.error("获取待处理订单失败", e);
+            throw new SalesOperationException("获取待处理订单失败：" + e.getMessage());
+        }
+    }
+    
+    /**
+     * 快速筛选 - 高价值订单
+     * 
+     * @param minAmount 最小金额阈值
+     * @return 高价值订单列表
+     */
+    public List<SalesRecordDTO> getHighValueOrders(BigDecimal minAmount) {
+        logger.info("获取高价值订单，最小金额：{}", minAmount);
+        
+        if (minAmount == null) {
+            minAmount = new BigDecimal("10000"); // 默认1万元以上为高价值订单
+        }
+        
+        try {
+            List<SalesRecord> salesRecords = salesRecordMapper.selectHighValueOrders(minAmount);
+            List<SalesRecordDTO> dtos = salesRecords.stream()
+                    .map(this::convertToSalesRecordDTO)
+                    .collect(Collectors.toList());
+            
+            // 丰富关联信息
+            dtos.forEach(this::enrichSalesRecordDTO);
+            
+            logger.info("高价值订单获取完成，共{}条", dtos.size());
+            return dtos;
+            
+        } catch (Exception e) {
+            logger.error("获取高价值订单失败", e);
+            throw new SalesOperationException("获取高价值订单失败：" + e.getMessage());
+        }
+    }
+    
+    /**
+     * 优化的销售记录查询 - 专为前端列表功能设计
+     * 使用优化的SQL查询提高性能，支持大数据量分页
+     * 
+     * 性能优化特性：
+     * - 使用索引优化的SQL查询
+     * - 减少N+1查询问题
+     * - 支持复杂条件筛选
+     * - 优化的分页查询
+     * 
+     * @param query 查询条件
+     * @return 分页结果
+     */
+    public Map<String, Object> getSalesRecordsOptimized(SalesRecordQueryDTO query) {
+        logger.info("开始优化查询销售记录列表，查询条件：{}", query);
+        
+        try {
+            // 参数验证和默认值设置
+            query = validateAndSetDefaults(query);
+            
+            // 计算偏移量
+            int offset = (query.getPage() - 1) * query.getSize();
+            query.setOffset(offset);
+            
+            // 使用优化的查询方法（一次查询获取所有关联数据）
+            List<Map<String, Object>> salesRecordMaps = salesRecordMapper.selectListWithDetailsOptimized(query);
+            Long totalCount = salesRecordMapper.selectCountOptimized(query);
+            
+            // 转换为DTO对象（优化的转换方法）
+            List<SalesRecordDTO> salesRecordDTOs = salesRecordMaps.stream()
+                    .map(this::convertMapToSalesRecordDTO)
+                    .collect(Collectors.toList());
+            
+            // 构建返回结果（匹配前端接口）
+            Map<String, Object> result = buildPageResponse(salesRecordDTOs, totalCount, query);
+            
+            logger.info("优化销售记录查询完成，返回{}条记录，总数：{}", salesRecordDTOs.size(), totalCount);
+            return result;
+            
+        } catch (Exception e) {
+            logger.error("优化查询销售记录列表失败", e);
+            throw new SalesOperationException("优化查询销售记录列表失败：" + e.getMessage());
+        }
+    }
+    
+    /**
+     * 获取销售记录列表 - 前端专用接口
+     * 专门为前端Sales.vue页面设计的查询接口
+     * 
+     * 前端适配特性：
+     * - 完全匹配前端SalesRecord接口
+     * - 支持前端所有筛选和搜索功能
+     * - 优化的性能和错误处理
+     * - 统一的响应格式
+     * 
+     * @param page 页码
+     * @param pageSize 每页大小
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @param keyword 搜索关键词
+     * @param status 订单状态
+     * @return 分页结果
+     */
+    public Map<String, Object> getSalesRecordsForFrontend(Integer page, Integer pageSize, 
+                                                         String startDate, String endDate, 
+                                                         String keyword, String status) {
+        logger.info("前端查询销售记录列表，页码：{}，每页：{}，关键词：{}，状态：{}", page, pageSize, keyword, status);
+        
+        try {
+            // 构建查询条件
+            SalesRecordQueryDTO query = new SalesRecordQueryDTO();
+            query.setPage(page);
+            query.setSize(pageSize);
+            query.setKeyword(keyword);
+            
+            // 处理日期范围
+            if (StringUtils.hasText(startDate)) {
+                query.setStartDate(LocalDate.parse(startDate));
+            }
+            if (StringUtils.hasText(endDate)) {
+                query.setEndDate(LocalDate.parse(endDate));
+            }
+            
+            // 处理状态筛选
+            if (StringUtils.hasText(status)) {
+                try {
+                    query.setStatus(SalesStatus.valueOf(status.toUpperCase()));
+                } catch (IllegalArgumentException e) {
+                    logger.warn("无效的状态参数：{}", status);
+                }
+            }
+            
+            // 使用优化查询
+            return getSalesRecordsOptimized(query);
+            
+        } catch (Exception e) {
+            logger.error("前端查询销售记录列表失败", e);
+            throw new SalesOperationException("查询销售记录列表失败：" + e.getMessage());
+        }
+    }
+    
+    // ==================== 私有辅助方法 ====================
+    
+    /**
+     * 验证查询参数并设置默认值
+     * 
+     * @param query 查询条件
+     * @return 验证后的查询条件
+     */
+    private SalesRecordQueryDTO validateAndSetDefaults(SalesRecordQueryDTO query) {
+        if (query == null) {
+            query = new SalesRecordQueryDTO();
+        }
+        
+        // 设置默认分页参数
+        if (query.getPage() == null || query.getPage() < 1) {
+            query.setPage(1);
+        }
+        if (query.getSize() == null || query.getSize() < 1) {
+            query.setSize(20); // 前端默认每页20条
+        }
+        
+        // 限制每页最大数量，防止性能问题
+        if (query.getSize() > 100) {
+            query.setSize(100);
+            logger.warn("每页大小超过限制，已调整为100");
+        }
+        
+        // 设置默认排序
+        if (!StringUtils.hasText(query.getSortBy())) {
+            query.setSortBy("createdAt");
+        }
+        if (!StringUtils.hasText(query.getSortDir())) {
+            query.setSortDir("desc");
+        }
+        
+        // 处理关键词搜索
+        if (StringUtils.hasText(query.getKeyword())) {
+            query.setKeyword(query.getKeyword().trim());
+        }
+        
+        return query;
+    }
+    
+    /**
+     * 批量丰富销售记录DTO的关联信息
+     * 确保所有关联数据完整，匹配前端显示需求
+     * 
+     * @param dtos 销售记录DTO列表
+     */
+    private void enrichSalesRecordDTOs(List<SalesRecordDTO> dtos) {
+        if (dtos == null || dtos.isEmpty()) {
+            return;
+        }
+        
+        try {
+            for (SalesRecordDTO dto : dtos) {
+                // 确保客户信息完整
+                if (dto.getCustomerId() != null && !StringUtils.hasText(dto.getCustomerName())) {
+                    var customer = customerMapper.selectById(dto.getCustomerId());
+                    if (customer != null) {
+                        dto.setCustomerName(customer.getCustomerName());
+                        dto.setCustomerPhone(customer.getPhone());
+                    }
+                }
+                
+                // 确保产品信息完整
+                if (dto.getProductId() != null && !StringUtils.hasText(dto.getProductName())) {
+                    var product = salesProductService.getProductById(dto.getProductId());
+                    if (product != null) {
+                        dto.setProductName(product.getProductName());
+                    }
+                }
+                
+                // 确保销售人员信息完整
+                if (dto.getSalesStaffId() != null && !StringUtils.hasText(dto.getStaffName())) {
+                    var salesStaff = salesStaffMapper.selectById(dto.getSalesStaffId());
+                    if (salesStaff != null) {
+                        dto.setStaffName(salesStaff.getStaffName());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("批量丰富销售记录关联信息失败", e);
+        }
+    }
+    
+    /**
+     * 构建分页响应结果
+     * 匹配前端PageResponse接口格式
+     * 
+     * @param list 数据列表
+     * @param total 总数
+     * @param query 查询条件
+     * @return 分页响应
+     */
+    private Map<String, Object> buildPageResponse(List<SalesRecordDTO> list, Long total, SalesRecordQueryDTO query) {
+        Map<String, Object> result = new HashMap<>();
+        
+        long totalCount = total != null ? total : 0L;
+        int totalPages = (int) Math.ceil((double) totalCount / query.getSize());
+        
+        result.put("list", list);
+        result.put("total", totalCount);
+        result.put("page", query.getPage());
+        result.put("pageSize", query.getSize()); // 前端使用pageSize而不是size
+        result.put("totalPages", totalPages);
+        result.put("isEmpty", list.isEmpty());
+        
+        return result;
+    }
+    
+    /**
+     * 验证删除权限
+     * 根据业务规则验证是否允许删除销售记录
+     * 
+     * @param salesRecord 销售记录
+     */
+    private void validateDeletePermission(SalesRecord salesRecord) {
+        if (salesRecord == null) {
+            throw new SalesValidationException("销售记录不存在");
+        }
+        
+        // 检查订单状态，已完成的订单不允许删除
+        if (SalesStatus.COMPLETED.equals(salesRecord.getStatus())) {
+            throw new SalesValidationException("已完成的订单不允许删除");
+        }
+        
+        // 检查付款状态，已付款的订单需要特殊处理
+        if (PaymentStatus.PAID.equals(salesRecord.getPaymentStatus())) {
+            logger.warn("尝试删除已付款订单，订单号：{}，需要特殊审批", salesRecord.getOrderNumber());
+            // 这里可以添加更严格的验证逻辑，比如需要管理员权限等
+        }
+        
+        // 可以根据业务需求添加更多验证规则
+        // 例如：检查用户权限、检查订单关联的其他业务数据等
+    }
+    
+    /**
+     * 计算销售金额
+     * 销售金额 = 数量 × 单价 - 折扣金额
+     * 
+     * @param formDTO 表单数据
+     * @return 销售金额
+     */
+    private BigDecimal calculateSalesAmount(SalesRecordFormDTO formDTO) {
+        if (formDTO.getQuantity() == null || formDTO.getUnitPrice() == null) {
+            return BigDecimal.ZERO;
+        }
+        
+        BigDecimal totalAmount = formDTO.getUnitPrice().multiply(new BigDecimal(formDTO.getQuantity()));
+        
+        if (formDTO.getDiscountAmount() != null) {
+            totalAmount = totalAmount.subtract(formDTO.getDiscountAmount());
+        }
+        
+        return totalAmount;
+    }
+    
+    /**
+     * 验证状态转换是否合法
+     * 
+     * @param currentStatus 当前状态
+     * @param newStatus 新状态
+     */
+    private void validateStatusTransition(SalesStatus currentStatus, SalesStatus newStatus) {
+        if (currentStatus == null || newStatus == null) {
+            return;
+        }
+        
+        // 定义状态转换规则
+        Map<SalesStatus, List<SalesStatus>> allowedTransitions = new HashMap<>();
+        allowedTransitions.put(SalesStatus.PENDING, List.of(SalesStatus.CONFIRMED, SalesStatus.CANCELLED));
+        allowedTransitions.put(SalesStatus.CONFIRMED, List.of(SalesStatus.DELIVERED, SalesStatus.CANCELLED));
+        allowedTransitions.put(SalesStatus.DELIVERED, List.of(SalesStatus.COMPLETED));
+        allowedTransitions.put(SalesStatus.COMPLETED, List.of()); // 已完成状态不能转换
+        allowedTransitions.put(SalesStatus.CANCELLED, List.of()); // 已取消状态不能转换
+        
+        List<SalesStatus> allowed = allowedTransitions.get(currentStatus);
+        if (allowed == null || !allowed.contains(newStatus)) {
+            throw new SalesValidationException(
+                String.format("不允许从状态 %s 转换到状态 %s", currentStatus, newStatus));
+        }
+    }
+    
+    /**
+     * 转换表单DTO为实体对象
+     * 
+     * @param formDTO 表单DTO
+     * @return 实体对象
+     */
+    private SalesRecord convertToSalesRecord(SalesRecordFormDTO formDTO) {
+        SalesRecord salesRecord = new SalesRecord();
+        BeanUtils.copyProperties(formDTO, salesRecord);
+        return salesRecord;
+    }
+    
+    /**
+     * 转换实体对象为DTO
+     * 
+     * @param salesRecord 实体对象
+     * @return DTO对象
+     */
+    private SalesRecordDTO convertToSalesRecordDTO(SalesRecord salesRecord) {
+        SalesRecordDTO dto = new SalesRecordDTO();
+        BeanUtils.copyProperties(salesRecord, dto);
+        return dto;
+    }
+    
+    /**
+     * 转换Map为SalesRecordDTO（用于关联查询结果）
+     * 优化版本，确保字段映射与前端接口完全匹配
+     * 
+     * @param map 查询结果Map
+     * @return DTO对象
+     */
+    private SalesRecordDTO convertMapToSalesRecordDTO(Map<String, Object> map) {
+        SalesRecordDTO dto = new SalesRecordDTO();
+        
+        try {
+            // 基本字段映射（数据库snake_case -> Java camelCase）
+            dto.setId(getLongValue(map, "id"));
+            dto.setOrderNumber(getStringValue(map, "order_number"));
+            dto.setCustomerId(getLongValue(map, "customer_id"));
+            dto.setProductId(getLongValue(map, "product_id"));
+            dto.setSalesStaffId(getLongValue(map, "sales_staff_id"));
+            dto.setSalesAmount(getBigDecimalValue(map, "sales_amount"));
+            dto.setQuantity(getIntegerValue(map, "quantity"));
+            dto.setUnitPrice(getBigDecimalValue(map, "unit_price"));
+            dto.setDiscountAmount(getBigDecimalValue(map, "discount_amount"));
+            dto.setOrderDate(getLocalDateValue(map, "order_date"));
+            dto.setDeliveryDate(getLocalDateValue(map, "delivery_date"));
+            dto.setPaymentMethod(getStringValue(map, "payment_method"));
+            dto.setRegion(getStringValue(map, "region"));
+            dto.setChannel(getStringValue(map, "channel"));
+            dto.setNotes(getStringValue(map, "notes"));
+            dto.setCreatedAt(getLocalDateTimeValue(map, "created_at"));
+            dto.setUpdatedAt(getLocalDateTimeValue(map, "updated_at"));
+            
+            // 枚举字段处理（确保与前端枚举值匹配）
+            String statusStr = getStringValue(map, "status");
+            if (StringUtils.hasText(statusStr)) {
+                try {
+                    dto.setStatus(SalesStatus.valueOf(statusStr.toUpperCase()));
+                } catch (IllegalArgumentException e) {
+                    logger.warn("无效的销售状态：{}，使用默认值PENDING", statusStr);
+                    dto.setStatus(SalesStatus.PENDING);
+                }
+            }
+            
+            String paymentStatusStr = getStringValue(map, "payment_status");
+            if (StringUtils.hasText(paymentStatusStr)) {
+                try {
+                    dto.setPaymentStatus(PaymentStatus.valueOf(paymentStatusStr.toUpperCase()));
+                } catch (IllegalArgumentException e) {
+                    logger.warn("无效的付款状态：{}，使用默认值UNPAID", paymentStatusStr);
+                    dto.setPaymentStatus(PaymentStatus.UNPAID);
+                }
+            }
+            
+            // 关联字段映射（匹配前端SalesRecord接口）
+            dto.setCustomerName(getStringValue(map, "customer_name"));
+            dto.setCustomerPhone(getStringValue(map, "customer_phone")); // 新增客户电话字段
+            dto.setProductName(getStringValue(map, "product_name"));
+            
+            // 注意：前端使用staffName，不是salesStaffName
+            String staffName = getStringValue(map, "staff_name");
+            if (!StringUtils.hasText(staffName)) {
+                staffName = getStringValue(map, "sales_staff_name"); // 兼容旧字段名
+            }
+            dto.setStaffName(staffName);
+            
+        } catch (Exception e) {
+            logger.error("转换Map为SalesRecordDTO失败", e);
+            throw new SalesOperationException("数据转换失败：" + e.getMessage());
+        }
+        
+        return dto;
+    }    
+  
+  /**
+     * 丰富销售记录DTO的关联信息
+     * 
+     * @param dto 销售记录DTO
+     */
+    private void enrichSalesRecordDTO(SalesRecordDTO dto) {
+        if (dto == null) {
+            return;
+        }
+        
+        try {
+            // 查询客户名称
+            if (dto.getCustomerId() != null) {
+                var customer = customerMapper.selectById(dto.getCustomerId());
+                if (customer != null) {
+                    dto.setCustomerName(customer.getCustomerName());
+                }
+            }
+            
+            // 查询产品名称
+            if (dto.getProductId() != null) {
+                var product = salesProductService.getProductById(dto.getProductId());
+                if (product != null) {
+                    dto.setProductName(product.getProductName());
+                }
+            }
+            
+            // 查询销售人员姓名
+            if (dto.getSalesStaffId() != null) {
+                var salesStaff = salesStaffMapper.selectById(dto.getSalesStaffId());
+                if (salesStaff != null) {
+                    dto.setSalesStaffName(salesStaff.getStaffName());
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("丰富销售记录关联信息失败", e);
+        }
+    }
+    
+    // ==================== Map值提取辅助方法 ====================
+    
+    private String getStringValue(Map<String, Object> map, String key) {
+        Object value = map.get(key);
+        return value != null ? value.toString() : null;
+    }
+    
+    private Long getLongValue(Map<String, Object> map, String key) {
+        Object value = map.get(key);
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Long) {
+            return (Long) value;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).longValue();
+        }
+        try {
+            return Long.parseLong(value.toString());
+        } catch (NumberFormatException e) {
+            logger.warn("无法转换为Long类型，key：{}，value：{}", key, value);
+            return null;
+        }
+    }
+    
+    private Integer getIntegerValue(Map<String, Object> map, String key) {
+        Object value = map.get(key);
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Integer) {
+            return (Integer) value;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        }
+        try {
+            return Integer.parseInt(value.toString());
+        } catch (NumberFormatException e) {
+            logger.warn("无法转换为Integer类型，key：{}，value：{}", key, value);
+            return null;
+        }
+    }
+    
+    private BigDecimal getBigDecimalValue(Map<String, Object> map, String key) {
+        Object value = map.get(key);
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof BigDecimal) {
+            return (BigDecimal) value;
+        }
+        if (value instanceof Number) {
+            return new BigDecimal(value.toString());
+        }
+        try {
+            return new BigDecimal(value.toString());
+        } catch (NumberFormatException e) {
+            logger.warn("无法转换为BigDecimal类型，key：{}，value：{}", key, value);
+            return null;
+        }
+    }
+    
+    private java.time.LocalDate getLocalDateValue(Map<String, Object> map, String key) {
+        Object value = map.get(key);
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof java.time.LocalDate) {
+            return (java.time.LocalDate) value;
+        }
+        if (value instanceof java.sql.Date) {
+            return ((java.sql.Date) value).toLocalDate();
+        }
+        if (value instanceof java.util.Date) {
+            return new java.sql.Date(((java.util.Date) value).getTime()).toLocalDate();
+        }
+        try {
+            return java.time.LocalDate.parse(value.toString());
+        } catch (Exception e) {
+            logger.warn("无法转换为LocalDate类型，key：{}，value：{}", key, value);
+            return null;
+        }
+    }
+    
+    private LocalDateTime getLocalDateTimeValue(Map<String, Object> map, String key) {
+        Object value = map.get(key);
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof LocalDateTime) {
+            return (LocalDateTime) value;
+        }
+        if (value instanceof java.sql.Timestamp) {
+            return ((java.sql.Timestamp) value).toLocalDateTime();
+        }
+        if (value instanceof java.util.Date) {
+            return new java.sql.Timestamp(((java.util.Date) value).getTime()).toLocalDateTime();
+        }
+        try {
+            return LocalDateTime.parse(value.toString());
+        } catch (Exception e) {
+            logger.warn("无法转换为LocalDateTime类型，key：{}，value：{}", key, value);
+            return null;
+        }
+    }
+}

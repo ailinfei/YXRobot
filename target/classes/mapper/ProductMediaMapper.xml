@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yxrobot.mapper.ProductMediaMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="ProductMediaResultMap" type="com.yxrobot.entity.ProductMedia">
+        <id column="id" property="id"/>
+        <result column="product_id" property="productId"/>
+        <result column="media_type" property="mediaType"/>
+        <result column="media_url" property="mediaUrl"/>
+        <result column="sort_order" property="sortOrder"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+        <result column="is_deleted" property="isDeleted"/>
+    </resultMap>
+
+    <!-- 基础查询字段 -->
+    <sql id="Base_Column_List">
+        id, product_id, media_type, media_url, sort_order, created_at, updated_at, is_deleted
+    </sql>
+
+    <!-- 根据产品ID获取媒体列表 -->
+    <select id="selectByProductId" resultMap="ProductMediaResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM product_media
+        WHERE product_id = #{productId} AND is_deleted = 0
+        ORDER BY media_type, sort_order ASC
+    </select>
+
+    <!-- 根据产品ID和媒体类型获取媒体列表 -->
+    <select id="selectByProductIdAndType" resultMap="ProductMediaResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM product_media
+        WHERE product_id = #{productId} AND media_type = #{mediaType} AND is_deleted = 0
+        ORDER BY sort_order ASC
+    </select>
+
+    <!-- 根据ID查询媒体详情 -->
+    <select id="selectById" resultMap="ProductMediaResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM product_media
+        WHERE id = #{id} AND is_deleted = 0
+    </select>
+
+    <!-- 插入新媒体记录 -->
+    <insert id="insert" parameterType="com.yxrobot.entity.ProductMedia" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO product_media (
+            product_id, media_type, media_url, sort_order, created_at, updated_at, is_deleted
+        ) VALUES (
+            #{productId}, #{mediaType}, #{mediaUrl}, #{sortOrder}, 
+            #{createdAt}, #{updatedAt}, #{isDeleted}
+        )
+    </insert>
+
+    <!-- 根据ID更新媒体信息 -->
+    <update id="updateById" parameterType="com.yxrobot.entity.ProductMedia">
+        UPDATE product_media
+        SET media_type = #{mediaType},
+            media_url = #{mediaUrl},
+            sort_order = #{sortOrder},
+            updated_at = #{updatedAt}
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <!-- 根据ID软删除媒体 -->
+    <update id="deleteById">
+        UPDATE product_media
+        SET is_deleted = 1, updated_at = NOW()
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <!-- 根据产品ID删除所有媒体 -->
+    <update id="deleteByProductId">
+        UPDATE product_media
+        SET is_deleted = 1, updated_at = NOW()
+        WHERE product_id = #{productId} AND is_deleted = 0
+    </update>
+
+    <!-- 批量删除媒体 -->
+    <update id="batchDeleteByIds">
+        UPDATE product_media
+        SET is_deleted = 1, updated_at = NOW()
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        AND is_deleted = 0
+    </update>
+
+    <!-- 统计产品的媒体数量 -->
+    <select id="countByProductId" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM product_media
+        WHERE product_id = #{productId} AND is_deleted = 0
+    </select>
+
+    <!-- 统计产品指定类型的媒体数量 -->
+    <select id="countByProductIdAndType" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM product_media
+        WHERE product_id = #{productId} AND media_type = #{mediaType} AND is_deleted = 0
+    </select>
+
+    <!-- 获取产品媒体的最大排序值 -->
+    <select id="getMaxSortOrder" resultType="java.lang.Integer">
+        SELECT COALESCE(MAX(sort_order), 0)
+        FROM product_media
+        WHERE product_id = #{productId} AND media_type = #{mediaType} AND is_deleted = 0
+    </select>
+
+    <!-- 更新媒体排序值 -->
+    <update id="updateSortOrder">
+        UPDATE product_media
+        SET sort_order = #{sortOrder}, updated_at = NOW()
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+</mapper>

@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>销售图表控制器测试</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .test-button.success {
+            background: #28a745;
+        }
+        .test-button.error {
+            background: #dc3545;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .result.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .result.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .input-group {
+            margin: 10px 0;
+        }
+        .input-group label {
+            display: inline-block;
+            width: 120px;
+            font-weight: bold;
+        }
+        .input-group input, .input-group select {
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            width: 200px;
+        }
+        .chart-container {
+            width: 100%;
+            height: 400px;
+            margin: 20px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .chart-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+        }
+        .chart-card h3 {
+            margin-top: 0;
+            color: #495057;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-success { background: #28a745; }
+        .status-error { background: #dc3545; }
+        .status-warning { background: #ffc107; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>销售图表控制器测试工具</h1>
+        <p>测试销售图表相关的API接口，验证前端ECharts图表数据对接</p>
+        
+        <!-- 基础图表数据测试 -->
+        <div class="test-section">
+            <h2>📊 基础图表数据测试</h2>
+            <div class="input-group">
+                <label>开始日期:</label>
+                <input type="date" id="chartStartDate">
+            </div>
+            <div class="input-group">
+                <label>结束日期:</label>
+                <input type="date" id="chartEndDate">
+            </div>
+            <button class="test-button" onclick="testGetAllChartsData()">获取所有图表数据</button>
+            <button class="test-button" onclick="testGetTrendChartData()">销售趋势图表</button>
+            <button class="test-button" onclick="testGetDistributionData()">分布图表数据</button>
+            <div id="charts-result" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- 分布图表测试 -->
+        <div class="test-section">
+            <h2>🥧 分布图表测试</h2>
+            <div class="input-group">
+                <label>分布类型:</label>
+                <select id="distributionType">
+                    <option value="product">产品分布</option>
+                    <option value="region">地区分布</option>
+                    <option value="channel">渠道分布</option>
+                    <option value="staff">销售人员分布</option>
+                </select>
+            </div>
+            <button class="test-button" onclick="testProductDistribution()">产品分布</button>
+            <button class="test-button" onclick="testRegionDistribution()">地区分布</button>
+            <button class="test-button" onclick="testChannelDistribution()">渠道分布</button>
+            <button class="test-button" onclick="testStaffDistribution()">人员分布</button>
+            <div id="distribution-result" class="result" style="display: none;"></div>
+            
+            <!-- 分布图表显示 -->
+            <div id="distributionChart" class="chart-container"></div>
+        </div>
+
+        <!-- 趋势图表测试 -->
+        <div class="test-section">
+            <h2>📈 趋势图表测试</h2>
+            <div class="input-group">
+                <label>分组方式:</label>
+                <select id="trendGroupBy">
+                    <option value="day">按天</option>
+                    <option value="week">按周</option>
+                    <option value="month">按月</option>
+                    <option value="quarter">按季度</option>
+                    <option value="year">按年</option>
+                </select>
+            </div>
+            <button class="test-button" onclick="testTrendsByDay()">按天趋势</button>
+            <button class="test-button" onclick="testTrendsByWeek()">按周趋势</button>
+            <button class="test-button" onclick="testTrendsByMonth()">按月趋势</button>
+            <div id="trends-result" class="result" style="display: none;"></div>
+            
+            <!-- 趋势图表显示 -->
+            <div id="trendsChart" class="chart-container"></div>
+        </div>
+
+        <!-- 图表缓存管理测试 -->
+        <div class="test-section">
+            <h2>🔄 图表缓存管理测试</h2>
+            <div class="input-group">
+                <label>缓存类型:</label>
+                <select id="chartCacheType">
+                    <option value="all">全部图表</option>
+                    <option value="distribution">分布图表</option>
+                    <option value="trends">趋势图表</option>
+                    <option value="monthly">月度图表</option>
+                    <option value="funnel">漏斗图表</option>
+                </select>
+            </div>
+            <button class="test-button" onclick="testRefreshChartCache()">刷新图表缓存</button>
+            <button class="test-button" onclick="testGetChartConfig()">获取图表配置</button>
+            <button class="test-button" onclick="testGetChartSummary()">获取图表摘要</button>
+            <div id="cache-result" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- 图表数据验证测试 -->
+        <div class="test-section">
+            <h2>✅ 图表数据验证测试</h2>
+            <div class="input-group">
+                <label>验证类型:</label>
+                <select id="validateChartType">
+                    <option value="distribution">分布图表</option>
+                    <option value="trends">趋势图表</option>
+                    <option value="monthly">月度图表</option>
+                    <option value="funnel">漏斗图表</option>
+                </select>
+            </div>
+            <button class="test-button" onclick="testValidateChartData()">验证图表数据</button>
+            <button class="test-button" onclick="testValidateAllCharts()">验证所有图表</button>
+            <div id="validate-result" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- 图表可视化展示区域 -->
+        <div class="test-section">
+            <h2>📊 图表可视化展示</h2>
+            <button class="test-button" onclick="renderAllCharts()">渲染所有图表</button>
+            <button class="test-button" onclick="clearAllCharts()">清空图表</button>
+            
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h3>销售趋势图</h3>
+                    <div id="trendChart" style="width: 100%; height: 300px;"></div>
+                </div>
+                <div class="chart-card">
+                    <h3>产品分布图</h3>
+                    <div id="productChart" style="width: 100%; height: 300px;"></div>
+                </div>
+                <div class="chart-card">
+                    <h3>地区分布图</h3>
+                    <div id="regionChart" style="width: 100%; height: 300px;"></div>
+                </div>
+                <div class="chart-card">
+                    <h3>渠道分析图</h3>
+                    <div id="channelChart" style="width: 100%; height: 300px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8080';
+        
+        // 设置默认日期范围（最近30天）
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date();
+            const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+            
+            document.getElementById('chartStartDate').value = thirtyDaysAgo.toISOString().split('T')[0];
+            document.getElementById('chartEndDate').value = today.toISOString().split('T')[0];
+        });
+
+        // 通用API调用函数
+        async function callAPI(url, options = {}) {
+            try {
+                const response = await fetch(API_BASE_URL + url, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+                
+                const data = await response.json();
+                return { success: response.ok, data, status: response.status };
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        }
+
+        // 显示结果
+        function showResult(elementId, result, isSuccess) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = `result ${isSuccess ? 'success' : 'error'}`;
+            element.textContent = JSON.stringify(result, null, 2);
+        }
+
+        // 基础图表数据测试
+        async function testGetAllChartsData() {
+            const params = new URLSearchParams({
+                startDate: document.getElementById('chartStartDate').value,
+                endDate: document.getElementById('chartEndDate').value
+            });
+            
+            const result = await callAPI(`/api/sales/charts/all?${params}`);
+            showResult('charts-result', result, result.success);
+        }
+
+        async function testGetTrendChartData() {
+            const params = new URLSearchParams({
+                startDate: document.getElementById('chartStartDate').value,
+                endDate: document.getElementById('chartEndDate').value,
+                groupBy: 'day'
+            });
+            
+            const result = await callAPI(`/api/sales/charts/trends?${params}`);
+            showResult('charts-result', result, result.success);
+        }
+
+        async function testGetDistributionData() {
+            const params = new URLSearchParams({
+                type: document.getElementById('distributionType').value,
+                startDate: document.getElementById('chartStartDate').value,
+                endDate: document.getElementById('chartEndDate').value
+            });
+            
+            const result = await callAPI(`/api/sales/charts/distribution?${params}`);
+            showResult('charts-result', result, result.success);
+        }
+
+        // 分布图表测试
+        async function testProductDistribution() {
+            const result = await testDistributionByType('product');
+            if (result.success && result.data.data) {
+                renderPieChart('distributionChart', result.data.data, '产品分布');
+            }
+        }
+
+        async function testRegionDistribution() {
+            const result = await testDistributionByType('region');
+            if (result.success && result.data.data) {
+                renderPieChart('distributionChart', result.data.data, '地区分布');
+            }
+        }
+
+        async function testChannelDistribution() {
+            const result = await testDistributionByType('channel');
+            if (result.success && result.data.data) {
+                renderPieChart('distributionChart', result.data.data, '渠道分布');
+            }
+        }
+
+        async function testStaffDistribution() {
+            const result = await testDistributionByType('staff');
+            if (result.success && result.data.data) {
+                renderPieChart('distributionChart', result.data.data, '人员分布');
+            }
+        }
+
+        async function testDistributionByType(type) {
+            const params = new URLSearchParams({
+                type: type,
+                startDate: document.getElementById('chartStartDate').value,
+                endDate: document.getElementById('chartEndDate').value
+            });
+            
+            const result = await callAPI(`/api/sales/charts/distribution?${params}`);
+            showResult('distribution-result', result, result.success);
+            return result;
+        }
+
+        // 趋势图表测试
+        async function testTrendsByDay() {
+            const result = await testTrendsByGroupBy('day');
+            if (result.success && result.data.data) {
+                renderLineChart('trendsChart', result.data.data, '按天销售趋势');
+            }
+        }
+
+        async function testTrendsByWeek() {
+            const result = await testTrendsByGroupBy('week');
+            if (result.success && result.data.data) {
+                renderLineChart('trendsChart', result.data.data, '按周销售趋势');
+            }
+        }
+
+        async function testTrendsByMonth() {
+            const result = await testTrendsByGroupBy('month');
+            if (result.success && result.data.data) {
+                renderLineChart('trendsChart', result.data.data, '按月销售趋势');
+            }
+        }
+
+        async function testTrendsByGroupBy(groupBy) {
+            const params = new URLSearchParams({
+                startDate: document.getElementById('chartStartDate').value,
+                endDate: document.getElementById('chartEndDate').value,
+                groupBy: groupBy
+            });
+            
+            const result = await callAPI(`/api/sales/charts/trends?${params}`);
+            showResult('trends-result', result, result.success);
+            return result;
+        }
+
+        // 图表缓存管理测试
+        async function testRefreshChartCache() {
+            const cacheType = document.getElementById('chartCacheType').value;
+            const result = await callAPI(`/api/sales/charts/refresh?chartType=${cacheType}`, {
+                method: 'POST'
+            });
+            showResult('cache-result', result, result.success);
+        }
+
+        async function testGetChartConfig() {
+            const result = await callAPI('/api/sales/charts/config');
+            showResult('cache-result', result, result.success);
+        }
+
+        async function testGetChartSummary() {
+            const result = await callAPI('/api/sales/charts/summary');
+            showResult('cache-result', result, result.success);
+        }
+
+        // 图表数据验证测试
+        async function testValidateChartData() {
+            const chartType = document.getElementById('validateChartType').value;
+            const params = new URLSearchParams({
+                chartType: chartType,
+                startDate: document.getElementById('chartStartDate').value,
+                endDate: document.getElementById('chartEndDate').value
+            });
+            
+            const result = await callAPI(`/api/sales/charts/validate?${params}`);
+            showResult('validate-result', result, result.success);
+        }
+
+        async function testValidateAllCharts() {
+            const chartTypes = ['distribution', 'trends', 'monthly', 'funnel'];
+            const results = [];
+            
+            for (const chartType of chartTypes) {
+                const params = new URLSearchParams({
+                    chartType: chartType,
+                    startDate: document.getElementById('chartStartDate').value,
+                    endDate: document.getElementById('chartEndDate').value
+                });
+                
+                const result = await callAPI(`/api/sales/charts/validate?${params}`);
+                results.push({ chartType, result });
+            }
+            
+            showResult('validate-result', { allValidations: results }, true);
+        }
+
+        // 图表渲染函数
+        function renderPieChart(containerId, data, title) {
+            const chart = echarts.init(document.getElementById(containerId));
+            
+            const option = {
+                title: {
+                    text: title,
+                    left: 'center'
+                },
+                tooltip: {
+                    trigger: 'item',
+                    formatter: '{a} <br/>{b}: {c} ({d}%)'
+                },
+                legend: {
+                    orient: 'vertical',
+                    left: 'left'
+                },
+                series: [{
+                    name: title,
+                    type: 'pie',
+                    radius: '50%',
+                    data: data.series && data.series[0] ? data.series[0].data : [],
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowOffsetX: 0,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        }
+                    }
+                }]
+            };
+            
+            chart.setOption(option);
+        }
+
+        function renderLineChart(containerId, data, title) {
+            const chart = echarts.init(document.getElementById(containerId));
+            
+            const option = {
+                title: {
+                    text: title,
+                    left: 'center'
+                },
+                tooltip: {
+                    trigger: 'axis'
+                },
+                legend: {
+                    data: data.series ? data.series.map(s => s.name) : []
+                },
+                xAxis: {
+                    type: 'category',
+                    data: data.categories || []
+                },
+                yAxis: {
+                    type: 'value'
+                },
+                series: data.series || []
+            };
+            
+            chart.setOption(option);
+        }
+
+        // 渲染所有图表
+        async function renderAllCharts() {
+            const params = new URLSearchParams({
+                startDate: document.getElementById('chartStartDate').value,
+                endDate: document.getElementById('chartEndDate').value
+            });
+            
+            try {
+                // 获取所有图表数据
+                const result = await callAPI(`/api/sales/charts/all?${params}`);
+                
+                if (result.success && result.data.data) {
+                    const chartsData = result.data.data;
+                    
+                    // 渲染趋势图
+                    if (chartsData.trends) {
+                        renderLineChart('trendChart', chartsData.trends, '销售趋势');
+                    }
+                    
+                    // 渲染产品分布图
+                    if (chartsData.productDistribution) {
+                        renderPieChart('productChart', chartsData.productDistribution, '产品分布');
+                    }
+                    
+                    // 渲染地区分布图
+                    if (chartsData.regionDistribution) {
+                        renderPieChart('regionChart', chartsData.regionDistribution, '地区分布');
+                    }
+                    
+                    // 渲染渠道分析图
+                    if (chartsData.channelAnalysis) {
+                        renderPieChart('channelChart', chartsData.channelAnalysis, '渠道分析');
+                    }
+                }
+            } catch (error) {
+                console.error('渲染图表失败:', error);
+            }
+        }
+
+        // 清空所有图表
+        function clearAllCharts() {
+            const chartIds = ['trendChart', 'productChart', 'regionChart', 'channelChart'];
+            chartIds.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.innerHTML = '';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

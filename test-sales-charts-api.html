@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>销售图表数据API测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        .input-group {
+            margin: 10px 0;
+        }
+        .input-group label {
+            display: inline-block;
+            width: 100px;
+            font-weight: bold;
+        }
+        .input-group input, .input-group select {
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>销售图表数据API测试工具</h1>
+        <p>测试销售数据分析模块的图表数据API接口功能</p>
+    </div>
+
+    <!-- 销售趋势图表数据测试 -->
+    <div class="container">
+        <div class="test-section">
+            <h2>1. 销售趋势图表数据测试</h2>
+            <p>测试 GET /api/sales/charts/trends 接口</p>
+            
+            <div class="input-group">
+                <label>开始日期:</label>
+                <input type="date" id="trendStartDate" value="2024-01-01">
+            </div>
+            <div class="input-group">
+                <label>结束日期:</label>
+                <input type="date" id="trendEndDate" value="2024-12-31">
+            </div>
+            <div class="input-group">
+                <label>分组方式:</label>
+                <select id="trendGroupBy">
+                    <option value="day">按天</option>
+                    <option value="week">按周</option>
+                    <option value="month">按月</option>
+                </select>
+            </div>
+            
+            <button class="test-button" onclick="testTrendChartData()">测试销售趋势数据</button>
+            <div id="trendResult" class="result info" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- 销售分布图表数据测试 -->
+    <div class="container">
+        <div class="test-section">
+            <h2>2. 销售分布图表数据测试</h2>
+            <p>测试 GET /api/sales/charts/distribution 接口</p>
+            
+            <div class="input-group">
+                <label>分布类型:</label>
+                <select id="distributionType">
+                    <option value="product">产品分布</option>
+                    <option value="region">地区分布</option>
+                    <option value="channel">渠道分布</option>
+                    <option value="staff">销售人员分布</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>开始日期:</label>
+                <input type="date" id="distributionStartDate" value="2024-01-01">
+            </div>
+            <div class="input-group">
+                <label>结束日期:</label>
+                <input type="date" id="distributionEndDate" value="2024-12-31">
+            </div>
+            
+            <button class="test-button" onclick="testDistributionChartData()">测试分布图表数据</button>
+            <div id="distributionResult" class="result info" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- 综合测试 -->
+    <div class="container">
+        <div class="test-section">
+            <h2>3. 综合测试</h2>
+            <p>测试所有图表数据API接口</p>
+            
+            <button class="test-button" onclick="testAllChartAPIs()">测试所有图表API</button>
+            <button class="test-button" onclick="testEmptyDataScenario()">测试空数据场景</button>
+            <button class="test-button" onclick="testErrorHandling()">测试错误处理</button>
+            <div id="comprehensiveResult" class="result info" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- 数据格式验证 -->
+    <div class="container">
+        <div class="test-section">
+            <h2>4. 数据格式验证</h2>
+            <p>验证API返回的数据格式是否符合前端ECharts要求</p>
+            
+            <button class="test-button" onclick="validateDataFormat()">验证数据格式</button>
+            <div id="validationResult" class="result info" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8080';
+
+        // 通用API调用函数
+        async function callAPI(url, method = 'GET', data = null) {
+            try {
+                const options = {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                };
+                
+                if (data && method !== 'GET') {
+                    options.body = JSON.stringify(data);
+                }
+                
+                const response = await fetch(url, options);
+                const result = await response.json();
+                
+                return {
+                    success: response.ok,
+                    status: response.status,
+                    data: result
+                };
+            } catch (error) {
+                return {
+                    success: false,
+                    error: error.message
+                };
+            }
+        }
+
+        // 显示结果
+        function showResult(elementId, result, isSuccess = true) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = `result ${isSuccess ? 'success' : 'error'}`;
+            element.textContent = JSON.stringify(result, null, 2);
+        }
+
+        // 测试销售趋势图表数据
+        async function testTrendChartData() {
+            const startDate = document.getElementById('trendStartDate').value;
+            const endDate = document.getElementById('trendEndDate').value;
+            const groupBy = document.getElementById('trendGroupBy').value;
+            
+            const url = `${API_BASE_URL}/api/sales/charts/trends?startDate=${startDate}&endDate=${endDate}&groupBy=${groupBy}`;
+            
+            console.log('测试销售趋势图表数据API:', url);
+            
+            const result = await callAPI(url);
+            showResult('trendResult', result, result.success);
+            
+            if (result.success && result.data.code === 200) {
+                console.log('销售趋势数据结构:', result.data.data);
+                validateTrendDataStructure(result.data.data);
+            }
+        }
+
+        // 测试销售分布图表数据
+        async function testDistributionChartData() {
+            const type = document.getElementById('distributionType').value;
+            const startDate = document.getElementById('distributionStartDate').value;
+            const endDate = document.getElementById('distributionEndDate').value;
+            
+            const url = `${API_BASE_URL}/api/sales/charts/distribution?type=${type}&startDate=${startDate}&endDate=${endDate}`;
+            
+            console.log('测试销售分布图表数据API:', url);
+            
+            const result = await callAPI(url);
+            showResult('distributionResult', result, result.success);
+            
+            if (result.success && result.data.code === 200) {
+                console.log('销售分布数据结构:', result.data.data);
+                validateDistributionDataStructure(result.data.data);
+            }
+        }
+
+        // 测试所有图表API
+        async function testAllChartAPIs() {
+            const results = [];
+            
+            // 测试趋势图表
+            console.log('开始测试所有图表API...');
+            
+            const trendResult = await callAPI(`${API_BASE_URL}/api/sales/charts/trends?startDate=2024-01-01&endDate=2024-12-31&groupBy=month`);
+            results.push({ api: '销售趋势图表', result: trendResult });
+            
+            // 测试各种分布图表
+            const distributionTypes = ['product', 'region', 'channel', 'staff'];
+            for (const type of distributionTypes) {
+                const distResult = await callAPI(`${API_BASE_URL}/api/sales/charts/distribution?type=${type}&startDate=2024-01-01&endDate=2024-12-31`);
+                results.push({ api: `${type}分布图表`, result: distResult });
+            }
+            
+            showResult('comprehensiveResult', results, true);
+        }
+
+        // 测试空数据场景
+        async function testEmptyDataScenario() {
+            console.log('测试空数据场景...');
+            
+            // 使用未来日期测试空数据
+            const futureDate = '2030-01-01';
+            const results = [];
+            
+            const trendResult = await callAPI(`${API_BASE_URL}/api/sales/charts/trends?startDate=${futureDate}&endDate=${futureDate}&groupBy=day`);
+            results.push({ scenario: '空数据趋势图表', result: trendResult });
+            
+            const distResult = await callAPI(`${API_BASE_URL}/api/sales/charts/distribution?type=product&startDate=${futureDate}&endDate=${futureDate}`);
+            results.push({ scenario: '空数据分布图表', result: distResult });
+            
+            showResult('comprehensiveResult', results, true);
+        }
+
+        // 测试错误处理
+        async function testErrorHandling() {
+            console.log('测试错误处理...');
+            
+            const results = [];
+            
+            // 测试无效日期格式
+            const invalidDateResult = await callAPI(`${API_BASE_URL}/api/sales/charts/trends?startDate=invalid-date&endDate=2024-12-31`);
+            results.push({ scenario: '无效日期格式', result: invalidDateResult });
+            
+            // 测试无效分布类型
+            const invalidTypeResult = await callAPI(`${API_BASE_URL}/api/sales/charts/distribution?type=invalid-type&startDate=2024-01-01&endDate=2024-12-31`);
+            results.push({ scenario: '无效分布类型', result: invalidTypeResult });
+            
+            showResult('comprehensiveResult', results, true);
+        }
+
+        // 验证数据格式
+        async function validateDataFormat() {
+            console.log('验证数据格式...');
+            
+            const validationResults = [];
+            
+            // 验证趋势数据格式
+            const trendResult = await callAPI(`${API_BASE_URL}/api/sales/charts/trends?startDate=2024-01-01&endDate=2024-12-31&groupBy=month`);
+            if (trendResult.success && trendResult.data.code === 200) {
+                const trendValidation = validateTrendDataStructure(trendResult.data.data);
+                validationResults.push({ type: '趋势数据格式', validation: trendValidation });
+            }
+            
+            // 验证分布数据格式
+            const distResult = await callAPI(`${API_BASE_URL}/api/sales/charts/distribution?type=product&startDate=2024-01-01&endDate=2024-12-31`);
+            if (distResult.success && distResult.data.code === 200) {
+                const distValidation = validateDistributionDataStructure(distResult.data.data);
+                validationResults.push({ type: '分布数据格式', validation: distValidation });
+            }
+            
+            showResult('validationResult', validationResults, true);
+        }
+
+        // 验证趋势数据结构
+        function validateTrendDataStructure(data) {
+            const validation = {
+                hasCategories: Array.isArray(data.categories),
+                hasSeries: Array.isArray(data.series),
+                seriesCount: data.series ? data.series.length : 0,
+                categoriesCount: data.categories ? data.categories.length : 0,
+                seriesStructure: []
+            };
+            
+            if (data.series) {
+                data.series.forEach((series, index) => {
+                    validation.seriesStructure.push({
+                        index: index,
+                        hasName: typeof series.name === 'string',
+                        hasType: typeof series.type === 'string',
+                        hasData: Array.isArray(series.data),
+                        dataCount: series.data ? series.data.length : 0
+                    });
+                });
+            }
+            
+            validation.isValid = validation.hasCategories && validation.hasSeries && 
+                               validation.seriesCount >= 2 && // 应该有销售额和订单数两个系列
+                               validation.categoriesCount > 0;
+            
+            return validation;
+        }
+
+        // 验证分布数据结构
+        function validateDistributionDataStructure(data) {
+            const validation = {
+                hasCategories: Array.isArray(data.categories),
+                hasSeries: Array.isArray(data.series),
+                seriesCount: data.series ? data.series.length : 0,
+                categoriesCount: data.categories ? data.categories.length : 0,
+                seriesStructure: []
+            };
+            
+            if (data.series) {
+                data.series.forEach((series, index) => {
+                    validation.seriesStructure.push({
+                        index: index,
+                        hasName: typeof series.name === 'string',
+                        hasType: typeof series.type === 'string',
+                        hasData: Array.isArray(series.data),
+                        dataCount: series.data ? series.data.length : 0
+                    });
+                });
+            }
+            
+            validation.isValid = validation.hasCategories && validation.hasSeries && 
+                               validation.seriesCount >= 1 && // 至少有一个系列
+                               validation.categoriesCount >= 0; // 允许空数据
+            
+            return validation;
+        }
+
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('销售图表数据API测试工具已加载');
+            
+            // 设置默认日期
+            const today = new Date();
+            const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+            
+            document.getElementById('trendStartDate').value = thirtyDaysAgo.toISOString().split('T')[0];
+            document.getElementById('trendEndDate').value = today.toISOString().split('T')[0];
+            document.getElementById('distributionStartDate').value = thirtyDaysAgo.toISOString().split('T')[0];
+            document.getElementById('distributionEndDate').value = today.toISOString().split('T')[0];
+        });
+    </script>
+</body>
+</html>

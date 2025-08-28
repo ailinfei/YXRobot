@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yxrobot.mapper.CharityStatsMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="CharityStatsResultMap" type="com.yxrobot.entity.CharityStats">
+        <id column="id" property="id"/>
+        <result column="total_beneficiaries" property="totalBeneficiaries"/>
+        <result column="total_institutions" property="totalInstitutions"/>
+        <result column="cooperating_institutions" property="cooperatingInstitutions"/>
+        <result column="total_volunteers" property="totalVolunteers"/>
+        <result column="active_volunteers" property="activeVolunteers"/>
+        <result column="total_raised" property="totalRaised"/>
+        <result column="total_donated" property="totalDonated"/>
+        <result column="total_projects" property="totalProjects"/>
+        <result column="active_projects" property="activeProjects"/>
+        <result column="completed_projects" property="completedProjects"/>
+        <result column="total_activities" property="totalActivities"/>
+        <result column="this_month_activities" property="thisMonthActivities"/>
+        <result column="created_at" property="createTime"/>
+        <result column="updated_at" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+        <result column="version" property="version"/>
+    </resultMap>
+
+    <!-- 基础查询字段 -->
+    <sql id="Base_Column_List">
+        id, total_beneficiaries, total_institutions, cooperating_institutions, total_volunteers,
+        active_volunteers, total_raised, total_donated, total_projects, active_projects, completed_projects,
+        total_activities, this_month_activities, created_at, updated_at, 
+        deleted, version
+    </sql>
+
+    <!-- 获取最新的公益统计数据 -->
+    <select id="selectLatest" resultMap="CharityStatsResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM charity_stats
+        WHERE (deleted = 0 OR deleted IS NULL)
+        ORDER BY created_at DESC
+        LIMIT 1
+    </select>
+
+    <!-- 根据ID查询统计数据 -->
+    <select id="selectById" resultMap="CharityStatsResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM charity_stats
+        WHERE id = #{id} AND (deleted = 0 OR deleted IS NULL)
+    </select>
+
+    <!-- 插入新的统计数据记录 -->
+    <insert id="insert" parameterType="com.yxrobot.entity.CharityStats" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO charity_stats (
+            total_beneficiaries, total_institutions, cooperating_institutions, total_volunteers,
+            total_raised, total_donated, total_projects, active_projects, completed_projects,
+            total_activities, this_month_activities, created_at, updated_at, deleted, version
+        ) VALUES (
+            #{totalBeneficiaries}, #{totalInstitutions}, #{cooperatingInstitutions}, #{totalVolunteers},
+            #{totalRaised}, #{totalDonated}, #{totalProjects}, #{activeProjects}, #{completedProjects},
+            #{totalActivities}, #{thisMonthActivities}, NOW(), NOW(), 0, #{version}
+        )
+    </insert>
+
+    <!-- 根据ID更新统计数据 -->
+    <update id="updateById" parameterType="com.yxrobot.entity.CharityStats">
+        UPDATE charity_stats
+        SET total_beneficiaries = #{totalBeneficiaries},
+            total_institutions = #{totalInstitutions},
+            cooperating_institutions = #{cooperatingInstitutions},
+            total_volunteers = #{totalVolunteers},
+            total_raised = #{totalRaised},
+            total_donated = #{totalDonated},
+            total_projects = #{totalProjects},
+            active_projects = #{activeProjects},
+            completed_projects = #{completedProjects},
+            total_activities = #{totalActivities},
+            this_month_activities = #{thisMonthActivities},
+            updated_at = NOW(),
+            version = #{version}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据版本号更新统计数据（乐观锁） -->
+    <update id="updateByVersion" parameterType="com.yxrobot.entity.CharityStats">
+        UPDATE charity_stats
+        SET total_beneficiaries = #{totalBeneficiaries},
+            total_institutions = #{totalInstitutions},
+            cooperating_institutions = #{cooperatingInstitutions},
+            total_volunteers = #{totalVolunteers},
+            total_raised = #{totalRaised},
+            total_donated = #{totalDonated},
+            total_projects = #{totalProjects},
+            active_projects = #{activeProjects},
+            completed_projects = #{completedProjects},
+            total_activities = #{totalActivities},
+            this_month_activities = #{thisMonthActivities},
+            updated_at = NOW(),
+            version = version + 1
+        WHERE id = #{id} AND version = #{version}
+    </update>
+
+    <!-- 获取统计数据历史记录 -->
+    <select id="selectHistory" resultMap="CharityStatsResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM charity_stats
+        WHERE (deleted = 0 OR deleted IS NULL)
+        ORDER BY created_at DESC
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 检查统计数据是否存在 -->
+    <select id="existsStats" resultType="java.lang.Boolean">
+        SELECT COUNT(*) > 0
+        FROM charity_stats
+        WHERE (deleted = 0 OR deleted IS NULL)
+    </select>
+
+    <!-- 计算统计数据汇总 -->
+    <select id="calculateStatsFromSource" resultMap="CharityStatsResultMap">
+        SELECT 
+            -- 受益人数统计
+            COALESCE(SUM(cp.beneficiaries), 0) as total_beneficiaries,
+            -- 机构统计
+            (SELECT COUNT(*) FROM charity_institutions WHERE is_deleted = 0) as total_institutions,
+            (SELECT COUNT(*) FROM charity_institutions WHERE is_deleted = 0 AND status = 'active') as cooperating_institutions,
+            -- 志愿者统计
+            COALESCE(SUM(ca.participants), 0) as total_volunteers,
+            -- 资金统计
+            COALESCE(SUM(cp.target_amount), 0) as total_raised,
+            COALESCE(SUM(cp.raised_amount), 0) as total_donated,
+            -- 项目统计
+            (SELECT COUNT(*) FROM charity_projects WHERE is_deleted = 0) as total_projects,
+            (SELECT COUNT(*) FROM charity_projects WHERE is_deleted = 0 AND status = 'active') as active_projects,
+            (SELECT COUNT(*) FROM charity_projects WHERE is_deleted = 0 AND status = 'completed') as completed_projects,
+            -- 活动统计
+            (SELECT COUNT(*) FROM charity_activities WHERE deleted = 0) as total_activities,
+            (SELECT COUNT(*) FROM charity_activities WHERE deleted = 0 AND YEAR(date) = YEAR(NOW()) AND MONTH(date) = MONTH(NOW())) as this_month_activities,
+            NOW() as create_time,
+            NOW() as update_time,
+            0 as deleted,
+            1 as version
+        FROM charity_projects cp
+        LEFT JOIN charity_activities ca ON cp.id = ca.project_id AND ca.deleted = 0
+        WHERE cp.is_deleted = 0
+    </select>
+
+    <!-- 软删除相关查询方法 -->
+    
+    <!-- 获取未删除的最新统计数据 -->
+    <select id="selectLatestNotDeleted" resultMap="CharityStatsResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM charity_stats
+        WHERE (deleted = 0 OR deleted IS NULL)
+        ORDER BY created_at DESC
+        LIMIT 1
+    </select>
+
+    <!-- 获取所有未删除的统计数据 -->
+    <select id="selectAllNotDeleted" resultMap="CharityStatsResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM charity_stats
+        WHERE (deleted = 0 OR deleted IS NULL)
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 软删除统计数据 -->
+    <update id="softDeleteById">
+        UPDATE charity_stats
+        SET deleted = 1,
+            updated_at = NOW()
+        WHERE id = #{id} AND (deleted = 0 OR deleted IS NULL)
+    </update>
+
+    <!-- 恢复软删除的统计数据 -->
+    <update id="restoreById">
+        UPDATE charity_stats
+        SET deleted = 0,
+            updated_at = NOW()
+        WHERE id = #{id} AND deleted = 1
+    </update>
+
+    <!-- 根据ID查询未删除的统计数据 -->
+    <select id="selectByIdNotDeleted" resultMap="CharityStatsResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM charity_stats
+        WHERE id = #{id} AND (deleted = 0 OR deleted IS NULL)
+    </select>
+
+    <!-- 统计未删除记录数量 -->
+    <select id="countNotDeleted" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM charity_stats
+        WHERE (deleted = 0 OR deleted IS NULL)
+    </select>
+
+    <!-- 图表数据查询方法 -->
+    
+    <!-- 获取项目状态分布数据 -->
+    <select id="selectProjectStatusDistribution" resultType="java.util.Map">
+        SELECT 
+            CASE 
+                WHEN status = 'active' THEN '进行中'
+                WHEN status = 'completed' THEN '已完成'
+                WHEN status = 'planning' THEN '规划中'
+                WHEN status = 'suspended' THEN '暂停'
+                ELSE '其他'
+            END as statusName,
+            COUNT(*) as count
+        FROM charity_projects 
+        WHERE is_deleted = 0
+        GROUP BY status
+        ORDER BY count DESC
+    </select>
+
+    <!-- 获取资金筹集趋势数据 -->
+    <select id="selectFundingTrend" resultType="java.util.Map">
+        SELECT 
+            DATE_FORMAT(created_at, '%Y-%m') as month,
+            SUM(target_amount) as raised_amount,
+            SUM(raised_amount) as donated_amount
+        FROM charity_projects 
+        WHERE is_deleted = 0 
+            AND created_at >= DATE_SUB(NOW(), INTERVAL #{months} MONTH)
+        GROUP BY DATE_FORMAT(created_at, '%Y-%m')
+        ORDER BY month ASC
+    </select>
+
+    <!-- 获取地区分布数据 -->
+    <select id="selectRegionDistribution" resultType="java.util.Map">
+        SELECT 
+            CASE 
+                WHEN location LIKE '%北京%' OR location LIKE '%天津%' OR location LIKE '%河北%' OR location LIKE '%山西%' OR location LIKE '%内蒙古%' THEN '华北'
+                WHEN location LIKE '%上海%' OR location LIKE '%江苏%' OR location LIKE '%浙江%' OR location LIKE '%安徽%' OR location LIKE '%福建%' OR location LIKE '%江西%' OR location LIKE '%山东%' THEN '华东'
+                WHEN location LIKE '%广东%' OR location LIKE '%广西%' OR location LIKE '%海南%' THEN '华南'
+                WHEN location LIKE '%河南%' OR location LIKE '%湖北%' OR location LIKE '%湖南%' THEN '华中'
+                WHEN location LIKE '%重庆%' OR location LIKE '%四川%' OR location LIKE '%贵州%' OR location LIKE '%云南%' OR location LIKE '%西藏%' THEN '西南'
+                WHEN location LIKE '%陕西%' OR location LIKE '%甘肃%' OR location LIKE '%青海%' OR location LIKE '%宁夏%' OR location LIKE '%新疆%' THEN '西北'
+                WHEN location LIKE '%辽宁%' OR location LIKE '%吉林%' OR location LIKE '%黑龙江%' THEN '东北'
+                ELSE '其他'
+            END as regionName,
+            COUNT(*) as count
+        FROM charity_activities 
+        WHERE deleted = 0 AND location IS NOT NULL
+        GROUP BY regionName
+        ORDER BY count DESC
+    </select>
+
+    <!-- 获取志愿者活动统计数据 -->
+    <select id="selectVolunteerActivityStats" resultType="java.util.Map">
+        SELECT 
+            DATE_FORMAT(date, '%Y-%m') as month,
+            COUNT(*) as activity_count,
+            SUM(participants) as volunteer_count
+        FROM charity_activities 
+        WHERE deleted = 0 
+            AND date >= DATE_SUB(NOW(), INTERVAL #{months} MONTH)
+        GROUP BY DATE_FORMAT(date, '%Y-%m')
+        ORDER BY month ASC
+    </select>
+
+    <!-- 获取机构类型分布数据 -->
+    <select id="selectInstitutionTypeDistribution" resultType="java.util.Map">
+        SELECT 
+            CASE 
+                WHEN type = 'foundation' THEN '基金会'
+                WHEN type = 'ngo' THEN '非营利组织'
+                WHEN type = 'government' THEN '政府机构'
+                WHEN type = 'enterprise' THEN '企业'
+                WHEN type = 'school' THEN '学校'
+                ELSE '其他'
+            END as typeName,
+            COUNT(*) as count
+        FROM charity_institutions 
+        WHERE is_deleted = 0
+        GROUP BY type
+        ORDER BY count DESC
+    </select>
+
+    <!-- 获取活动类型分布数据 -->
+    <select id="selectActivityTypeDistribution" resultType="java.util.Map">
+        SELECT 
+            CASE 
+                WHEN type = 'education' THEN '教育支持'
+                WHEN type = 'health' THEN '健康医疗'
+                WHEN type = 'environment' THEN '环境保护'
+                WHEN type = 'poverty' THEN '扶贫济困'
+                WHEN type = 'disaster' THEN '灾害救助'
+                WHEN type = 'elderly' THEN '养老助老'
+                WHEN type = 'children' THEN '儿童关爱'
+                ELSE '其他'
+            END as typeName,
+            COUNT(*) as count
+        FROM charity_activities 
+        WHERE deleted = 0
+        GROUP BY type
+        ORDER BY count DESC
+    </select>
+
+</mapper>

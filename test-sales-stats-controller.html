@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>销售统计控制器测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .test-button.success {
+            background: #28a745;
+        }
+        .test-button.error {
+            background: #dc3545;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .result.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .result.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .input-group {
+            margin: 10px 0;
+        }
+        .input-group label {
+            display: inline-block;
+            width: 120px;
+            font-weight: bold;
+        }
+        .input-group input, .input-group select {
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            width: 200px;
+        }
+        .stats-card {
+            display: inline-block;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px;
+            min-width: 200px;
+            text-align: center;
+        }
+        .stats-card .title {
+            font-size: 14px;
+            color: #6c757d;
+            margin-bottom: 5px;
+        }
+        .stats-card .value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 5px;
+        }
+        .stats-card .trend {
+            font-size: 12px;
+            color: #28a745;
+        }
+        .stats-card .trend.negative {
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>销售统计控制器测试工具</h1>
+        <p>测试销售统计相关的API接口，验证前端概览卡片数据对接</p>
+        
+        <!-- 基础统计测试 -->
+        <div class="test-section">
+            <h2>📊 基础统计数据测试</h2>
+            <div class="input-group">
+                <label>开始日期:</label>
+                <input type="date" id="statsStartDate">
+            </div>
+            <div class="input-group">
+                <label>结束日期:</label>
+                <input type="date" id="statsEndDate">
+            </div>
+            <div class="input-group">
+                <label>统计类型:</label>
+                <select id="statType">
+                    <option value="daily">按天</option>
+                    <option value="weekly">按周</option>
+                    <option value="monthly">按月</option>
+                    <option value="yearly">按年</option>
+                </select>
+            </div>
+            <button class="test-button" onclick="testGetSalesStats()">获取销售统计</button>
+            <button class="test-button" onclick="testGetOverview()">获取销售概览</button>
+            <button class="test-button" onclick="testGetOverviewCards()">获取概览卡片</button>
+            <div id="stats-result" class="result" style="display: none;"></div>
+            
+            <!-- 统计卡片显示区域 -->
+            <div id="stats-cards" style="margin-top: 20px;"></div>
+        </div>
+
+        <!-- 实时统计测试 -->
+        <div class="test-section">
+            <h2>⚡ 实时统计测试</h2>
+            <button class="test-button" onclick="testGetRealTimeStats()">实时统计</button>
+            <button class="test-button" onclick="testGetTodayStats()">今日统计</button>
+            <button class="test-button" onclick="testGetCurrentMonthStats()">本月统计</button>
+            <div id="realtime-result" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- 趋势分析测试 -->
+        <div class="test-section">
+            <h2>📈 趋势分析测试</h2>
+            <div class="input-group">
+                <label>分组方式:</label>
+                <select id="trendGroupBy">
+                    <option value="day">按天</option>
+                    <option value="week">按周</option>
+                    <option value="month">按月</option>
+                    <option value="quarter">按季度</option>
+                    <option value="year">按年</option>
+                </select>
+            </div>
+            <button class="test-button" onclick="testGetSalesTrends()">获取销售趋势</button>
+            <button class="test-button" onclick="testGetProductRanking()">产品排行</button>
+            <button class="test-button" onclick="testGetStaffPerformance()">人员业绩</button>
+            <div id="trends-result" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- 目标完成情况测试 -->
+        <div class="test-section">
+            <h2>🎯 目标完成情况测试</h2>
+            <div class="input-group">
+                <label>统计周期:</label>
+                <select id="targetPeriod">
+                    <option value="month">本月</option>
+                    <option value="quarter">本季度</option>
+                    <option value="year">本年</option>
+                </select>
+            </div>
+            <button class="test-button" onclick="testGetTargetCompletion()">目标完成情况</button>
+            <button class="test-button" onclick="testGetGrowthRate()">增长率统计</button>
+            <div id="target-result" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- 缓存管理测试 -->
+        <div class="test-section">
+            <h2>🔄 缓存管理测试</h2>
+            <div class="input-group">
+                <label>缓存类型:</label>
+                <select id="cacheType">
+                    <option value="all">全部</option>
+                    <option value="stats">统计数据</option>
+                    <option value="charts">图表数据</option>
+                </select>
+            </div>
+            <button class="test-button" onclick="testRefreshStats()">刷新统计缓存</button>
+            <button class="test-button" onclick="testGetCacheStatus()">获取缓存状态</button>
+            <div id="cache-result" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- 概览卡片测试 -->
+        <div class="test-section">
+            <h2>🎴 概览卡片测试</h2>
+            <div class="input-group">
+                <label>日期范围:</label>
+                <select id="cardDateRange">
+                    <option value="today">今日</option>
+                    <option value="week">本周</option>
+                    <option value="month" selected>本月</option>
+                    <option value="quarter">本季度</option>
+                    <option value="year">本年</option>
+                </select>
+            </div>
+            <button class="test-button" onclick="testOverviewCardsWithRange()">测试概览卡片</button>
+            <div id="cards-result" class="result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8080';
+        
+        // 设置默认日期范围（最近30天）
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date();
+            const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+            
+            document.getElementById('statsStartDate').value = thirtyDaysAgo.toISOString().split('T')[0];
+            document.getElementById('statsEndDate').value = today.toISOString().split('T')[0];
+        });
+
+        // 通用API调用函数
+        async function callAPI(url, options = {}) {
+            try {
+                const response = await fetch(API_BASE_URL + url, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+                
+                const data = await response.json();
+                return { success: response.ok, data, status: response.status };
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        }
+
+        // 显示结果
+        function showResult(elementId, result, isSuccess) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = `result ${isSuccess ? 'success' : 'error'}`;
+            element.textContent = JSON.stringify(result, null, 2);
+        }
+
+        // 显示统计卡片
+        function showStatsCards(data) {
+            const cardsContainer = document.getElementById('stats-cards');
+            cardsContainer.innerHTML = '';
+            
+            if (data && data.data) {
+                const stats = data.data;
+                
+                // 创建卡片
+                const cards = [
+                    { title: '总销售额', value: stats.totalSalesAmount || 0, unit: '元', trend: stats.growthRate || 0 },
+                    { title: '订单数量', value: stats.totalOrders || 0, unit: '个', trend: 0 },
+                    { title: '新客户', value: stats.newCustomers || 0, unit: '个', trend: 0 },
+                    { title: '平均订单价值', value: stats.avgOrderAmount || 0, unit: '元', trend: 0 }
+                ];
+                
+                cards.forEach(card => {
+                    const cardElement = document.createElement('div');
+                    cardElement.className = 'stats-card';
+                    cardElement.innerHTML = `
+                        <div class="title">${card.title}</div>
+                        <div class="value">${formatNumber(card.value)} ${card.unit}</div>
+                        <div class="trend ${card.trend >= 0 ? '' : 'negative'}">
+                            ${card.trend >= 0 ? '↗' : '↘'} ${Math.abs(card.trend).toFixed(2)}%
+                        </div>
+                    `;
+                    cardsContainer.appendChild(cardElement);
+                });
+            }
+        }
+
+        // 格式化数字
+        function formatNumber(num) {
+            if (typeof num === 'number') {
+                return num.toLocaleString();
+            }
+            return num;
+        }
+
+        // 基础统计测试
+        async function testGetSalesStats() {
+            const params = new URLSearchParams({
+                startDate: document.getElementById('statsStartDate').value,
+                endDate: document.getElementById('statsEndDate').value,
+                statType: document.getElementById('statType').value
+            });
+            
+            const result = await callAPI(`/api/sales/stats?${params}`);
+            showResult('stats-result', result, result.success);
+            
+            if (result.success) {
+                showStatsCards(result.data);
+            }
+        }
+
+        async function testGetOverview() {
+            const result = await callAPI('/api/sales/overview');
+            showResult('stats-result', result, result.success);
+        }
+
+        async function testGetOverviewCards() {
+            const result = await callAPI('/api/sales/overview-cards');
+            showResult('stats-result', result, result.success);
+        }
+
+        // 实时统计测试
+        async function testGetRealTimeStats() {
+            const result = await callAPI('/api/sales/realtime-stats');
+            showResult('realtime-result', result, result.success);
+        }
+
+        async function testGetTodayStats() {
+            const result = await callAPI('/api/sales/today-stats');
+            showResult('realtime-result', result, result.success);
+        }
+
+        async function testGetCurrentMonthStats() {
+            const result = await callAPI('/api/sales/current-month-stats');
+            showResult('realtime-result', result, result.success);
+        }
+
+        // 趋势分析测试
+        async function testGetSalesTrends() {
+            const params = new URLSearchParams({
+                startDate: document.getElementById('statsStartDate').value,
+                endDate: document.getElementById('statsEndDate').value,
+                groupBy: document.getElementById('trendGroupBy').value
+            });
+            
+            const result = await callAPI(`/api/sales/trends?${params}`);
+            showResult('trends-result', result, result.success);
+        }
+
+        async function testGetProductRanking() {
+            const params = new URLSearchParams({
+                startDate: document.getElementById('statsStartDate').value,
+                endDate: document.getElementById('statsEndDate').value,
+                limit: 10
+            });
+            
+            const result = await callAPI(`/api/sales/product-ranking?${params}`);
+            showResult('trends-result', result, result.success);
+        }
+
+        async function testGetStaffPerformance() {
+            const params = new URLSearchParams({
+                startDate: document.getElementById('statsStartDate').value,
+                endDate: document.getElementById('statsEndDate').value,
+                limit: 10
+            });
+            
+            const result = await callAPI(`/api/sales/staff-performance?${params}`);
+            showResult('trends-result', result, result.success);
+        }
+
+        // 目标完成情况测试
+        async function testGetTargetCompletion() {
+            const period = document.getElementById('targetPeriod').value;
+            const result = await callAPI(`/api/sales/target-completion?period=${period}`);
+            showResult('target-result', result, result.success);
+        }
+
+        async function testGetGrowthRate() {
+            const period = document.getElementById('targetPeriod').value;
+            const result = await callAPI(`/api/sales/growth-rate?period=${period}`);
+            showResult('target-result', result, result.success);
+        }
+
+        // 缓存管理测试
+        async function testRefreshStats() {
+            const cacheType = document.getElementById('cacheType').value;
+            const result = await callAPI(`/api/sales/refresh-stats?cacheType=${cacheType}`, {
+                method: 'POST'
+            });
+            showResult('cache-result', result, result.success);
+        }
+
+        async function testGetCacheStatus() {
+            const result = await callAPI('/api/sales/stats-cache-status');
+            showResult('cache-result', result, result.success);
+        }
+
+        // 概览卡片测试
+        async function testOverviewCardsWithRange() {
+            const dateRange = document.getElementById('cardDateRange').value;
+            const result = await callAPI(`/api/sales/overview-cards?dateRange=${dateRange}`);
+            showResult('cards-result', result, result.success);
+        }
+    </script>
+</body>
+</html>

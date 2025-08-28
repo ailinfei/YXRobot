@@ -1,0 +1,139 @@
+package com.yxrobot.exception;
+
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * 销售异常测试类
+ * 
+ * @author YXRobot开发团队
+ * @version 1.0.0
+ * @since 2025-01-27
+ */
+class SalesExceptionTest {
+    
+    @Test
+    void testSalesException_WithMessage() {
+        String message = "销售操作失败";
+        
+        SalesException exception = new SalesException(message);
+        
+        assertEquals(message, exception.getMessage());
+        assertNull(exception.getCause());
+    }
+    
+    @Test
+    void testSalesException_WithMessageAndCause() {
+        String message = "销售操作失败";
+        Throwable cause = new RuntimeException("底层异常");
+        
+        SalesException exception = new SalesException(message, cause);
+        
+        assertEquals(message, exception.getMessage());
+        assertEquals(cause, exception.getCause());
+    }
+    
+    @Test
+    void testSalesRecordNotFoundException_WithMessage() {
+        String message = "销售记录不存在，ID: 999";
+        
+        SalesRecordNotFoundException exception = new SalesRecordNotFoundException(message);
+        
+        assertEquals(message, exception.getMessage());
+        assertNull(exception.getCause());
+        assertTrue(exception instanceof SalesException);
+    }
+    
+    @Test
+    void testSalesRecordNotFoundException_WithMessageAndCause() {
+        String message = "销售记录不存在，ID: 999";
+        Throwable cause = new RuntimeException("数据库查询异常");
+        
+        SalesRecordNotFoundException exception = new SalesRecordNotFoundException(message, cause);
+        
+        assertEquals(message, exception.getMessage());
+        assertEquals(cause, exception.getCause());
+        assertTrue(exception instanceof SalesException);
+    }
+    
+    @Test
+    void testSalesValidationException_WithMessage() {
+        String message = "销售数据验证失败";
+        
+        SalesValidationException exception = new SalesValidationException(message);
+        
+        assertEquals(message, exception.getMessage());
+        assertNull(exception.getCause());
+        assertTrue(exception instanceof SalesException);
+    }
+    
+    @Test
+    void testSalesValidationException_WithMessageAndCause() {
+        String message = "销售数据验证失败";
+        Throwable cause = new IllegalArgumentException("参数无效");
+        
+        SalesValidationException exception = new SalesValidationException(message, cause);
+        
+        assertEquals(message, exception.getMessage());
+        assertEquals(cause, exception.getCause());
+        assertTrue(exception instanceof SalesException);
+    }
+    
+    @Test
+    void testSalesOperationException_WithMessage() {
+        String message = "销售操作执行失败";
+        
+        SalesOperationException exception = new SalesOperationException(message);
+        
+        assertEquals(message, exception.getMessage());
+        assertNull(exception.getCause());
+        assertTrue(exception instanceof SalesException);
+    }
+    
+    @Test
+    void testSalesOperationException_WithMessageAndCause() {
+        String message = "销售操作执行失败";
+        Throwable cause = new RuntimeException("操作异常");
+        
+        SalesOperationException exception = new SalesOperationException(message, cause);
+        
+        assertEquals(message, exception.getMessage());
+        assertEquals(cause, exception.getCause());
+        assertTrue(exception instanceof SalesException);
+    }
+    
+    @Test
+    void testExceptionHierarchy() {
+        // 验证异常继承关系
+        SalesException salesException = new SalesException("基础销售异常");
+        assertTrue(salesException instanceof RuntimeException);
+        
+        SalesRecordNotFoundException recordNotFound = new SalesRecordNotFoundException("记录不存在");
+        assertTrue(recordNotFound instanceof SalesException);
+        assertTrue(recordNotFound instanceof RuntimeException);
+        
+        SalesValidationException validationException = new SalesValidationException("验证失败");
+        assertTrue(validationException instanceof SalesException);
+        assertTrue(validationException instanceof RuntimeException);
+        
+        SalesOperationException operationException = new SalesOperationException("操作失败");
+        assertTrue(operationException instanceof SalesException);
+        assertTrue(operationException instanceof RuntimeException);
+    }
+    
+    @Test
+    void testExceptionSerialization() {
+        // 测试异常的序列化兼容性
+        SalesException exception = new SalesException("测试异常");
+        
+        // 验证异常可以正常创建和访问
+        assertNotNull(exception);
+        assertEquals("测试异常", exception.getMessage());
+        
+        // 验证异常堆栈跟踪
+        StackTraceElement[] stackTrace = exception.getStackTrace();
+        assertNotNull(stackTrace);
+        assertTrue(stackTrace.length > 0);
+    }
+}

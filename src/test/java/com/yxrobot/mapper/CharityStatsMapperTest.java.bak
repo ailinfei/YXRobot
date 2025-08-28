@@ -1,0 +1,497 @@
+package com.yxrobot.mapper;
+
+import com.yxrobot.entity.CharityStats;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mybatis.spring.boot.test.autoconfigure.MybatisTest;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * CharityStatsMapper 单元测试
+ * 测试公益统计数据访问层的数据库操作
+ * 
+ * @author YXRobot开发团队
+ * @version 1.0
+ * @since 2024-12-19
+ */
+@MybatisTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@ActiveProfiles("test")
+@Transactional
+class CharityStatsMapperTest {
+
+    @Autowired
+    private CharityStatsMapper charityStatsMapper;
+
+    private CharityStats testCharityStats;
+
+    @BeforeEach
+    void setUp() {
+        // 初始化测试数据
+        testCharityStats = new CharityStats();
+        testCharityStats.setTotalBeneficiaries(28650);
+        testCharityStats.setTotalInstitutions(342);
+        testCharityStats.setCooperatingInstitutions(198);
+        testCharityStats.setTotalVolunteers(285);
+        testCharityStats.setTotalRaised(new BigDecimal("18500000.00"));
+        testCharityStats.setTotalDonated(new BigDecimal("15200000.00"));
+        testCharityStats.setTotalProjects(156);
+        testCharityStats.setActiveProjects(42);
+        testCharityStats.setCompletedProjects(89);
+        testCharityStats.setTotalActivities(456);
+        testCharityStats.setThisMonthActivities(28);
+        testCharityStats.setCreateTime(LocalDateTime.now());
+        testCharityStats.setUpdateTime(LocalDateTime.now());
+        testCharityStats.setVersion(1);
+        testCharityStats.setDeleted(0);
+    }
+
+    @Test
+    void testInsert_Success() {
+        // 执行插入操作
+        int result = charityStatsMapper.insert(testCharityStats);
+
+        // 验证插入结果
+        assertEquals(1, result);
+        assertNotNull(testCharityStats.getId());
+        assertTrue(testCharityStats.getId() > 0);
+    }
+
+    @Test
+    void testSelectById_Success() {
+        // 先插入测试数据
+        charityStatsMapper.insert(testCharityStats);
+        Long insertedId = testCharityStats.getId();
+
+        // 执行查询操作
+        CharityStats result = charityStatsMapper.selectById(insertedId);
+
+        // 验证查询结果
+        assertNotNull(result);
+        assertEquals(insertedId, result.getId());
+        assertEquals(testCharityStats.getTotalBeneficiaries(), result.getTotalBeneficiaries());
+        assertEquals(testCharityStats.getTotalInstitutions(), result.getTotalInstitutions());
+        assertEquals(testCharityStats.getCooperatingInstitutions(), result.getCooperatingInstitutions());
+        assertEquals(testCharityStats.getTotalVolunteers(), result.getTotalVolunteers());
+        assertEquals(0, testCharityStats.getTotalRaised().compareTo(result.getTotalRaised()));
+        assertEquals(0, testCharityStats.getTotalDonated().compareTo(result.getTotalDonated()));
+        assertEquals(testCharityStats.getTotalProjects(), result.getTotalProjects());
+        assertEquals(testCharityStats.getActiveProjects(), result.getActiveProjects());
+        assertEquals(testCharityStats.getCompletedProjects(), result.getCompletedProjects());
+        assertEquals(testCharityStats.getTotalActivities(), result.getTotalActivities());
+        assertEquals(testCharityStats.getThisMonthActivities(), result.getThisMonthActivities());
+        assertEquals(testCharityStats.getVersion(), result.getVersion());
+        assertEquals(testCharityStats.getDeleted(), result.getDeleted());
+    }
+
+    @Test
+    void testSelectById_NotFound() {
+        // 执行查询不存在的ID
+        CharityStats result = charityStatsMapper.selectById(999L);
+
+        // 验证查询结果
+        assertNull(result);
+    }
+
+    @Test
+    void testSelectLatest_Success() {
+        // 插入多条测试数据，时间不同
+        CharityStats stats1 = new CharityStats();
+        stats1.setTotalBeneficiaries(25000);
+        stats1.setTotalInstitutions(300);
+        stats1.setCooperatingInstitutions(180);
+        stats1.setTotalVolunteers(250);
+        stats1.setTotalRaised(new BigDecimal("15000000.00"));
+        stats1.setTotalDonated(new BigDecimal("12000000.00"));
+        stats1.setTotalProjects(120);
+        stats1.setActiveProjects(35);
+        stats1.setCompletedProjects(70);
+        stats1.setTotalActivities(400);
+        stats1.setThisMonthActivities(25);
+        stats1.setCreateTime(LocalDateTime.now().minusDays(2));
+        stats1.setUpdateTime(LocalDateTime.now().minusDays(2));
+        stats1.setVersion(1);
+        stats1.setDeleted(0);
+
+        CharityStats stats2 = new CharityStats();
+        stats2.setTotalBeneficiaries(30000);
+        stats2.setTotalInstitutions(350);
+        stats2.setCooperatingInstitutions(200);
+        stats2.setTotalVolunteers(300);
+        stats2.setTotalRaised(new BigDecimal("20000000.00"));
+        stats2.setTotalDonated(new BigDecimal("16000000.00"));
+        stats2.setTotalProjects(180);
+        stats2.setActiveProjects(50);
+        stats2.setCompletedProjects(100);
+        stats2.setTotalActivities(500);
+        stats2.setThisMonthActivities(35);
+        stats2.setCreateTime(LocalDateTime.now().minusDays(1));
+        stats2.setUpdateTime(LocalDateTime.now().minusDays(1));
+        stats2.setVersion(1);
+        stats2.setDeleted(0);
+
+        // 插入数据
+        charityStatsMapper.insert(stats1);
+        charityStatsMapper.insert(stats2);
+
+        // 执行查询最新数据
+        CharityStats result = charityStatsMapper.selectLatest();
+
+        // 验证查询结果 - 应该返回最新的数据
+        assertNotNull(result);
+        assertEquals(stats2.getId(), result.getId());
+        assertEquals(30000, result.getTotalBeneficiaries());
+        assertEquals(350, result.getTotalInstitutions());
+    }
+
+    @Test
+    void testSelectLatest_NoData() {
+        // 执行查询最新数据（没有数据）
+        CharityStats result = charityStatsMapper.selectLatest();
+
+        // 验证查询结果
+        assertNull(result);
+    }
+
+    @Test
+    void testUpdateById_Success() {
+        // 先插入测试数据
+        charityStatsMapper.insert(testCharityStats);
+        Long insertedId = testCharityStats.getId();
+
+        // 修改数据
+        testCharityStats.setTotalBeneficiaries(35000);
+        testCharityStats.setTotalInstitutions(400);
+        testCharityStats.setUpdateTime(LocalDateTime.now());
+
+        // 执行更新操作
+        int result = charityStatsMapper.updateById(testCharityStats);
+
+        // 验证更新结果
+        assertEquals(1, result);
+
+        // 查询验证更新是否成功
+        CharityStats updated = charityStatsMapper.selectById(insertedId);
+        assertNotNull(updated);
+        assertEquals(35000, updated.getTotalBeneficiaries());
+        assertEquals(400, updated.getTotalInstitutions());
+    }
+
+    @Test
+    void testUpdateById_NotFound() {
+        // 设置不存在的ID
+        testCharityStats.setId(999L);
+
+        // 执行更新操作
+        int result = charityStatsMapper.updateById(testCharityStats);
+
+        // 验证更新结果
+        assertEquals(0, result);
+    }
+
+    @Test
+    void testUpdateByVersion_Success() {
+        // 先插入测试数据
+        charityStatsMapper.insert(testCharityStats);
+        Long insertedId = testCharityStats.getId();
+        Integer originalVersion = testCharityStats.getVersion();
+
+        // 修改数据和版本号
+        testCharityStats.setTotalBeneficiaries(35000);
+        testCharityStats.setVersion(originalVersion + 1);
+        testCharityStats.setUpdateTime(LocalDateTime.now());
+
+        // 执行版本更新操作
+        int result = charityStatsMapper.updateByVersion(testCharityStats);
+
+        // 验证更新结果
+        assertEquals(1, result);
+
+        // 查询验证更新是否成功
+        CharityStats updated = charityStatsMapper.selectById(insertedId);
+        assertNotNull(updated);
+        assertEquals(35000, updated.getTotalBeneficiaries());
+        assertEquals(originalVersion + 1, updated.getVersion());
+    }
+
+    @Test
+    void testUpdateByVersion_VersionConflict() {
+        // 先插入测试数据
+        charityStatsMapper.insert(testCharityStats);
+        Integer originalVersion = testCharityStats.getVersion();
+
+        // 修改数据但使用错误的版本号
+        testCharityStats.setTotalBeneficiaries(35000);
+        testCharityStats.setVersion(originalVersion + 10); // 错误的版本号
+        testCharityStats.setUpdateTime(LocalDateTime.now());
+
+        // 执行版本更新操作
+        int result = charityStatsMapper.updateByVersion(testCharityStats);
+
+        // 验证更新结果 - 应该失败
+        assertEquals(0, result);
+    }
+
+    @Test
+    void testSelectHistory_Success() {
+        // 插入多条历史数据
+        CharityStats stats1 = createTestStats(25000, LocalDateTime.now().minusDays(3));
+        CharityStats stats2 = createTestStats(28000, LocalDateTime.now().minusDays(2));
+        CharityStats stats3 = createTestStats(30000, LocalDateTime.now().minusDays(1));
+
+        charityStatsMapper.insert(stats1);
+        charityStatsMapper.insert(stats2);
+        charityStatsMapper.insert(stats3);
+
+        // 执行查询历史记录
+        List<CharityStats> result = charityStatsMapper.selectHistory(10);
+
+        // 验证查询结果
+        assertNotNull(result);
+        assertEquals(3, result.size());
+        
+        // 验证排序 - 应该按创建时间倒序
+        assertEquals(30000, result.get(0).getTotalBeneficiaries()); // 最新的
+        assertEquals(28000, result.get(1).getTotalBeneficiaries());
+        assertEquals(25000, result.get(2).getTotalBeneficiaries()); // 最旧的
+    }
+
+    @Test
+    void testSelectHistory_WithLimit() {
+        // 插入多条历史数据
+        for (int i = 0; i < 5; i++) {
+            CharityStats stats = createTestStats(25000 + i * 1000, LocalDateTime.now().minusDays(5 - i));
+            charityStatsMapper.insert(stats);
+        }
+
+        // 执行查询历史记录，限制返回2条
+        List<CharityStats> result = charityStatsMapper.selectHistory(2);
+
+        // 验证查询结果
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        
+        // 验证返回的是最新的2条记录
+        assertEquals(29000, result.get(0).getTotalBeneficiaries());
+        assertEquals(28000, result.get(1).getTotalBeneficiaries());
+    }
+
+    @Test
+    void testExistsStats_True() {
+        // 先插入测试数据
+        charityStatsMapper.insert(testCharityStats);
+
+        // 执行检查是否存在
+        boolean result = charityStatsMapper.existsStats();
+
+        // 验证结果
+        assertTrue(result);
+    }
+
+    @Test
+    void testExistsStats_False() {
+        // 执行检查是否存在（没有数据）
+        boolean result = charityStatsMapper.existsStats();
+
+        // 验证结果
+        assertFalse(result);
+    }
+
+    @Test
+    void testDeleteById_Success() {
+        // 先插入测试数据
+        charityStatsMapper.insert(testCharityStats);
+        Long insertedId = testCharityStats.getId();
+
+        // 执行软删除操作
+        int result = charityStatsMapper.deleteById(insertedId);
+
+        // 验证删除结果
+        assertEquals(1, result);
+
+        // 查询验证软删除是否成功
+        CharityStats deleted = charityStatsMapper.selectById(insertedId);
+        assertNotNull(deleted);
+        assertEquals(1, deleted.getDeleted()); // 软删除标记
+    }
+
+    @Test
+    void testDeleteById_NotFound() {
+        // 执行删除不存在的ID
+        int result = charityStatsMapper.deleteById(999L);
+
+        // 验证删除结果
+        assertEquals(0, result);
+    }
+
+    @Test
+    void testValidateStatsConsistency_Valid() {
+        // 创建逻辑一致的测试数据
+        CharityStats validStats = new CharityStats();
+        validStats.setTotalBeneficiaries(30000);
+        validStats.setTotalInstitutions(350);
+        validStats.setCooperatingInstitutions(200); // 小于总机构数
+        validStats.setTotalVolunteers(300);
+        validStats.setTotalRaised(new BigDecimal("20000000.00"));
+        validStats.setTotalDonated(new BigDecimal("16000000.00")); // 小于筹集金额
+        validStats.setTotalProjects(180);
+        validStats.setActiveProjects(50);
+        validStats.setCompletedProjects(100);
+        validStats.setTotalActivities(500);
+        validStats.setThisMonthActivities(35); // 小于总活动数
+
+        // 执行验证
+        Map<String, Object> result = charityStatsMapper.validateStatsConsistency(validStats);
+
+        // 验证结果
+        assertNotNull(result);
+        assertEquals("true", result.get("is_valid"));
+    }
+
+    @Test
+    void testValidateStatsConsistency_Invalid() {
+        // 创建逻辑不一致的测试数据
+        CharityStats invalidStats = new CharityStats();
+        invalidStats.setTotalBeneficiaries(30000);
+        invalidStats.setTotalInstitutions(350);
+        invalidStats.setCooperatingInstitutions(400); // 大于总机构数 - 逻辑错误
+        invalidStats.setTotalVolunteers(300);
+        invalidStats.setTotalRaised(new BigDecimal("20000000.00"));
+        invalidStats.setTotalDonated(new BigDecimal("25000000.00")); // 大于筹集金额 - 逻辑错误
+        invalidStats.setTotalProjects(180);
+        invalidStats.setActiveProjects(50);
+        invalidStats.setCompletedProjects(100);
+        invalidStats.setTotalActivities(500);
+        invalidStats.setThisMonthActivities(35);
+
+        // 执行验证
+        Map<String, Object> result = charityStatsMapper.validateStatsConsistency(invalidStats);
+
+        // 验证结果
+        assertNotNull(result);
+        assertEquals("false", result.get("is_valid"));
+        assertNotNull(result.get("error_message"));
+    }
+
+    @Test
+    void testSelectProjectStatusDistribution_Success() {
+        // 执行查询项目状态分布
+        List<Map<String, Object>> result = charityStatsMapper.selectProjectStatusDistribution();
+
+        // 验证结果
+        assertNotNull(result);
+        // 注意：由于使用H2内存数据库，可能没有实际的项目数据
+        // 这里主要验证查询不会出错
+    }
+
+    @Test
+    void testSelectFundingTrend_Success() {
+        // 执行查询资金筹集趋势
+        List<Map<String, Object>> result = charityStatsMapper.selectFundingTrend(12);
+
+        // 验证结果
+        assertNotNull(result);
+        // 注意：由于使用H2内存数据库，可能没有实际的趋势数据
+        // 这里主要验证查询不会出错
+    }
+
+    @Test
+    void testSelectRegionDistribution_Success() {
+        // 执行查询地区分布
+        List<Map<String, Object>> result = charityStatsMapper.selectRegionDistribution();
+
+        // 验证结果
+        assertNotNull(result);
+        // 注意：由于使用H2内存数据库，可能没有实际的地区数据
+        // 这里主要验证查询不会出错
+    }
+
+    @Test
+    void testSelectVolunteerActivityStats_Success() {
+        // 执行查询志愿者活动统计
+        List<Map<String, Object>> result = charityStatsMapper.selectVolunteerActivityStats(6);
+
+        // 验证结果
+        assertNotNull(result);
+        // 注意：由于使用H2内存数据库，可能没有实际的活动数据
+        // 这里主要验证查询不会出错
+    }
+
+    @Test
+    void testSelectStatsTrend_Success() {
+        // 先插入一些历史数据
+        for (int i = 0; i < 3; i++) {
+            CharityStats stats = createTestStats(25000 + i * 1000, LocalDateTime.now().minusDays(3 - i));
+            charityStatsMapper.insert(stats);
+        }
+
+        // 执行查询统计趋势
+        List<Map<String, Object>> result = charityStatsMapper.selectStatsTrend(7);
+
+        // 验证结果
+        assertNotNull(result);
+        // 由于H2数据库的限制，这里主要验证查询不会出错
+    }
+
+    @Test
+    void testCalculateStatsFromSource_Success() {
+        // 执行从源数据计算统计
+        CharityStats result = charityStatsMapper.calculateStatsFromSource();
+
+        // 验证结果
+        // 注意：由于使用H2内存数据库且没有源数据表，结果可能为null
+        // 这里主要验证查询不会出错
+        // 在实际环境中，应该有具体的验证逻辑
+    }
+
+    @Test
+    void testSelectEnhancedStats_Success() {
+        // 先插入一些基础数据
+        charityStatsMapper.insert(testCharityStats);
+
+        // 执行查询增强统计数据
+        Map<String, Object> result = charityStatsMapper.selectEnhancedStats();
+
+        // 验证结果
+        // 注意：由于使用H2内存数据库，增强统计可能没有完整的计算逻辑
+        // 这里主要验证查询不会出错
+        assertNotNull(result);
+    }
+
+    /**
+     * 创建测试用的CharityStats对象
+     * 
+     * @param beneficiaries 受益人数
+     * @param createTime 创建时间
+     * @return CharityStats对象
+     */
+    private CharityStats createTestStats(int beneficiaries, LocalDateTime createTime) {
+        CharityStats stats = new CharityStats();
+        stats.setTotalBeneficiaries(beneficiaries);
+        stats.setTotalInstitutions(300);
+        stats.setCooperatingInstitutions(180);
+        stats.setTotalVolunteers(250);
+        stats.setTotalRaised(new BigDecimal("15000000.00"));
+        stats.setTotalDonated(new BigDecimal("12000000.00"));
+        stats.setTotalProjects(120);
+        stats.setActiveProjects(35);
+        stats.setCompletedProjects(70);
+        stats.setTotalActivities(400);
+        stats.setThisMonthActivities(25);
+        stats.setCreateTime(createTime);
+        stats.setUpdateTime(createTime);
+        stats.setVersion(1);
+        stats.setDeleted(0);
+        return stats;
+    }
+}

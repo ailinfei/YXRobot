@@ -1,0 +1,147 @@
+# YXRobot 后端应用配置
+server:
+  port: 8081
+  servlet:
+    context-path: 
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
+spring:
+  application:
+    name: yxrobot-backend
+  
+  # 数据初始化配置
+  sql:
+    init:
+      mode: always
+      schema-locations: 
+        - classpath:schema.sql
+        - classpath:data.sql
+      continue-on-error: true
+  
+  # 数据源配置 - 云数据库
+  datasource:
+    url: jdbc:mysql://yun.finiot.cn:3306/YXRobot?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useUnicode=true&characterEncoding=utf8&connectionCollation=utf8mb4_unicode_ci&autoReconnect=true
+    username: YXRobot
+    password: 2200548qq
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    
+    # 连接池配置
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      auto-commit: true
+      idle-timeout: 30000
+      pool-name: YXRobotHikariCP
+      max-lifetime: 1800000
+      connection-timeout: 30000
+      connection-test-query: SELECT 1
+
+  # 文件上传配置
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 50MB
+      file-size-threshold: 2KB
+
+  # Jackson配置
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+    default-property-inclusion: non_null
+
+# MyBatis配置
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.yxrobot.entity
+  type-handlers-package: com.yxrobot.handler
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: true
+    lazy-loading-enabled: true
+    multiple-result-sets-enabled: true
+    use-column-label: true
+    use-generated-keys: true
+    auto-mapping-behavior: partial
+    default-executor-type: simple
+    default-statement-timeout: 25000
+
+# 文件存储配置
+file:
+  upload:
+    path: ./uploads
+  access:
+    url:
+      prefix: /api/v1/files
+
+# 日志配置
+logging:
+  level:
+    com.yxrobot: DEBUG
+    org.springframework.web: INFO
+    org.mybatis: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{50} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{50} - %msg%n"
+  file:
+    name: logs/yxrobot-backend.log
+    max-size: 10MB
+    max-history: 30
+
+
+
+# 平台链接系统配置
+platform:
+  link:
+    # 监控配置
+    monitoring:
+      enabled: true
+    
+    # 性能配置
+    performance:
+      cache:
+        stats-expire-minutes: 30
+        region-config-expire-hours: 24
+        validation-result-expire-minutes: 60
+        enable-warmup: true
+      
+      validation:
+        connection-timeout-ms: 10000
+        read-timeout-ms: 15000
+        max-concurrent-validations: 20
+        max-batch-size: 100
+        retry-count: 2
+      
+      stats:
+        calculation-batch-size: 1000
+        enable-real-time-stats: true
+        refresh-interval-minutes: 30
+        history-retention-days: 90
+      
+      monitoring:
+        enabled: true
+        health-check-interval-minutes: 5
+        performance-monitor-interval-minutes: 15
+        failure-rate-alert-threshold: 20.0
+        inactive-rate-alert-threshold: 30.0
+        response-time-alert-threshold-ms: 5000
+
+# 系统监控配置
+system:
+  monitoring:
+    enabled: true
+
+# 管理端点配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,scheduledtasks
+  endpoint:
+    health:
+      show-details: when_authorized
+    scheduledtasks:
+      enabled: true

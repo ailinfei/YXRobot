@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yxrobot.mapper.NewsInteractionMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="NewsInteractionResultMap" type="com.yxrobot.entity.NewsInteraction">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="news_id" property="newsId" jdbcType="BIGINT"/>
+        <result column="interaction_type" property="interactionType" jdbcType="VARCHAR" typeHandler="com.yxrobot.handler.InteractionTypeHandler"/>
+        <result column="user_id" property="userId" jdbcType="BIGINT"/>
+        <result column="ip_address" property="ipAddress" jdbcType="VARCHAR"/>
+        <result column="user_agent" property="userAgent" jdbcType="VARCHAR"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <!-- 基础字段 -->
+    <sql id="Base_Column_List">
+        id, news_id, interaction_type, user_id, ip_address, user_agent, created_at
+    </sql>
+
+    <!-- 插入新闻互动记录 -->
+    <insert id="insert" parameterType="com.yxrobot.entity.NewsInteraction" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO news_interactions (
+            news_id, interaction_type, user_id, ip_address, user_agent, created_at
+        ) VALUES (
+            #{newsId}, #{interactionType}, #{userId}, #{ipAddress}, #{userAgent}, NOW()
+        )
+    </insert>
+
+    <!-- 批量插入新闻互动记录 -->
+    <insert id="batchInsert">
+        INSERT INTO news_interactions (news_id, interaction_type, user_id, ip_address, user_agent, created_at)
+        VALUES
+        <foreach collection="interactions" item="interaction" separator=",">
+            (#{interaction.newsId}, #{interaction.interactionType}, #{interaction.userId}, 
+             #{interaction.ipAddress}, #{interaction.userAgent}, NOW())
+        </foreach>
+    </insert>
+
+    <!-- 根据ID删除互动记录 -->
+    <delete id="deleteById" parameterType="java.lang.Long">
+        DELETE FROM news_interactions WHERE id = #{id}
+    </delete>
+
+    <!-- 根据新闻ID删除所有互动记录 -->
+    <delete id="deleteByNewsId" parameterType="java.lang.Long">
+        DELETE FROM news_interactions WHERE news_id = #{newsId}
+    </delete>
+
+    <!-- 根据ID查询互动记录 -->
+    <select id="selectById" parameterType="java.lang.Long" resultMap="NewsInteractionResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM news_interactions
+        WHERE id = #{id}
+    </select>
+
+    <!-- 根据新闻ID查询互动记录 -->
+    <select id="selectByNewsId" resultMap="NewsInteractionResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM news_interactions
+        WHERE news_id = #{newsId}
+        ORDER BY created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 根据新闻ID和互动类型查询记录 -->
+    <select id="selectByNewsIdAndType" resultMap="NewsInteractionResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM news_interactions
+        WHERE news_id = #{newsId} AND interaction_type = #{interactionType}
+        ORDER BY created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 根据用户ID查询互动记录 -->
+    <select id="selectByUserId" resultMap="NewsInteractionResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM news_interactions
+        WHERE user_id = #{userId}
+        ORDER BY created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 根据IP地址查询互动记录 -->
+    <select id="selectByIpAddress" resultMap="NewsInteractionResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM news_interactions
+        WHERE ip_address = #{ipAddress}
+        ORDER BY created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 根据时间范围查询互动记录 -->
+    <select id="selectByDateRange" resultMap="NewsInteractionResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM news_interactions
+        WHERE created_at BETWEEN #{startDate} AND #{endDate}
+        ORDER BY created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 统计新闻的互动总数 -->
+    <select id="countByNewsId" parameterType="java.lang.Long" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM news_interactions WHERE news_id = #{newsId}
+    </select>
+
+    <!-- 统计新闻指定类型的互动数量 -->
+    <select id="countByNewsIdAndType" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM news_interactions 
+        WHERE news_id = #{newsId} AND interaction_type = #{interactionType}
+    </select>
+
+    <!-- 统计用户的互动总数 -->
+    <select id="countByUserId" parameterType="java.lang.Long" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM news_interactions WHERE user_id = #{userId}
+    </select>
+
+    <!-- 统计IP地址的互动总数 -->
+    <select id="countByIpAddress" parameterType="java.lang.String" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM news_interactions WHERE ip_address = #{ipAddress}
+    </select>
+
+    <!-- 统计时间范围内的互动总数 -->
+    <select id="countByDateRange" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM news_interactions 
+        WHERE created_at BETWEEN #{startDate} AND #{endDate}
+    </select>
+
+    <!-- 检查用户是否对新闻进行过指定类型的互动 -->
+    <select id="existsByUserIdAndNewsIdAndType" resultType="java.lang.Boolean">
+        SELECT COUNT(*) > 0 FROM news_interactions 
+        WHERE user_id = #{userId} AND news_id = #{newsId} AND interaction_type = #{interactionType}
+    </select>
+
+    <!-- 检查IP是否对新闻进行过指定类型的互动 -->
+    <select id="existsByIpAndNewsIdAndType" resultType="java.lang.Boolean">
+        SELECT COUNT(*) > 0 FROM news_interactions 
+        WHERE ip_address = #{ipAddress} AND news_id = #{newsId} AND interaction_type = #{interactionType}
+    </select>
+
+    <!-- 获取新闻的互动统计 -->
+    <select id="getInteractionStatsByNewsId" parameterType="java.lang.Long" resultType="java.util.Map">
+        SELECT 
+            COUNT(*) as total,
+            SUM(CASE WHEN interaction_type = 'VIEW' THEN 1 ELSE 0 END) as views,
+            SUM(CASE WHEN interaction_type = 'LIKE' THEN 1 ELSE 0 END) as likes,
+            SUM(CASE WHEN interaction_type = 'COMMENT' THEN 1 ELSE 0 END) as comments,
+            SUM(CASE WHEN interaction_type = 'SHARE' THEN 1 ELSE 0 END) as shares
+        FROM news_interactions 
+        WHERE news_id = #{newsId}
+    </select>
+
+    <!-- 获取按日期统计的互动数据 -->
+    <select id="getInteractionStatsByDate" resultType="java.util.Map">
+        SELECT 
+            DATE(created_at) as date,
+            COUNT(*) as total,
+            SUM(CASE WHEN interaction_type = 'VIEW' THEN 1 ELSE 0 END) as views,
+            SUM(CASE WHEN interaction_type = 'LIKE' THEN 1 ELSE 0 END) as likes,
+            SUM(CASE WHEN interaction_type = 'COMMENT' THEN 1 ELSE 0 END) as comments,
+            SUM(CASE WHEN interaction_type = 'SHARE' THEN 1 ELSE 0 END) as shares
+        FROM news_interactions 
+        WHERE created_at BETWEEN #{startDate} AND #{endDate}
+        GROUP BY DATE(created_at)
+        ORDER BY date DESC
+    </select>
+
+    <!-- 获取按新闻统计的互动数据 -->
+    <select id="getInteractionStatsByNews" resultType="java.util.Map">
+        SELECT 
+            ni.news_id as newsId,
+            n.title as newsTitle,
+            COUNT(*) as total,
+            SUM(CASE WHEN ni.interaction_type = 'VIEW' THEN 1 ELSE 0 END) as views,
+            SUM(CASE WHEN ni.interaction_type = 'LIKE' THEN 1 ELSE 0 END) as likes,
+            SUM(CASE WHEN ni.interaction_type = 'COMMENT' THEN 1 ELSE 0 END) as comments,
+            SUM(CASE WHEN ni.interaction_type = 'SHARE' THEN 1 ELSE 0 END) as shares
+        FROM news_interactions ni
+        INNER JOIN news n ON ni.news_id = n.id
+        WHERE n.is_deleted = 0
+        GROUP BY ni.news_id, n.title
+        ORDER BY total DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 获取按互动类型统计的数据 -->
+    <select id="getInteractionStatsByType" resultType="java.util.Map">
+        SELECT 
+            interaction_type as type,
+            COUNT(*) as count
+        FROM news_interactions 
+        GROUP BY interaction_type
+        ORDER BY count DESC
+    </select>
+
+    <!-- 获取热门新闻（按互动数排序） -->
+    <select id="getHotNewsByInteractions" resultType="java.util.Map">
+        SELECT 
+            ni.news_id as newsId,
+            n.title as newsTitle,
+            COUNT(*) as interactionCount
+        FROM news_interactions ni
+        INNER JOIN news n ON ni.news_id = n.id
+        WHERE ni.interaction_type = #{interactionType} AND n.is_deleted = 0
+        GROUP BY ni.news_id, n.title
+        ORDER BY interactionCount DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 删除过期的互动记录 -->
+    <delete id="deleteExpiredRecords">
+        DELETE FROM news_interactions 
+        WHERE created_at &lt; #{expireDate}
+    </delete>
+
+</mapper>

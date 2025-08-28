@@ -1,0 +1,23 @@
+{
+  "projectId": 1,
+  "title": "新年关爱老人活动2222",
+  "description": "新年期间为空巢老人送去关怀和祝福2222",
+  "type": "特殊活动",
+  "date": "2025-08-21 00:00:00",
+  "startTime": null,
+  "endTime": null,
+  "location": "上海市各社区",
+  "participants": 50,
+  "targetParticipants": 100,
+  "organizer": "YXRobot志愿者团队",
+  "status": "已计划",
+  "budget": 10000.00,
+  "actualCost": 0.00,
+  "manager": "测试负责人",
+  "managerContact": "13800138000",
+  "volunteerNeeded": 10,
+  "actualVolunteers": 0,
+  "achievements": null,
+  "photos": null,
+  "notes": "1111111111111111111111111111111"
+}

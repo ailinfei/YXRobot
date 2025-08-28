@@ -1,0 +1,432 @@
+package com.yxrobot.service;
+
+import com.yxrobot.dto.SalesChartDataDTO;
+import com.yxrobot.mapper.SalesRecordMapper;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+/**
+ * 销售分析服务测试类
+ * 
+ * @author YXRobot开发团队
+ * @version 1.0.0
+ * @since 2025-01-27
+ */
+@ExtendWith(MockitoExtension.class)
+class SalesAnalysisServiceTest {
+    
+    @Mock
+    private SalesRecordMapper salesRecordMapper;
+    
+    @InjectMocks
+    private SalesAnalysisService salesAnalysisService;
+    
+    private LocalDate startDate;
+    private LocalDate endDate;
+    
+    @BeforeEach
+    void setUp() {
+        startDate = LocalDate.of(2025, 1, 1);
+        endDate = LocalDate.of(2025, 1, 27);
+    }
+    
+    @Test
+    void testGetDistributionData_ProductType() {
+        // 准备测试数据
+        List<Map<String, Object>> mockDistributionData = Arrays.asList(
+            Map.of("name", "电子产品", "value", new BigDecimal("10000.00")),
+            Map.of("name", "机械产品", "value", new BigDecimal("8000.00")),
+            Map.of("name", "化工产品", "value", new BigDecimal("2000.00"))
+        );
+        
+        // 模拟Mapper调用
+        when(salesRecordMapper.getProductDistribution(startDate, endDate))
+            .thenReturn(mockDistributionData);
+        
+        // 执行测试
+        List<SalesChartDataDTO> result = salesAnalysisService.getDistributionData("product", startDate, endDate);
+        
+        // 验证结果
+        assertNotNull(result);
+        assertEquals(3, result.size());
+        
+        SalesChartDataDTO firstItem = result.get(0);
+        assertEquals("电子产品", firstItem.getName());
+        assertEquals(new BigDecimal("10000.00"), firstItem.getValue());
+        assertEquals(50.0, firstItem.getPercentage(), 0.01); // 10000/20000 * 100 = 50%
+        
+        SalesChartDataDTO secondItem = result.get(1);
+        assertEquals("机械产品", secondItem.getName());
+        assertEquals(new BigDecimal("8000.00"), secondItem.getValue());
+        assertEquals(40.0, secondItem.getPercentage(), 0.01); // 8000/20000 * 100 = 40%
+        
+        SalesChartDataDTO thirdItem = result.get(2);
+        assertEquals("化工产品", thirdItem.getName());
+        assertEquals(new BigDecimal("2000.00"), thirdItem.getValue());
+        assertEquals(10.0, thirdItem.getPercentage(), 0.01); // 2000/20000 * 100 = 10%
+        
+        // 验证方法调用
+        verify(salesRecordMapper, times(1)).getProductDistribution(startDate, endDate);
+    }
+} 
+   
+    @Test
+    void testGetDistributionData_RegionType() {
+        // 准备测试数据
+        List<Map<String, Object>> mockDistributionData = Arrays.asList(
+            Map.of("name", "北京", "value", new BigDecimal("15000.00")),
+            Map.of("name", "上海", "value", new BigDecimal("12000.00")),
+            Map.of("name", "广州", "value", new BigDecimal("8000.00")),
+            Map.of("name", "深圳", "value", new BigDecimal("5000.00"))
+        );
+        
+        // 模拟Mapper调用
+        when(salesRecordMapper.getRegionDistribution(startDate, endDate))
+            .thenReturn(mockDistributionData);
+        
+        // 执行测试
+        List<SalesChartDataDTO> result = salesAnalysisService.getDistributionData("region", startDate, endDate);
+        
+        // 验证结果
+        assertNotNull(result);
+        assertEquals(4, result.size());
+        
+        SalesChartDataDTO firstItem = result.get(0);
+        assertEquals("北京", firstItem.getName());
+        assertEquals(new BigDecimal("15000.00"), firstItem.getValue());
+        assertEquals(37.5, firstItem.getPercentage(), 0.01); // 15000/40000 * 100 = 37.5%
+        
+        // 验证方法调用
+        verify(salesRecordMapper, times(1)).getRegionDistribution(startDate, endDate);
+    }
+    
+    @Test
+    void testGetDistributionData_ChannelType() {
+        // 准备测试数据
+        List<Map<String, Object>> mockDistributionData = Arrays.asList(
+            Map.of("name", "线上", "value", new BigDecimal("18000.00")),
+            Map.of("name", "线下", "value", new BigDecimal("12000.00"))
+        );
+        
+        // 模拟Mapper调用
+        when(salesRecordMapper.getChannelDistribution(startDate, endDate))
+            .thenReturn(mockDistributionData);
+        
+        // 执行测试
+        List<SalesChartDataDTO> result = salesAnalysisService.getDistributionData("channel", startDate, endDate);
+        
+        // 验证结果
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        
+        SalesChartDataDTO firstItem = result.get(0);
+        assertEquals("线上", firstItem.getName());
+        assertEquals(new BigDecimal("18000.00"), firstItem.getValue());
+        assertEquals(60.0, firstItem.getPercentage(), 0.01); // 18000/30000 * 100 = 60%
+        
+        SalesChartDataDTO secondItem = result.get(1);
+        assertEquals("线下", secondItem.getName());
+        assertEquals(new BigDecimal("12000.00"), secondItem.getValue());
+        assertEquals(40.0, secondItem.getPercentage(), 0.01); // 12000/30000 * 100 = 40%
+        
+        // 验证方法调用
+        verify(salesRecordMapper, times(1)).getChannelDistribution(startDate, endDate);
+    }
+    
+    @Test
+    void testGetDistributionData_InvalidType() {
+        // 执行测试并验证异常
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            salesAnalysisService.getDistributionData("invalid", startDate, endDate);
+        });
+        
+        assertEquals("不支持的分布类型: invalid", exception.getMessage());
+        
+        // 验证没有调用任何Mapper方法
+        verify(salesRecordMapper, never()).getProductDistribution(any(), any());
+        verify(salesRecordMapper, never()).getRegionDistribution(any(), any());
+        verify(salesRecordMapper, never()).getChannelDistribution(any(), any());
+    }
+    
+    @Test
+    void testGetDistributionData_EmptyResult() {
+        // 模拟空结果
+        when(salesRecordMapper.getProductDistribution(startDate, endDate))
+            .thenReturn(Arrays.asList());
+        
+        // 执行测试
+        List<SalesChartDataDTO> result = salesAnalysisService.getDistributionData("product", startDate, endDate);
+        
+        // 验证结果
+        assertNotNull(result);
+        assertEquals(0, result.size());
+        
+        // 验证方法调用
+        verify(salesRecordMapper, times(1)).getProductDistribution(startDate, endDate);
+    }
+    
+    @Test
+    void testGetMonthlyData_Success() {
+        // 准备测试数据
+        List<Map<String, Object>> mockMonthlyData = Arrays.asList(
+            Map.of("month", "2024-01", "salesAmount", new BigDecimal("10000.00"), "orderCount", 50L),
+            Map.of("month", "2024-02", "salesAmount", new BigDecimal("12000.00"), "orderCount", 60L),
+            Map.of("month", "2024-03", "salesAmount", new BigDecimal("15000.00"), "orderCount", 75L)
+        );
+        
+        List<Map<String, Object>> mockTargetData = Arrays.asList(
+            Map.of("month", "2024-01", "target", new BigDecimal("8000.00")),
+            Map.of("month", "2024-02", "target", new BigDecimal("10000.00")),
+            Map.of("month", "2024-03", "target", new BigDecimal("12000.00"))
+        );
+        
+        // 模拟Mapper调用
+        when(salesRecordMapper.getMonthlySalesData(2024, 12))
+            .thenReturn(mockMonthlyData);
+        when(salesRecordMapper.getMonthlyTargets(2024, 12))
+            .thenReturn(mockTargetData);
+        
+        // 执行测试
+        Map<String, Object> result = salesAnalysisService.getMonthlyData(2024, 12);
+        
+        // 验证结果
+        assertNotNull(result);
+        assertTrue(result.containsKey("months"));
+        assertTrue(result.containsKey("salesAmount"));
+        assertTrue(result.containsKey("orderCount"));
+        assertTrue(result.containsKey("targets"));
+        
+        @SuppressWarnings("unchecked")
+        List<String> months = (List<String>) result.get("months");
+        @SuppressWarnings("unchecked")
+        List<BigDecimal> salesAmount = (List<BigDecimal>) result.get("salesAmount");
+        @SuppressWarnings("unchecked")
+        List<Long> orderCount = (List<Long>) result.get("orderCount");
+        @SuppressWarnings("unchecked")
+        List<BigDecimal> targets = (List<BigDecimal>) result.get("targets");
+        
+        assertEquals(3, months.size());
+        assertEquals(3, salesAmount.size());
+        assertEquals(3, orderCount.size());
+        assertEquals(3, targets.size());
+        
+        assertEquals("2024-01", months.get(0));
+        assertEquals(new BigDecimal("10000.00"), salesAmount.get(0));
+        assertEquals(50L, orderCount.get(0));
+        assertEquals(new BigDecimal("8000.00"), targets.get(0));
+        
+        // 验证方法调用
+        verify(salesRecordMapper, times(1)).getMonthlySalesData(2024, 12);
+        verify(salesRecordMapper, times(1)).getMonthlyTargets(2024, 12);
+    }    
+
+    @Test
+    void testGetMonthlyData_EmptyResult() {
+        // 模拟空结果
+        when(salesRecordMapper.getMonthlySalesData(2024, 12))
+            .thenReturn(Arrays.asList());
+        when(salesRecordMapper.getMonthlyTargets(2024, 12))
+            .thenReturn(Arrays.asList());
+        
+        // 执行测试
+        Map<String, Object> result = salesAnalysisService.getMonthlyData(2024, 12);
+        
+        // 验证结果
+        assertNotNull(result);
+        assertTrue(result.containsKey("months"));
+        assertTrue(result.containsKey("salesAmount"));
+        assertTrue(result.containsKey("orderCount"));
+        assertTrue(result.containsKey("targets"));
+        
+        @SuppressWarnings("unchecked")
+        List<String> months = (List<String>) result.get("months");
+        assertEquals(0, months.size());
+        
+        // 验证方法调用
+        verify(salesRecordMapper, times(1)).getMonthlySalesData(2024, 12);
+        verify(salesRecordMapper, times(1)).getMonthlyTargets(2024, 12);
+    }
+    
+    @Test
+    void testGetTrendData_Success() {
+        // 准备测试数据
+        List<Map<String, Object>> mockTrendData = Arrays.asList(
+            Map.of("date", "2025-01-01", "salesAmount", new BigDecimal("1000.00"), "orderCount", 5L),
+            Map.of("date", "2025-01-02", "salesAmount", new BigDecimal("1500.00"), "orderCount", 8L),
+            Map.of("date", "2025-01-03", "salesAmount", new BigDecimal("2000.00"), "orderCount", 10L)
+        );
+        
+        // 模拟Mapper调用
+        when(salesRecordMapper.getDailySalesTrends(startDate, endDate))
+            .thenReturn(mockTrendData);
+        
+        // 执行测试
+        Map<String, Object> result = salesAnalysisService.getTrendData(startDate, endDate);
+        
+        // 验证结果
+        assertNotNull(result);
+        assertTrue(result.containsKey("dates"));
+        assertTrue(result.containsKey("salesAmount"));
+        assertTrue(result.containsKey("orderCount"));
+        
+        @SuppressWarnings("unchecked")
+        List<String> dates = (List<String>) result.get("dates");
+        @SuppressWarnings("unchecked")
+        List<BigDecimal> salesAmount = (List<BigDecimal>) result.get("salesAmount");
+        @SuppressWarnings("unchecked")
+        List<Long> orderCount = (List<Long>) result.get("orderCount");
+        
+        assertEquals(3, dates.size());
+        assertEquals(3, salesAmount.size());
+        assertEquals(3, orderCount.size());
+        
+        assertEquals("2025-01-01", dates.get(0));
+        assertEquals(new BigDecimal("1000.00"), salesAmount.get(0));
+        assertEquals(5L, orderCount.get(0));
+        
+        // 验证方法调用
+        verify(salesRecordMapper, times(1)).getDailySalesTrends(startDate, endDate);
+    }
+    
+    @Test
+    void testGetFunnelData_Success() {
+        // 准备测试数据
+        List<Map<String, Object>> mockFunnelData = Arrays.asList(
+            Map.of("stage", "潜在客户", "value", 1000L),
+            Map.of("stage", "意向客户", "value", 500L),
+            Map.of("stage", "成交客户", "value", 200L),
+            Map.of("stage", "复购客户", "value", 80L)
+        );
+        
+        // 模拟Mapper调用
+        when(salesRecordMapper.getSalesFunnelData(startDate, endDate))
+            .thenReturn(mockFunnelData);
+        
+        // 执行测试
+        List<Map<String, Object>> result = salesAnalysisService.getFunnelData(startDate, endDate);
+        
+        // 验证结果
+        assertNotNull(result);
+        assertEquals(4, result.size());
+        
+        Map<String, Object> firstStage = result.get(0);
+        assertEquals("潜在客户", firstStage.get("stage"));
+        assertEquals(1000L, firstStage.get("value"));
+        assertEquals(100.0, firstStage.get("conversion")); // 第一阶段转化率为100%
+        
+        Map<String, Object> secondStage = result.get(1);
+        assertEquals("意向客户", secondStage.get("stage"));
+        assertEquals(500L, secondStage.get("value"));
+        assertEquals(50.0, secondStage.get("conversion")); // 500/1000 * 100 = 50%
+        
+        Map<String, Object> thirdStage = result.get(2);
+        assertEquals("成交客户", thirdStage.get("stage"));
+        assertEquals(200L, thirdStage.get("value"));
+        assertEquals(20.0, thirdStage.get("conversion")); // 200/1000 * 100 = 20%
+        
+        Map<String, Object> fourthStage = result.get(3);
+        assertEquals("复购客户", fourthStage.get("stage"));
+        assertEquals(80L, fourthStage.get("value"));
+        assertEquals(8.0, fourthStage.get("conversion")); // 80/1000 * 100 = 8%
+        
+        // 验证方法调用
+        verify(salesRecordMapper, times(1)).getSalesFunnelData(startDate, endDate);
+    }
+    
+    @Test
+    void testGetFunnelData_EmptyResult() {
+        // 模拟空结果
+        when(salesRecordMapper.getSalesFunnelData(startDate, endDate))
+            .thenReturn(Arrays.asList());
+        
+        // 执行测试
+        List<Map<String, Object>> result = salesAnalysisService.getFunnelData(startDate, endDate);
+        
+        // 验证结果
+        assertNotNull(result);
+        assertEquals(0, result.size());
+        
+        // 验证方法调用
+        verify(salesRecordMapper, times(1)).getSalesFunnelData(startDate, endDate);
+    }
+    
+    @Test
+    void testCalculatePercentage_Success() {
+        // 测试百分比计算
+        BigDecimal value = new BigDecimal("250.00");
+        BigDecimal total = new BigDecimal("1000.00");
+        
+        // 执行测试
+        double percentage = salesAnalysisService.calculatePercentage(value, total);
+        
+        // 验证结果 (250/1000 * 100 = 25%)
+        assertEquals(25.0, percentage, 0.01);
+    }
+    
+    @Test
+    void testCalculatePercentage_ZeroTotal() {
+        // 测试总数为零的情况
+        BigDecimal value = new BigDecimal("100.00");
+        BigDecimal total = BigDecimal.ZERO;
+        
+        // 执行测试
+        double percentage = salesAnalysisService.calculatePercentage(value, total);
+        
+        // 验证结果（总数为零时返回0%）
+        assertEquals(0.0, percentage, 0.01);
+    }
+    
+    @Test
+    void testCalculatePercentage_ZeroValue() {
+        // 测试值为零的情况
+        BigDecimal value = BigDecimal.ZERO;
+        BigDecimal total = new BigDecimal("1000.00");
+        
+        // 执行测试
+        double percentage = salesAnalysisService.calculatePercentage(value, total);
+        
+        // 验证结果（值为零时返回0%）
+        assertEquals(0.0, percentage, 0.01);
+    }
+    
+    @Test
+    void testCalculateConversionRate_Success() {
+        // 测试转化率计算
+        long currentStageValue = 200L;
+        long totalValue = 1000L;
+        
+        // 执行测试
+        double conversionRate = salesAnalysisService.calculateConversionRate(currentStageValue, totalValue);
+        
+        // 验证结果 (200/1000 * 100 = 20%)
+        assertEquals(20.0, conversionRate, 0.01);
+    }
+    
+    @Test
+    void testCalculateConversionRate_ZeroTotal() {
+        // 测试总数为零的情况
+        long currentStageValue = 100L;
+        long totalValue = 0L;
+        
+        // 执行测试
+        double conversionRate = salesAnalysisService.calculateConversionRate(currentStageValue, totalValue);
+        
+        // 验证结果（总数为零时返回0%）
+        assertEquals(0.0, conversionRate, 0.01);
+    }
+}

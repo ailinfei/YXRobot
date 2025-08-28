@@ -1,0 +1,295 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yxrobot.mapper.SalesStatsMapper">
+
+    <!-- 销售统计结果映射 -->
+    <resultMap id="SalesStatsResultMap" type="com.yxrobot.entity.SalesStats">
+        <id column="id" property="id"/>
+        <result column="stat_date" property="statDate"/>
+        <result column="stat_type" property="statType" typeHandler="com.yxrobot.handler.StatTypeTypeHandler"/>
+        <result column="total_sales_amount" property="totalSalesAmount"/>
+        <result column="total_orders" property="totalOrders"/>
+        <result column="total_quantity" property="totalQuantity"/>
+        <result column="avg_order_amount" property="avgOrderAmount"/>
+        <result column="new_customers" property="newCustomers"/>
+        <result column="active_customers" property="activeCustomers"/>
+        <result column="top_product_id" property="topProductId"/>
+        <result column="top_staff_id" property="topStaffId"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <!-- 基础查询字段 -->
+    <sql id="Base_Column_List">
+        id, stat_date, stat_type, total_sales_amount, total_orders, total_quantity, 
+        avg_order_amount, new_customers, active_customers, top_product_id, top_staff_id, 
+        created_at, updated_at
+    </sql>
+
+    <!-- 查询条件 -->
+    <sql id="Query_Where_Clause">
+        <where>
+            1 = 1
+            <if test="statType != null and statType != ''">
+                AND stat_type = #{statType}
+            </if>
+            <if test="startDate != null">
+                AND stat_date >= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND stat_date &lt;= #{endDate}
+            </if>
+        </where>
+    </sql>
+
+    <!-- 根据ID查询销售统计 -->
+    <select id="selectById" resultMap="SalesStatsResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM sales_stats
+        WHERE id = #{id}
+    </select>
+
+    <!-- 根据日期和类型查询销售统计 -->
+    <select id="selectByDateAndType" resultMap="SalesStatsResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM sales_stats
+        WHERE stat_date = #{statDate} AND stat_type = #{statType}
+    </select>
+
+    <!-- 查询所有销售统计列表 -->
+    <select id="selectAll" resultMap="SalesStatsResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM sales_stats
+        ORDER BY stat_date DESC, stat_type
+    </select>
+
+    <!-- 分页查询销售统计列表 -->
+    <select id="selectList" resultMap="SalesStatsResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM sales_stats
+        <include refid="Query_Where_Clause"/>
+        ORDER BY stat_date DESC, stat_type
+        <if test="page != null and size != null">
+            LIMIT #{size} OFFSET #{page}
+        </if>
+    </select>
+
+    <!-- 查询销售统计总数 -->
+    <select id="selectCount" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM sales_stats
+        <include refid="Query_Where_Clause"/>
+    </select>
+
+    <!-- 查询销售统计列表（带关联信息） -->
+    <select id="selectListWithDetails" resultType="java.util.Map">
+        SELECT 
+            ss.id, ss.stat_date, ss.stat_type, ss.total_sales_amount, ss.total_orders, 
+            ss.total_quantity, ss.avg_order_amount, ss.new_customers, ss.active_customers, 
+            ss.top_product_id, ss.top_staff_id, ss.created_at, ss.updated_at,
+            p.product_name as top_product_name,
+            st.staff_name as top_staff_name
+        FROM sales_stats ss
+        LEFT JOIN products p ON ss.top_product_id = p.id
+        LEFT JOIN sales_staff st ON ss.top_staff_id = st.id
+        <include refid="Query_Where_Clause"/>
+        ORDER BY ss.stat_date DESC, ss.stat_type
+        <if test="page != null and size != null">
+            LIMIT #{size} OFFSET #{page}
+        </if>
+    </select>
+
+    <!-- 插入销售统计 -->
+    <insert id="insert" parameterType="com.yxrobot.entity.SalesStats" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sales_stats (
+            stat_date, stat_type, total_sales_amount, total_orders, total_quantity, 
+            avg_order_amount, new_customers, active_customers, top_product_id, top_staff_id, 
+            created_at, updated_at
+        ) VALUES (
+            #{statDate}, #{statType}, #{totalSalesAmount}, #{totalOrders}, #{totalQuantity}, 
+            #{avgOrderAmount}, #{newCustomers}, #{activeCustomers}, #{topProductId}, #{topStaffId}, 
+            NOW(), NOW()
+        )
+    </insert>
+
+    <!-- 更新销售统计 -->
+    <update id="updateById" parameterType="com.yxrobot.entity.SalesStats">
+        UPDATE sales_stats SET
+            stat_date = #{statDate},
+            stat_type = #{statType},
+            total_sales_amount = #{totalSalesAmount},
+            total_orders = #{totalOrders},
+            total_quantity = #{totalQuantity},
+            avg_order_amount = #{avgOrderAmount},
+            new_customers = #{newCustomers},
+            active_customers = #{activeCustomers},
+            top_product_id = #{topProductId},
+            top_staff_id = #{topStaffId},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据ID删除销售统计 -->
+    <delete id="deleteById">
+        DELETE FROM sales_stats WHERE id = #{id}
+    </delete>
+
+    <!-- 根据日期和类型删除销售统计 -->
+    <delete id="deleteByDateAndType">
+        DELETE FROM sales_stats WHERE stat_date = #{statDate} AND stat_type = #{statType}
+    </delete>
+
+    <!-- 查询最新的销售统计 -->
+    <select id="selectLatestByType" resultMap="SalesStatsResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM sales_stats
+        WHERE stat_type = #{statType}
+        ORDER BY stat_date DESC
+        LIMIT 1
+    </select>
+
+    <!-- 查询日统计数据 -->
+    <select id="selectDailyStats" resultMap="SalesStatsResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM sales_stats
+        WHERE stat_type = 'daily' AND stat_date BETWEEN #{startDate} AND #{endDate}
+        ORDER BY stat_date
+    </select>
+
+    <!-- 查询销售趋势数据 -->
+    <select id="selectSalesTrends" resultType="java.util.Map">
+        SELECT 
+            stat_date,
+            total_sales_amount,
+            total_orders,
+            avg_order_amount,
+            new_customers,
+            active_customers
+        FROM sales_stats
+        WHERE stat_type = #{statType} AND stat_date BETWEEN #{startDate} AND #{endDate}
+        ORDER BY stat_date
+    </select>
+
+    <!-- 查询关键指标汇总 - 直接从销售记录表计算 -->
+    <select id="selectKeyMetricsSummary" resultType="java.util.Map">
+        SELECT 
+            COALESCE(SUM(sr.sales_amount), 0) as total_sales_amount,
+            COUNT(sr.id) as total_orders,
+            COALESCE(SUM(sr.quantity), 0) as total_quantity,
+            COALESCE(AVG(sr.sales_amount), 0) as avg_order_amount,
+            COUNT(DISTINCT CASE 
+                WHEN sr.order_date BETWEEN #{startDate} AND #{endDate} 
+                THEN sr.customer_id 
+                ELSE NULL 
+            END) as new_customers,
+            COUNT(DISTINCT sr.customer_id) as active_customers,
+            (SELECT p.id FROM sales_records sr2 
+             LEFT JOIN products p ON sr2.product_id = p.id 
+             WHERE sr2.order_date BETWEEN #{startDate} AND #{endDate} 
+               AND sr2.is_deleted = 0 
+             GROUP BY p.id 
+             ORDER BY SUM(sr2.quantity) DESC 
+             LIMIT 1) as top_product_id,
+            (SELECT ss.id FROM sales_records sr3 
+             LEFT JOIN sales_staff ss ON sr3.sales_staff_id = ss.id 
+             WHERE sr3.order_date BETWEEN #{startDate} AND #{endDate} 
+               AND sr3.is_deleted = 0 
+             GROUP BY ss.id 
+             ORDER BY SUM(sr3.sales_amount) DESC 
+             LIMIT 1) as top_staff_id
+        FROM sales_records sr
+        WHERE sr.order_date BETWEEN #{startDate} AND #{endDate}
+          AND sr.is_deleted = 0
+    </select>
+
+    <!-- 查询实时统计数据 -->
+    <select id="selectRealTimeStats" resultType="java.util.Map">
+        SELECT 
+            COUNT(*) as total_orders,
+            COALESCE(SUM(sales_amount), 0) as total_sales_amount,
+            COALESCE(SUM(quantity), 0) as total_quantity,
+            COALESCE(AVG(sales_amount), 0) as avg_order_amount,
+            COUNT(DISTINCT customer_id) as active_customers,
+            COUNT(DISTINCT CASE 
+                WHEN DATE(created_at) = CURDATE() 
+                THEN customer_id 
+                ELSE NULL 
+            END) as new_customers
+        FROM sales_records
+        WHERE is_deleted = 0
+    </select>
+
+    <!-- 查询今日统计数据 -->
+    <select id="selectTodayStats" resultType="java.util.Map">
+        SELECT 
+            COUNT(*) as today_orders,
+            COALESCE(SUM(sales_amount), 0) as today_sales_amount,
+            COALESCE(SUM(quantity), 0) as today_quantity,
+            COALESCE(AVG(sales_amount), 0) as today_avg_amount,
+            COUNT(DISTINCT customer_id) as today_customers
+        FROM sales_records
+        WHERE DATE(order_date) = CURDATE() AND is_deleted = 0
+    </select>
+
+    <!-- 查询本月统计数据 -->
+    <select id="selectCurrentMonthStats" resultType="java.util.Map">
+        SELECT 
+            COUNT(*) as month_orders,
+            COALESCE(SUM(sales_amount), 0) as month_sales_amount,
+            COALESCE(SUM(quantity), 0) as month_quantity,
+            COALESCE(AVG(sales_amount), 0) as month_avg_amount,
+            COUNT(DISTINCT customer_id) as month_customers
+        FROM sales_records
+        WHERE YEAR(order_date) = YEAR(CURDATE()) 
+            AND MONTH(order_date) = MONTH(CURDATE()) 
+            AND is_deleted = 0
+    </select>
+
+    <!-- 查询本年统计数据 -->
+    <select id="selectCurrentYearStats" resultType="java.util.Map">
+        SELECT 
+            COUNT(*) as year_orders,
+            COALESCE(SUM(sales_amount), 0) as year_sales_amount,
+            COALESCE(SUM(quantity), 0) as year_quantity,
+            COALESCE(AVG(sales_amount), 0) as year_avg_amount,
+            COUNT(DISTINCT customer_id) as year_customers
+        FROM sales_records
+        WHERE YEAR(order_date) = YEAR(CURDATE()) AND is_deleted = 0
+    </select>
+
+    <!-- 生成日统计数据 -->
+    <insert id="generateDailyStats">
+        INSERT INTO sales_stats (
+            stat_date, stat_type, total_sales_amount, total_orders, total_quantity, 
+            avg_order_amount, new_customers, active_customers, created_at, updated_at
+        )
+        SELECT 
+            #{statDate} as stat_date,
+            'daily' as stat_type,
+            COALESCE(SUM(sales_amount), 0) as total_sales_amount,
+            COUNT(*) as total_orders,
+            COALESCE(SUM(quantity), 0) as total_quantity,
+            COALESCE(AVG(sales_amount), 0) as avg_order_amount,
+            COUNT(DISTINCT CASE WHEN DATE(c.created_at) = #{statDate} THEN sr.customer_id END) as new_customers,
+            COUNT(DISTINCT sr.customer_id) as active_customers,
+            NOW() as created_at,
+            NOW() as updated_at
+        FROM sales_records sr
+        LEFT JOIN customers c ON sr.customer_id = c.id
+        WHERE DATE(sr.order_date) = #{statDate} AND sr.is_deleted = 0
+        ON DUPLICATE KEY UPDATE
+            total_sales_amount = VALUES(total_sales_amount),
+            total_orders = VALUES(total_orders),
+            total_quantity = VALUES(total_quantity),
+            avg_order_amount = VALUES(avg_order_amount),
+            new_customers = VALUES(new_customers),
+            active_customers = VALUES(active_customers),
+            updated_at = NOW()
+    </insert>
+
+    <!-- 检查统计数据是否存在 -->
+    <select id="existsByDateAndType" resultType="boolean">
+        SELECT COUNT(*) > 0 FROM sales_stats WHERE stat_date = #{statDate} AND stat_type = #{statType}
+    </select>
+
+</mapper>

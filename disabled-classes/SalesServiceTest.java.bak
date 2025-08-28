@@ -1,0 +1,465 @@
+package com.yxrobot.service;
+
+import com.yxrobot.dto.*;
+import com.yxrobot.entity.*;
+import com.yxrobot.exception.SalesRecordNotFoundException;
+import com.yxrobot.exception.SalesValidationException;
+import com.yxrobot.mapper.SalesRecordMapper;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+/**
+ * 销售服务测试类
+ * 
+ * @author YXRobot开发团队
+ * @version 1.0.0
+ * @since 2025-01-27
+ */
+@ExtendWith(MockitoExtension.class)
+class SalesServiceTest {
+    
+    @Mock
+    private SalesRecordMapper salesRecordMapper;
+    
+    @Mock
+    private SalesValidationService salesValidationService;
+    
+    @Mock
+    private CustomerService customerService;
+    
+    @Mock
+    private SalesProductService salesProductService;
+    
+    @Mock
+    private SalesStaffService salesStaffService;
+    
+    @InjectMocks
+    private SalesService salesService;
+    
+    private SalesRecord testSalesRecord;
+    private SalesRecordDTO testSalesRecordDTO;
+    private SalesRecordFormDTO testSalesRecordForm;
+    private SalesRecordQueryDTO testQueryDTO;
+    
+    @BeforeEach
+    void setUp() {
+        // 准备测试销售记录实体
+        testSalesRecord = new SalesRecord();
+        testSalesRecord.setId(1L);
+        testSalesRecord.setOrderNumber("SO20250127001");
+        testSalesRecord.setCustomerId(1L);
+        testSalesRecord.setProductId(1L);
+        testSalesRecord.setSalesStaffId(1L);
+        testSalesRecord.setQuantity(2);
+        testSalesRecord.setUnitPrice(new BigDecimal("1000.00"));
+        testSalesRecord.setSalesAmount(new BigDecimal("2000.00"));
+        testSalesRecord.setDiscountAmount(new BigDecimal("100.00"));
+        testSalesRecord.setOrderDate(LocalDate.now());
+        testSalesRecord.setStatus(SalesStatus.PENDING);
+        testSalesRecord.setPaymentStatus(PaymentStatus.UNPAID);
+        testSalesRecord.setPaymentMethod("银行转账");
+        testSalesRecord.setRegion("北京");
+        testSalesRecord.setChannel("线上");
+        testSalesRecord.setNotes("测试订单");
+        testSalesRecord.setCreatedAt(LocalDateTime.now());
+        testSalesRecord.setUpdatedAt(LocalDateTime.now());
+        testSalesRecord.setIsDeleted(0);
+        
+        // 准备测试销售记录DTO
+        testSalesRecordDTO = new SalesRecordDTO();
+        testSalesRecordDTO.setId(1L);
+        testSalesRecordDTO.setOrderNumber("SO20250127001");
+        testSalesRecordDTO.setCustomerId(1L);
+        testSalesRecordDTO.setCustomerName("测试客户");
+        testSalesRecordDTO.setProductId(1L);
+        testSalesRecordDTO.setProductName("测试产品");
+        testSalesRecordDTO.setSalesStaffId(1L);
+        testSalesRecordDTO.setSalesStaffName("张三");
+        testSalesRecordDTO.setQuantity(2);
+        testSalesRecordDTO.setUnitPrice(new BigDecimal("1000.00"));
+        testSalesRecordDTO.setSalesAmount(new BigDecimal("2000.00"));
+        testSalesRecordDTO.setDiscountAmount(new BigDecimal("100.00"));
+        testSalesRecordDTO.setOrderDate(LocalDate.now());
+        testSalesRecordDTO.setStatus(SalesStatus.PENDING);
+        testSalesRecordDTO.setPaymentStatus(PaymentStatus.UNPAID);
+        testSalesRecordDTO.setPaymentMethod("银行转账");
+        testSalesRecordDTO.setRegion("北京");
+        testSalesRecordDTO.setChannel("线上");
+        testSalesRecordDTO.setNotes("测试订单");
+        testSalesRecordDTO.setCreatedAt(LocalDateTime.now());
+        testSalesRecordDTO.setUpdatedAt(LocalDateTime.now());
+        
+        // 准备测试销售记录表单
+        testSalesRecordForm = new SalesRecordFormDTO();
+        testSalesRecordForm.setOrderNumber("SO20250127001");
+        testSalesRecordForm.setCustomerId(1L);
+        testSalesRecordForm.setProductId(1L);
+        testSalesRecordForm.setSalesStaffId(1L);
+        testSalesRecordForm.setQuantity(2);
+        testSalesRecordForm.setUnitPrice(new BigDecimal("1000.00"));
+        testSalesRecordForm.setDiscountAmount(new BigDecimal("100.00"));
+        testSalesRecordForm.setOrderDate(LocalDate.now());
+        testSalesRecordForm.setStatus(SalesStatus.PENDING);
+        testSalesRecordForm.setPaymentStatus(PaymentStatus.UNPAID);
+        testSalesRecordForm.setPaymentMethod("银行转账");
+        testSalesRecordForm.setRegion("北京");
+        testSalesRecordForm.setChannel("线上");
+        testSalesRecordForm.setNotes("测试订单");
+        
+        // 准备测试查询条件
+        testQueryDTO = new SalesRecordQueryDTO();
+        testQueryDTO.setPage(1);
+        testQueryDTO.setPageSize(20);
+        testQueryDTO.setKeyword("测试");
+        testQueryDTO.setStartDate(LocalDate.now().minusDays(30));
+        testQueryDTO.setEndDate(LocalDate.now());
+        testQueryDTO.setStatus(SalesStatus.PENDING);
+        testQueryDTO.setCustomerId(1L);
+        testQueryDTO.setProductId(1L);
+        testQueryDTO.setSalesStaffId(1L);
+    }
+    
+    @Test
+    void testGetSalesRecords_Success() {
+        // 模拟数据库查询返回结果
+        List<SalesRecordDTO> mockResults = Arrays.asList(testSalesRecordDTO);
+        when(salesRecordMapper.selectByQuery(any(SalesRecordQueryDTO.class))).thenReturn(mockResults);
+        when(salesRecordMapper.countByQuery(any(SalesRecordQueryDTO.class))).thenReturn(1L);
+        
+        // 执行测试
+        PageResult<SalesRecordDTO> result = salesService.getSalesRecords(testQueryDTO);
+        
+        // 验证结果
+        assertNotNull(result);
+        assertEquals(1, result.getList().size());
+        assertEquals(1L, result.getTotal());
+        assertEquals(1, result.getPage());
+        assertEquals(20, result.getPageSize());
+        assertEquals(testSalesRecordDTO.getOrderNumber(), result.getList().get(0).getOrderNumber());
+        
+        // 验证方法调用
+        verify(salesRecordMapper, times(1)).selectByQuery(any(SalesRecordQueryDTO.class));
+        verify(salesRecordMapper, times(1)).countByQuery(any(SalesRecordQueryDTO.class));
+    }
+    
+    @Test
+    void testGetSalesRecords_EmptyResult() {
+        // 模拟数据库查询返回空结果
+        when(salesRecordMapper.selectByQuery(any(SalesRecordQueryDTO.class))).thenReturn(Arrays.asList());
+        when(salesRecordMapper.countByQuery(any(SalesRecordQueryDTO.class))).thenReturn(0L);
+        
+        // 执行测试
+        PageResult<SalesRecordDTO> result = salesService.getSalesRecords(testQueryDTO);
+        
+        // 验证结果
+        assertNotNull(result);
+        assertEquals(0, result.getList().size());
+        assertEquals(0L, result.getTotal());
+        assertTrue(result.isEmpty());
+        
+        // 验证方法调用
+        verify(salesRecordMapper, times(1)).selectByQuery(any(SalesRecordQueryDTO.class));
+        verify(salesRecordMapper, times(1)).countByQuery(any(SalesRecordQueryDTO.class));
+    }
+    
+    @Test
+    void testGetSalesRecordById_Success() {
+        // 模拟数据库查询返回结果
+        when(salesRecordMapper.selectDTOById(1L)).thenReturn(testSalesRecordDTO);
+        
+        // 执行测试
+        SalesRecordDTO result = salesService.getSalesRecordById(1L);
+        
+        // 验证结果
+        assertNotNull(result);
+        assertEquals(testSalesRecordDTO.getId(), result.getId());
+        assertEquals(testSalesRecordDTO.getOrderNumber(), result.getOrderNumber());
+        assertEquals(testSalesRecordDTO.getCustomerName(), result.getCustomerName());
+        
+        // 验证方法调用
+        verify(salesRecordMapper, times(1)).selectDTOById(1L);
+    }
+    
+    @Test
+    void testGetSalesRecordById_NotFound() {
+        // 模拟数据库查询返回null
+        when(salesRecordMapper.selectDTOById(999L)).thenReturn(null);
+        
+        // 执行测试并验证异常
+        SalesRecordNotFoundException exception = assertThrows(SalesRecordNotFoundException.class, () -> {
+            salesService.getSalesRecordById(999L);
+        });
+        
+        assertEquals("销售记录不存在，ID: 999", exception.getMessage());
+        
+        // 验证方法调用
+        verify(salesRecordMapper, times(1)).selectDTOById(999L);
+    }
+    
+    @Test
+    void testCreateSalesRecord_Success() {
+        // 模拟验证通过
+        doNothing().when(salesValidationService).validateSalesRecordForm(any(), eq(true));
+        
+        // 模拟数据库插入成功
+        when(salesRecordMapper.insert(any(SalesRecord.class))).thenAnswer(invocation -> {
+            SalesRecord record = invocation.getArgument(0);
+            record.setId(1L);
+            record.setCreatedAt(LocalDateTime.now());
+            record.setUpdatedAt(LocalDateTime.now());
+            return 1;
+        });
+        
+        // 模拟查询返回创建的记录
+        when(salesRecordMapper.selectDTOById(1L)).thenReturn(testSalesRecordDTO);
+        
+        // 执行测试
+        SalesRecordDTO result = salesService.createSalesRecord(testSalesRecordForm);
+        
+        // 验证结果
+        assertNotNull(result);
+        assertEquals(testSalesRecordDTO.getOrderNumber(), result.getOrderNumber());
+        assertEquals(testSalesRecordDTO.getCustomerName(), result.getCustomerName());
+        
+        // 验证方法调用
+        verify(salesValidationService, times(1)).validateSalesRecordForm(any(), eq(true));
+        verify(salesRecordMapper, times(1)).insert(any(SalesRecord.class));
+        verify(salesRecordMapper, times(1)).selectDTOById(1L);
+    }
+    
+    @Test
+    void testCreateSalesRecord_ValidationFailed() {
+        // 模拟验证失败
+        doThrow(new SalesValidationException("订单号格式不正确"))
+            .when(salesValidationService).validateSalesRecordForm(any(), eq(true));
+        
+        // 执行测试并验证异常
+        SalesValidationException exception = assertThrows(SalesValidationException.class, () -> {
+            salesService.createSalesRecord(testSalesRecordForm);
+        });
+        
+        assertEquals("订单号格式不正确", exception.getMessage());
+        
+        // 验证方法调用
+        verify(salesValidationService, times(1)).validateSalesRecordForm(any(), eq(true));
+        verify(salesRecordMapper, never()).insert(any());
+    }
+    
+    @Test
+    void testUpdateSalesRecord_Success() {
+        // 模拟记录存在
+        when(salesRecordMapper.selectById(1L)).thenReturn(testSalesRecord);
+        
+        // 模拟验证通过
+        doNothing().when(salesValidationService).validateSalesRecordForm(any(), eq(false));
+        
+        // 模拟数据库更新成功
+        when(salesRecordMapper.updateById(any(SalesRecord.class))).thenReturn(1);
+        
+        // 模拟查询返回更新后的记录
+        when(salesRecordMapper.selectDTOById(1L)).thenReturn(testSalesRecordDTO);
+        
+        // 执行测试
+        SalesRecordDTO result = salesService.updateSalesRecord(1L, testSalesRecordForm);
+        
+        // 验证结果
+        assertNotNull(result);
+        assertEquals(testSalesRecordDTO.getOrderNumber(), result.getOrderNumber());
+        
+        // 验证方法调用
+        verify(salesRecordMapper, times(1)).selectById(1L);
+        verify(salesValidationService, times(1)).validateSalesRecordForm(any(), eq(false));
+        verify(salesRecordMapper, times(1)).updateById(any(SalesRecord.class));
+        verify(salesRecordMapper, times(1)).selectDTOById(1L);
+    }
+    
+    @Test
+    void testUpdateSalesRecord_NotFound() {
+        // 模拟记录不存在
+        when(salesRecordMapper.selectById(999L)).thenReturn(null);
+        
+        // 执行测试并验证异常
+        SalesRecordNotFoundException exception = assertThrows(SalesRecordNotFoundException.class, () -> {
+            salesService.updateSalesRecord(999L, testSalesRecordForm);
+        });
+        
+        assertEquals("销售记录不存在，ID: 999", exception.getMessage());
+        
+        // 验证方法调用
+        verify(salesRecordMapper, times(1)).selectById(999L);
+        verify(salesValidationService, never()).validateSalesRecordForm(any(), anyBoolean());
+        verify(salesRecordMapper, never()).updateById(any());
+    }
+    
+    @Test
+    void testDeleteSalesRecord_Success() {
+        // 模拟记录存在
+        when(salesRecordMapper.selectById(1L)).thenReturn(testSalesRecord);
+        
+        // 模拟软删除成功
+        when(salesRecordMapper.deleteById(1L)).thenReturn(1);
+        
+        // 执行测试
+        assertDoesNotThrow(() -> {
+            salesService.deleteSalesRecord(1L);
+        });
+        
+        // 验证方法调用
+        verify(salesRecordMapper, times(1)).selectById(1L);
+        verify(salesRecordMapper, times(1)).deleteById(1L);
+    }
+    
+    @Test
+    void testDeleteSalesRecord_NotFound() {
+        // 模拟记录不存在
+        when(salesRecordMapper.selectById(999L)).thenReturn(null);
+        
+        // 执行测试并验证异常
+        SalesRecordNotFoundException exception = assertThrows(SalesRecordNotFoundException.class, () -> {
+            salesService.deleteSalesRecord(999L);
+        });
+        
+        assertEquals("销售记录不存在，ID: 999", exception.getMessage());
+        
+        // 验证方法调用
+        verify(salesRecordMapper, times(1)).selectById(999L);
+        verify(salesRecordMapper, never()).deleteById(any());
+    }
+    
+    @Test
+    void testBatchDeleteSalesRecords_Success() {
+        List<Long> idsToDelete = Arrays.asList(1L, 2L, 3L);
+        
+        // 模拟批量删除成功
+        when(salesRecordMapper.batchDeleteByIds(idsToDelete)).thenReturn(3);
+        
+        // 执行测试
+        int result = salesService.batchDeleteSalesRecords(idsToDelete);
+        
+        // 验证结果
+        assertEquals(3, result);
+        
+        // 验证方法调用
+        verify(salesRecordMapper, times(1)).batchDeleteByIds(idsToDelete);
+    }
+    
+    @Test
+    void testBatchDeleteSalesRecords_EmptyList() {
+        List<Long> emptyList = Arrays.asList();
+        
+        // 执行测试并验证异常
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            salesService.batchDeleteSalesRecords(emptyList);
+        });
+        
+        assertEquals("删除ID列表不能为空", exception.getMessage());
+        
+        // 验证方法没有被调用
+        verify(salesRecordMapper, never()).batchDeleteByIds(any());
+    }
+    
+    @Test
+    void testBatchUpdateStatus_Success() {
+        List<Long> idsToUpdate = Arrays.asList(1L, 2L, 3L);
+        SalesStatus newStatus = SalesStatus.CONFIRMED;
+        
+        // 模拟批量更新成功
+        when(salesRecordMapper.batchUpdateStatus(idsToUpdate, newStatus)).thenReturn(3);
+        
+        // 执行测试
+        int result = salesService.batchUpdateStatus(idsToUpdate, newStatus);
+        
+        // 验证结果
+        assertEquals(3, result);
+        
+        // 验证方法调用
+        verify(salesRecordMapper, times(1)).batchUpdateStatus(idsToUpdate, newStatus);
+    }
+    
+    @Test
+    void testGetTotalCount_Success() {
+        // 模拟总数查询
+        when(salesRecordMapper.countByQuery(any(SalesRecordQueryDTO.class))).thenReturn(100L);
+        
+        // 执行测试
+        long result = salesService.getTotalCount();
+        
+        // 验证结果
+        assertEquals(100L, result);
+        
+        // 验证方法调用
+        verify(salesRecordMapper, times(1)).countByQuery(any(SalesRecordQueryDTO.class));
+    }
+    
+    @Test
+    void testCalculateSalesAmount_Success() {
+        // 测试销售金额计算
+        BigDecimal unitPrice = new BigDecimal("1000.00");
+        int quantity = 2;
+        BigDecimal discountAmount = new BigDecimal("100.00");
+        
+        // 执行测试
+        BigDecimal result = salesService.calculateSalesAmount(unitPrice, quantity, discountAmount);
+        
+        // 验证结果 (1000 * 2 - 100 = 1900)
+        assertEquals(new BigDecimal("1900.00"), result);
+    }
+    
+    @Test
+    void testCalculateSalesAmount_NoDiscount() {
+        // 测试无折扣的销售金额计算
+        BigDecimal unitPrice = new BigDecimal("1000.00");
+        int quantity = 2;
+        BigDecimal discountAmount = BigDecimal.ZERO;
+        
+        // 执行测试
+        BigDecimal result = salesService.calculateSalesAmount(unitPrice, quantity, discountAmount);
+        
+        // 验证结果 (1000 * 2 = 2000)
+        assertEquals(new BigDecimal("2000.00"), result);
+    }
+    
+    @Test
+    void testExistsByOrderNumber_True() {
+        // 模拟订单号存在
+        when(salesRecordMapper.existsByOrderNumber("SO20250127001")).thenReturn(true);
+        
+        // 执行测试
+        boolean result = salesService.existsByOrderNumber("SO20250127001");
+        
+        // 验证结果
+        assertTrue(result);
+        
+        // 验证方法调用
+        verify(salesRecordMapper, times(1)).existsByOrderNumber("SO20250127001");
+    }
+    
+    @Test
+    void testExistsByOrderNumber_False() {
+        // 模拟订单号不存在
+        when(salesRecordMapper.existsByOrderNumber("NONEXISTENT")).thenReturn(false);
+        
+        // 执行测试
+        boolean result = salesService.existsByOrderNumber("NONEXISTENT");
+        
+        // 验证结果
+        assertFalse(result);
+        
+        // 验证方法调用
+        verify(salesRecordMapper, times(1)).existsByOrderNumber("NONEXISTENT");
+    }
+}

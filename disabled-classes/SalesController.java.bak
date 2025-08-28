@@ -1,0 +1,2611 @@
+package com.yxrobot.controller;
+
+import com.yxrobot.dto.*;
+import com.yxrobot.entity.SalesRecord;
+import com.yxrobot.entity.SalesStatus;
+import com.yxrobot.service.SalesService;
+import com.yxrobot.service.SalesStatsService;
+import com.yxrobot.service.SalesAnalysisService;
+import com.yxrobot.service.CustomerService;
+import com.yxrobot.service.SalesProductService;
+import com.yxrobot.service.SalesStaffService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
+
+import javax.validation.Valid;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotNull;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * 销售记录管理控制器
+ * 处理销售记录相关的HTTP请求
+ * 
+ * @author YXRobot开发团队
+ * @version 1.0
+ * @since 2025-01-26
+ */
+@RestController
+@RequestMapping("/api/sales")
+@Validated
+public class SalesController {
+    
+    private static final Logger logger = LoggerFactory.getLogger(SalesController.class);
+    
+    @Autowired
+    private SalesService salesService;
+    
+    @Autowired
+    private SalesStatsService salesStatsService;
+    
+    @Autowired
+    private SalesAnalysisService salesAnalysisService;
+    
+    @Autowired
+    private CustomerService customerService;
+    
+    @Autowired
+    private SalesProductService salesProductService;
+    
+    @Autowired
+    private SalesStaffService salesStaffService;
+    
+    /**
+     * 获取销售记录列表 - 优化版本，完全适配前端API调用
+     * 支持分页查询和条件筛选，返回格式匹配前端PageResponse接口
+     * 
+     * @param page 页码（从1开始）
+     * @param pageSize 每页大小
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @param keyword 搜索关键词
+     * @param status 订单状态
+     * @param paymentStatus 付款状态
+     * @param customerId 客户ID
+     * @param productId 产品ID
+     * @param staffId 销售人员ID
+     * @param region 地区
+     * @param channel 渠道
+     * @param sortBy 排序字段
+     * @param sortDir 排序方向
+     * @return 销售记录列表响应
+     */
+    @GetMapping("/records")
+    public ResponseEntity<Map<String, Object>> getSalesRecords(
+            @RequestParam(required = false, defaultValue = "1") Integer page,
+            @RequestParam(required = false, defaultValue = "20") Integer pageSize,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String paymentStatus,
+            @RequestParam(required = false) Long customerId,
+            @RequestParam(required = false) Long productId,
+            @RequestParam(required = false) Long staffId,
+            @RequestParam(required = false) String region,
+            @RequestParam(required = false) String channel,
+            @RequestParam(required = false, defaultValue = "createdAt") String sortBy,
+            @RequestParam(required = false, defaultValue = "desc") String sortDir) {
+        
+        try {
+            // 构建查询条件DTO
+            SalesRecordQueryDTO queryDTO = new SalesRecordQueryDTO();
+            queryDTO.setPage(page);
+            queryDTO.setSize(pageSize);
+            queryDTO.setKeyword(keyword);
+            queryDTO.setSortBy(sortBy);
+            queryDTO.setSortDir(sortDir);
+            queryDTO.setCustomerId(customerId);
+            queryDTO.setProductId(productId);
+            queryDTO.setSalesStaffId(staffId);
+            queryDTO.setRegion(region);
+            queryDTO.setChannel(channel);
+            
+            // 处理日期参数
+            if (StringUtils.hasText(startDate)) {
+                queryDTO.setStartDate(java.time.LocalDate.parse(startDate));
+            }
+            if (StringUtils.hasText(endDate)) {
+                queryDTO.setEndDate(java.time.LocalDate.parse(endDate));
+            }
+            
+            // 处理状态参数
+            if (StringUtils.hasText(status)) {
+                try {
+                    queryDTO.setStatus(SalesStatus.valueOf(status.toUpperCase()));
+                } catch (IllegalArgumentException e) {
+                    Map<String, Object> errorResponse = new HashMap<>();
+                    errorResponse.put("code", 400);
+                    errorResponse.put("message", "无效的订单状态: " + status);
+                    return ResponseEntity.status(400).body(errorResponse);
+                }
+            }
+            
+            if (StringUtils.hasText(paymentStatus)) {
+                try {
+                    queryDTO.setPaymentStatus(com.yxrobot.entity.PaymentStatus.valueOf(paymentStatus.toUpperCase()));
+                } catch (IllegalArgumentException e) {
+                    Map<String, Object> errorResponse = new HashMap<>();
+                    errorResponse.put("code", 400);
+                    errorResponse.put("message", "无效的付款状态: " + paymentStatus);
+                    return ResponseEntity.status(400).body(errorResponse);
+                }
+            }
+            
+            // 使用优化的查询方法
+            Map<String, Object> result = salesService.getSalesRecordsOptimized(queryDTO);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", result);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "查询失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 获取销售记录详情
+     * 
+     * @param id 销售记录ID
+     * @return 销售记录详情
+     */
+    @GetMapping("/records/{id}")
+    public ResponseEntity<Map<String, Object>> getSalesRecordById(
+            @PathVariable @Min(value = 1, message = "ID必须大于0") Long id) {
+        
+        try {
+            SalesRecordDTO salesRecord = salesService.getSalesRecordById(id);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", salesRecord);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 404);
+            errorResponse.put("message", "销售记录不存在: " + e.getMessage());
+            return ResponseEntity.status(404).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 创建销售记录
+     * 
+     * @param formDTO 销售记录表单数据
+     * @return 创建的销售记录
+     */
+    @PostMapping("/records")
+    public ResponseEntity<Map<String, Object>> createSalesRecord(
+            @Valid @RequestBody SalesRecordFormDTO formDTO) {
+        
+        try {
+            SalesRecordDTO createdRecord = salesService.createSalesRecord(formDTO);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "创建成功");
+            response.put("data", createdRecord);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 400);
+            errorResponse.put("message", "创建失败: " + e.getMessage());
+            return ResponseEntity.status(400).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 更新销售记录
+     * 
+     * @param id 销售记录ID
+     * @param formDTO 更新的销售记录数据
+     * @return 更新后的销售记录
+     */
+    @PutMapping("/records/{id}")
+    public ResponseEntity<Map<String, Object>> updateSalesRecord(
+            @PathVariable @Min(value = 1, message = "ID必须大于0") Long id,
+            @Valid @RequestBody SalesRecordFormDTO formDTO) {
+        
+        try {
+            SalesRecordDTO updatedRecord = salesService.updateSalesRecord(id, formDTO);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "更新成功");
+            response.put("data", updatedRecord);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 400);
+            errorResponse.put("message", "更新失败: " + e.getMessage());
+            return ResponseEntity.status(400).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 删除销售记录（软删除）- 优化版本，完全适配前端删除操作
+     * 
+     * @param id 销售记录ID
+     * @return 删除结果
+     */
+    @DeleteMapping("/records/{id}")
+    public ResponseEntity<Map<String, Object>> deleteSalesRecord(
+            @PathVariable @Min(value = 1, message = "ID必须大于0") Long id) {
+        
+        try {
+            // 先检查记录是否存在
+            SalesRecordDTO existingRecord = salesService.getSalesRecordById(id);
+            if (existingRecord == null) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("code", 404);
+                errorResponse.put("message", "销售记录不存在，ID: " + id);
+                return ResponseEntity.status(404).body(errorResponse);
+            }
+            
+            // 执行删除操作
+            salesService.deleteSalesRecord(id);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "删除成功");
+            response.put("data", Map.of(
+                "deletedId", id,
+                "orderNumber", existingRecord.getOrderNumber(),
+                "deletedAt", java.time.LocalDateTime.now()
+            ));
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (com.yxrobot.exception.SalesRecordNotFoundException e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 404);
+            errorResponse.put("message", "销售记录不存在: " + e.getMessage());
+            return ResponseEntity.status(404).body(errorResponse);
+        } catch (com.yxrobot.exception.SalesValidationException e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 400);
+            errorResponse.put("message", "删除验证失败: " + e.getMessage());
+            return ResponseEntity.status(400).body(errorResponse);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "删除失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 批量操作销售记录
+     * 支持批量删除和批量状态修改
+     * 
+     * @param batchRequest 批量操作请求
+     * @return 操作结果
+     */
+    @PostMapping("/records/batch")
+    public ResponseEntity<Map<String, Object>> batchOperateSalesRecords(
+            @Valid @RequestBody BatchOperationRequest batchRequest) {
+        
+        try {
+            String operation = batchRequest.getOperation();
+            List<Long> ids = batchRequest.getIds();
+            
+            if (ids == null || ids.isEmpty()) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("code", 400);
+                errorResponse.put("message", "请选择要操作的记录");
+                return ResponseEntity.status(400).body(errorResponse);
+            }
+            
+            switch (operation) {
+                case "delete":
+                    salesService.batchDeleteSalesRecords(ids);
+                    break;
+                case "updateStatus":
+                    String statusStr = (String) batchRequest.getParams().get("status");
+                    if (statusStr == null) {
+                        Map<String, Object> errorResponse = new HashMap<>();
+                        errorResponse.put("code", 400);
+                        errorResponse.put("message", "请指定要更新的状态");
+                        return ResponseEntity.status(400).body(errorResponse);
+                    }
+                    SalesStatus status = SalesStatus.valueOf(statusStr.toUpperCase());
+                    salesService.batchUpdateSalesRecordStatus(ids, status);
+                    break;
+                default:
+                    Map<String, Object> errorResponse = new HashMap<>();
+                    errorResponse.put("code", 400);
+                    errorResponse.put("message", "不支持的操作类型: " + operation);
+                    return ResponseEntity.status(400).body(errorResponse);
+            }
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "批量操作成功");
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 400);
+            errorResponse.put("message", "批量操作失败: " + e.getMessage());
+            return ResponseEntity.status(400).body(errorResponse);
+        }
+    }
+    
+    // ==================== 统计分析接口 ====================
+    
+    /**
+     * 获取销售统计数据 - 完全适配前端概览卡片
+     * 
+     * 功能特性：
+     * - 返回数据格式与前端SalesStats接口完全匹配
+     * - 支持按日期范围的动态统计查询
+     * - 包含增长率计算用于前端趋势显示
+     * - 优化的缓存机制提高查询性能
+     * - 完善的错误处理确保API稳定性
+     * 
+     * @param startDate 开始日期（YYYY-MM-DD格式）
+     * @param endDate 结束日期（YYYY-MM-DD格式）
+     * @param statType 统计类型（daily/weekly/monthly/yearly）
+     * @return 销售统计数据
+     */
+    @GetMapping("/stats")
+    public ResponseEntity<Map<String, Object>> getSalesStats(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            @RequestParam(required = false, defaultValue = "daily") String statType) {
+        
+        try {
+            // 参数验证和解析
+            java.time.LocalDate start = null;
+            java.time.LocalDate end = null;
+            
+            if (StringUtils.hasText(startDate)) {
+                try {
+                    start = java.time.LocalDate.parse(startDate);
+                } catch (Exception e) {
+                    Map<String, Object> errorResponse = new HashMap<>();
+                    errorResponse.put("code", 400);
+                    errorResponse.put("message", "开始日期格式不正确，应为YYYY-MM-DD格式");
+                    return ResponseEntity.status(400).body(errorResponse);
+                }
+            }
+            
+            if (StringUtils.hasText(endDate)) {
+                try {
+                    end = java.time.LocalDate.parse(endDate);
+                } catch (Exception e) {
+                    Map<String, Object> errorResponse = new HashMap<>();
+                    errorResponse.put("code", 400);
+                    errorResponse.put("message", "结束日期格式不正确，应为YYYY-MM-DD格式");
+                    return ResponseEntity.status(400).body(errorResponse);
+                }
+            }
+            
+            // 日期范围验证
+            if (start != null && end != null && start.isAfter(end)) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("code", 400);
+                errorResponse.put("message", "开始日期不能晚于结束日期");
+                return ResponseEntity.status(400).body(errorResponse);
+            }
+            
+            // 统计类型验证
+            if (!Arrays.asList("daily", "weekly", "monthly", "yearly").contains(statType.toLowerCase())) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("code", 400);
+                errorResponse.put("message", "统计类型必须是：daily、weekly、monthly、yearly之一");
+                return ResponseEntity.status(400).body(errorResponse);
+            }
+            
+            // 获取适配前端的销售统计数据
+            Map<String, Object> stats = salesStatsService.getSalesStatsForFrontend(start, end, statType);
+            
+            // 添加查询信息
+            stats.put("queryInfo", Map.of(
+                "startDate", start != null ? start.toString() : "自动计算",
+                "endDate", end != null ? end.toString() : "今日",
+                "statType", statType,
+                "queryTime", java.time.LocalDateTime.now()
+            ));
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", stats);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (com.yxrobot.exception.SalesOperationException e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "查询统计数据失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "系统内部错误: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 获取销售趋势数据
+     * 
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @param groupBy 分组方式
+     * @return 销售趋势数据
+     */
+    @GetMapping("/trends")
+    public ResponseEntity<Map<String, Object>> getSalesTrends(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            @RequestParam(required = false, defaultValue = "day") String groupBy) {
+        
+        try {
+            java.time.LocalDate start = startDate != null ? 
+                java.time.LocalDate.parse(startDate) : null;
+            java.time.LocalDate end = endDate != null ? 
+                java.time.LocalDate.parse(endDate) : null;
+            
+            SalesChartDataDTO trends = salesStatsService.getSalesTrends(start, end, groupBy);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", trends);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "查询趋势数据失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 获取产品销售排行
+     * 
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @param limit 限制数量
+     * @return 产品销售排行
+     */
+    @GetMapping("/product-ranking")
+    public ResponseEntity<Map<String, Object>> getProductRanking(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            @RequestParam(required = false, defaultValue = "10") Integer limit) {
+        
+        try {
+            java.time.LocalDate start = startDate != null ? 
+                java.time.LocalDate.parse(startDate) : null;
+            java.time.LocalDate end = endDate != null ? 
+                java.time.LocalDate.parse(endDate) : null;
+            
+            List<Map<String, Object>> ranking = salesStatsService.getProductRanking(start, end, limit);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", ranking);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "查询产品排行失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 获取销售人员业绩排行
+     * 
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @param limit 限制数量
+     * @return 销售人员业绩排行
+     */
+    @GetMapping("/staff-performance")
+    public ResponseEntity<Map<String, Object>> getStaffPerformance(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            @RequestParam(required = false, defaultValue = "10") Integer limit) {
+        
+        try {
+            java.time.LocalDate start = startDate != null ? 
+                java.time.LocalDate.parse(startDate) : null;
+            java.time.LocalDate end = endDate != null ? 
+                java.time.LocalDate.parse(endDate) : null;
+            
+            List<Map<String, Object>> performance = salesStatsService.getStaffPerformance(start, end, limit);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", performance);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "查询人员业绩失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 获取实时统计数据
+     * 
+     * @return 实时统计数据
+     */
+    @GetMapping("/realtime-stats")
+    public ResponseEntity<Map<String, Object>> getRealTimeStats() {
+        
+        try {
+            Map<String, Object> stats = salesStatsService.getRealTimeStats();
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", stats);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "查询实时统计失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 获取今日统计数据
+     * 
+     * @return 今日统计数据
+     */
+    @GetMapping("/today-stats")
+    public ResponseEntity<Map<String, Object>> getTodayStats() {
+        
+        try {
+            Map<String, Object> stats = salesStatsService.getTodayStats();
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", stats);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "查询今日统计失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 获取本月统计数据
+     * 
+     * @return 本月统计数据
+     */
+    @GetMapping("/current-month-stats")
+    public ResponseEntity<Map<String, Object>> getCurrentMonthStats() {
+        
+        try {
+            Map<String, Object> stats = salesStatsService.getCurrentMonthStats();
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", stats);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "查询本月统计失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 获取销售概览统计数据 - 专为前端概览卡片设计
+     * 包含关键指标的汇总信息，完全适配前端显示需求
+     * 
+     * @return 销售概览统计数据
+     */
+    @GetMapping("/overview")
+    public ResponseEntity<Map<String, Object>> getSalesOverview() {
+        
+        try {
+            Map<String, Object> overview = salesStatsService.getSalesOverview();
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", overview);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "查询销售概览失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 获取前端概览卡片数据 - 专用接口
+     * 返回前端Sales.vue页面概览卡片所需的所有数据
+     * 
+     * @param dateRange 日期范围（可选：today/week/month/quarter/year）
+     * @return 概览卡片数据
+     */
+    @GetMapping("/overview-cards")
+    public ResponseEntity<Map<String, Object>> getOverviewCards(
+            @RequestParam(required = false, defaultValue = "month") String dateRange) {
+        
+        try {
+            java.time.LocalDate endDate = java.time.LocalDate.now();
+            java.time.LocalDate startDate;
+            
+            // 根据日期范围确定开始日期
+            switch (dateRange.toLowerCase()) {
+                case "today":
+                    startDate = endDate;
+                    break;
+                case "week":
+                    startDate = endDate.minusWeeks(1);
+                    break;
+                case "month":
+                    startDate = endDate.minusMonths(1);
+                    break;
+                case "quarter":
+                    startDate = endDate.minusMonths(3);
+                    break;
+                case "year":
+                    startDate = endDate.minusYears(1);
+                    break;
+                default:
+                    startDate = endDate.minusMonths(1);
+                    dateRange = "month";
+            }
+            
+            // 获取统计数据
+            Map<String, Object> stats = salesStatsService.getSalesStatsForFrontend(startDate, endDate, "daily");
+            
+            // 构建概览卡片数据
+            Map<String, Object> overviewCards = new HashMap<>();
+            
+            // 总销售额卡片
+            Map<String, Object> salesAmountCard = new HashMap<>();
+            salesAmountCard.put("title", "总销售额");
+            salesAmountCard.put("value", stats.get("totalSalesAmount"));
+            salesAmountCard.put("unit", "元");
+            salesAmountCard.put("icon", "money");
+            salesAmountCard.put("color", "primary");
+            salesAmountCard.put("trend", stats.get("growthRate"));
+            overviewCards.put("totalSalesAmount", salesAmountCard);
+            
+            // 订单数量卡片
+            Map<String, Object> ordersCard = new HashMap<>();
+            ordersCard.put("title", "订单数量");
+            ordersCard.put("value", stats.get("totalOrders"));
+            ordersCard.put("unit", "个");
+            ordersCard.put("icon", "order");
+            ordersCard.put("color", "success");
+            ordersCard.put("trend", calculateOrderGrowthRate(startDate, endDate));
+            overviewCards.put("totalOrders", ordersCard);
+            
+            // 新客户数卡片
+            Map<String, Object> newCustomersCard = new HashMap<>();
+            newCustomersCard.put("title", "新客户");
+            newCustomersCard.put("value", stats.get("newCustomers"));
+            newCustomersCard.put("unit", "个");
+            newCustomersCard.put("icon", "user-plus");
+            newCustomersCard.put("color", "warning");
+            newCustomersCard.put("trend", calculateCustomerGrowthRate(startDate, endDate));
+            overviewCards.put("newCustomers", newCustomersCard);
+            
+            // 平均订单价值卡片
+            Map<String, Object> avgOrderCard = new HashMap<>();
+            avgOrderCard.put("title", "平均订单价值");
+            avgOrderCard.put("value", stats.get("avgOrderAmount"));
+            avgOrderCard.put("unit", "元");
+            avgOrderCard.put("icon", "calculator");
+            avgOrderCard.put("color", "info");
+            avgOrderCard.put("trend", calculateAvgOrderGrowthRate(startDate, endDate));
+            overviewCards.put("avgOrderAmount", avgOrderCard);
+            
+            // 添加查询信息
+            overviewCards.put("queryInfo", Map.of(
+                "dateRange", dateRange,
+                "startDate", startDate.toString(),
+                "endDate", endDate.toString(),
+                "queryTime", java.time.LocalDateTime.now()
+            ));
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", overviewCards);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "查询概览卡片数据失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 获取销售目标完成情况
+     * 
+     * @param period 统计周期 (month/quarter/year)
+     * @return 销售目标完成情况
+     */
+    @GetMapping("/target-completion")
+    public ResponseEntity<Map<String, Object>> getTargetCompletion(
+            @RequestParam(required = false, defaultValue = "month") String period) {
+        
+        try {
+            Map<String, Object> completion = salesStatsService.getTargetCompletion(period);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", completion);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "查询目标完成情况失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 获取销售增长率统计
+     * 
+     * @param period 对比周期 (month/quarter/year)
+     * @return 销售增长率统计
+     */
+    @GetMapping("/growth-rate")
+    public ResponseEntity<Map<String, Object>> getGrowthRate(
+            @RequestParam(required = false, defaultValue = "month") String period) {
+        
+        try {
+            Map<String, Object> growthRate = salesStatsService.getGrowthRate(period);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", growthRate);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "查询增长率统计失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 刷新统计数据缓存 - 优化版本
+     * 用于实时更新统计数据，提高查询性能
+     * 
+     * @param cacheType 缓存类型（可选：stats/charts/all）
+     * @return 刷新结果
+     */
+    @PostMapping("/refresh-stats")
+    public ResponseEntity<Map<String, Object>> refreshStats(
+            @RequestParam(required = false, defaultValue = "all") String cacheType) {
+        
+        try {
+            long startTime = System.currentTimeMillis();
+            
+            // 根据缓存类型执行不同的刷新操作
+            switch (cacheType.toLowerCase()) {
+                case "stats":
+                    salesStatsService.refreshStatsCache();
+                    break;
+                case "charts":
+                    // 刷新图表相关缓存
+                    salesStatsService.refreshStatsCache();
+                    break;
+                case "all":
+                default:
+                    // 刷新所有缓存
+                    salesStatsService.refreshStatsCache();
+                    break;
+            }
+            
+            long endTime = System.currentTimeMillis();
+            long duration = endTime - startTime;
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "统计数据刷新成功");
+            response.put("data", Map.of(
+                "cacheType", cacheType,
+                "refreshTime", java.time.LocalDateTime.now(),
+                "duration", duration + "ms"
+            ));
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "刷新统计数据失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 获取统计数据缓存状态
+     * 
+     * @return 缓存状态信息
+     */
+    @GetMapping("/stats-cache-status")
+    public ResponseEntity<Map<String, Object>> getStatsCacheStatus() {
+        
+        try {
+            Map<String, Object> cacheStatus = new HashMap<>();
+            cacheStatus.put("status", "active");
+            cacheStatus.put("lastRefreshTime", java.time.LocalDateTime.now());
+            cacheStatus.put("cacheEnabled", true);
+            cacheStatus.put("cacheSize", "unknown"); // 可以根据实际缓存实现获取大小
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", cacheStatus);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "获取缓存状态失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    // ==================== 图表数据接口 ====================
+    
+    /**
+     * 获取销售分布图表数据 - 完全适配前端ECharts格式
+     * 
+     * 功能特性：
+     * - 支持多种分布类型：product、region、channel、staff
+     * - 返回数据格式完全适配ECharts（categories + series结构）
+     * - 支持按日期范围的动态分布查询
+     * - 优化的图表数据缓存机制
+     * - 完善的参数验证和错误处理
+     * 
+     * @param type 分布类型（product/region/channel/staff）
+     * @param startDate 开始日期（YYYY-MM-DD格式）
+     * @param endDate 结束日期（YYYY-MM-DD格式）
+     * @return 销售分布图表数据
+     */
+    @GetMapping("/charts/distribution")
+    public ResponseEntity<Map<String, Object>> getDistributionData(
+            @RequestParam(required = false, defaultValue = "product") String type,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        
+        try {
+            // 参数验证
+            if (!Arrays.asList("product", "region", "channel", "staff").contains(type.toLowerCase())) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("code", 400);
+                errorResponse.put("message", "分布类型必须是：product、region、channel、staff之一");
+                return ResponseEntity.status(400).body(errorResponse);
+            }
+            
+            // 日期参数解析和验证
+            java.time.LocalDate start = null;
+            java.time.LocalDate end = null;
+            
+            if (StringUtils.hasText(startDate)) {
+                try {
+                    start = java.time.LocalDate.parse(startDate);
+                } catch (Exception e) {
+                    Map<String, Object> errorResponse = new HashMap<>();
+                    errorResponse.put("code", 400);
+                    errorResponse.put("message", "开始日期格式不正确，应为YYYY-MM-DD格式");
+                    return ResponseEntity.status(400).body(errorResponse);
+                }
+            }
+            
+            if (StringUtils.hasText(endDate)) {
+                try {
+                    end = java.time.LocalDate.parse(endDate);
+                } catch (Exception e) {
+                    Map<String, Object> errorResponse = new HashMap<>();
+                    errorResponse.put("code", 400);
+                    errorResponse.put("message", "结束日期格式不正确，应为YYYY-MM-DD格式");
+                    return ResponseEntity.status(400).body(errorResponse);
+                }
+            }
+            
+            // 日期范围验证
+            if (start != null && end != null && start.isAfter(end)) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("code", 400);
+                errorResponse.put("message", "开始日期不能晚于结束日期");
+                return ResponseEntity.status(400).body(errorResponse);
+            }
+            
+            // 获取适配前端ECharts格式的图表数据
+            Map<String, Object> chartData = salesAnalysisService.getDistributionChartData(type, start, end);
+            
+            // 添加查询信息
+            chartData.put("queryInfo", Map.of(
+                "type", type,
+                "startDate", start != null ? start.toString() : "自动计算",
+                "endDate", end != null ? end.toString() : "今日",
+                "queryTime", java.time.LocalDateTime.now()
+            ));
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", chartData);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (com.yxrobot.exception.SalesOperationException e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "查询分布图表数据失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "系统内部错误: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 获取月度销售图表数据
+     * 
+     * @param year 年份
+     * @param months 月份数
+     * @return 月度销售图表数据
+     */
+    @GetMapping("/charts/monthly")
+    public ResponseEntity<Map<String, Object>> getMonthlyData(
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false, defaultValue = "12") Integer months) {
+        
+        try {
+            SalesChartDataDTO chartData = salesAnalysisService.getMonthlyData(year, months);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", chartData);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "查询月度图表数据失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 获取销售漏斗图表数据
+     * 
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @return 销售漏斗图表数据
+     */
+    @GetMapping("/charts/funnel")
+    public ResponseEntity<Map<String, Object>> getFunnelData(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        
+        try {
+            java.time.LocalDate start = startDate != null ? 
+                java.time.LocalDate.parse(startDate) : null;
+            java.time.LocalDate end = endDate != null ? 
+                java.time.LocalDate.parse(endDate) : null;
+            
+            SalesChartDataDTO chartData = salesAnalysisService.getFunnelData(start, end);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", chartData);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "查询漏斗图表数据失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 获取销售趋势图表数据 - 完全适配前端ECharts格式
+     * 
+     * 功能特性：
+     * - 返回数据格式完全适配ECharts（categories + series结构）
+     * - 支持多种分组方式：day、week、month、quarter、year
+     * - 双轴图表支持：销售额（折线图）+ 订单数（柱状图）
+     * - 优化的图表数据缓存机制
+     * - 完善的参数验证和错误处理
+     * 
+     * @param startDate 开始日期（YYYY-MM-DD格式）
+     * @param endDate 结束日期（YYYY-MM-DD格式）
+     * @param groupBy 分组方式（day/week/month/quarter/year）
+     * @return 销售趋势图表数据
+     */
+    @GetMapping("/charts/trends")
+    public ResponseEntity<Map<String, Object>> getTrendChartData(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            @RequestParam(required = false, defaultValue = "day") String groupBy) {
+        
+        try {
+            // 分组方式验证
+            if (!Arrays.asList("day", "week", "month", "quarter", "year").contains(groupBy.toLowerCase())) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("code", 400);
+                errorResponse.put("message", "分组方式必须是：day、week、month、quarter、year之一");
+                return ResponseEntity.status(400).body(errorResponse);
+            }
+            
+            // 日期参数解析和验证
+            java.time.LocalDate start = null;
+            java.time.LocalDate end = null;
+            
+            if (StringUtils.hasText(startDate)) {
+                try {
+                    start = java.time.LocalDate.parse(startDate);
+                } catch (Exception e) {
+                    Map<String, Object> errorResponse = new HashMap<>();
+                    errorResponse.put("code", 400);
+                    errorResponse.put("message", "开始日期格式不正确，应为YYYY-MM-DD格式");
+                    return ResponseEntity.status(400).body(errorResponse);
+                }
+            }
+            
+            if (StringUtils.hasText(endDate)) {
+                try {
+                    end = java.time.LocalDate.parse(endDate);
+                } catch (Exception e) {
+                    Map<String, Object> errorResponse = new HashMap<>();
+                    errorResponse.put("code", 400);
+                    errorResponse.put("message", "结束日期格式不正确，应为YYYY-MM-DD格式");
+                    return ResponseEntity.status(400).body(errorResponse);
+                }
+            }
+            
+            // 日期范围验证
+            if (start != null && end != null && start.isAfter(end)) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("code", 400);
+                errorResponse.put("message", "开始日期不能晚于结束日期");
+                return ResponseEntity.status(400).body(errorResponse);
+            }
+            
+            // 日期范围合理性检查（防止查询过大范围的数据）
+            if (start != null && end != null) {
+                long daysBetween = java.time.temporal.ChronoUnit.DAYS.between(start, end);
+                if (daysBetween > 365) {
+                    Map<String, Object> errorResponse = new HashMap<>();
+                    errorResponse.put("code", 400);
+                    errorResponse.put("message", "日期范围不能超过365天");
+                    return ResponseEntity.status(400).body(errorResponse);
+                }
+            }
+            
+            // 获取适配前端ECharts格式的趋势图表数据
+            Map<String, Object> chartData = salesAnalysisService.getTrendChartData(start, end, groupBy);
+            
+            // 添加查询信息
+            chartData.put("queryInfo", Map.of(
+                "startDate", start != null ? start.toString() : "自动计算",
+                "endDate", end != null ? end.toString() : "今日",
+                "groupBy", groupBy,
+                "queryTime", java.time.LocalDateTime.now()
+            ));
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", chartData);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (com.yxrobot.exception.SalesOperationException e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "查询趋势图表数据失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "系统内部错误: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 获取图表数据配置信息
+     * 返回图表支持的配置选项和参数说明
+     * 
+     * @return 图表配置信息
+     */
+    @GetMapping("/charts/config")
+    public ResponseEntity<Map<String, Object>> getChartConfig() {
+        
+        try {
+            Map<String, Object> config = new HashMap<>();
+            
+            // 分布图配置
+            Map<String, Object> distributionConfig = new HashMap<>();
+            distributionConfig.put("types", List.of("product", "region", "channel", "staff"));
+            distributionConfig.put("description", "支持按产品、地区、渠道、销售人员分布");
+            config.put("distribution", distributionConfig);
+            
+            // 趋势图配置
+            Map<String, Object> trendConfig = new HashMap<>();
+            trendConfig.put("groupBy", List.of("day", "week", "month", "quarter", "year"));
+            trendConfig.put("description", "支持按日、周、月、季度、年分组");
+            config.put("trend", trendConfig);
+            
+            // 月度图配置
+            Map<String, Object> monthlyConfig = new HashMap<>();
+            monthlyConfig.put("maxMonths", 24);
+            monthlyConfig.put("defaultMonths", 12);
+            monthlyConfig.put("description", "支持最近1-24个月的数据");
+            config.put("monthly", monthlyConfig);
+            
+            // 漏斗图配置
+            Map<String, Object> funnelConfig = new HashMap<>();
+            funnelConfig.put("stages", List.of("潜在客户", "意向客户", "报价客户", "成交客户"));
+            funnelConfig.put("description", "销售漏斗转化分析");
+            config.put("funnel", funnelConfig);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", config);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "获取图表配置失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 获取前端图表数据集合 - 专用接口
+     * 一次性返回前端Sales.vue页面所需的所有图表数据
+     * 
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @return 图表数据集合
+     */
+    @GetMapping("/charts/all")
+    public ResponseEntity<Map<String, Object>> getAllChartsData(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        
+        try {
+            // 日期参数解析
+            java.time.LocalDate start = null;
+            java.time.LocalDate end = null;
+            
+            if (StringUtils.hasText(startDate)) {
+                start = java.time.LocalDate.parse(startDate);
+            }
+            if (StringUtils.hasText(endDate)) {
+                end = java.time.LocalDate.parse(endDate);
+            }
+            
+            Map<String, Object> allChartsData = new HashMap<>();
+            
+            // 获取销售趋势图表数据
+            try {
+                Map<String, Object> trendsData = salesAnalysisService.getTrendChartData(start, end, "day");
+                allChartsData.put("trends", trendsData);
+            } catch (Exception e) {
+                logger.warn("获取趋势图表数据失败: " + e.getMessage());
+                allChartsData.put("trends", Map.of("categories", new ArrayList<>(), "series", new ArrayList<>()));
+            }
+            
+            // 获取产品分布图表数据
+            try {
+                Map<String, Object> productData = salesAnalysisService.getDistributionChartData("product", start, end);
+                allChartsData.put("productDistribution", productData);
+            } catch (Exception e) {
+                logger.warn("获取产品分布图表数据失败: " + e.getMessage());
+                allChartsData.put("productDistribution", Map.of("categories", new ArrayList<>(), "series", new ArrayList<>()));
+            }
+            
+            // 获取地区分布图表数据
+            try {
+                Map<String, Object> regionData = salesAnalysisService.getDistributionChartData("region", start, end);
+                allChartsData.put("regionDistribution", regionData);
+            } catch (Exception e) {
+                logger.warn("获取地区分布图表数据失败: " + e.getMessage());
+                allChartsData.put("regionDistribution", Map.of("categories", new ArrayList<>(), "series", new ArrayList<>()));
+            }
+            
+            // 获取渠道分析图表数据
+            try {
+                Map<String, Object> channelData = salesAnalysisService.getDistributionChartData("channel", start, end);
+                allChartsData.put("channelAnalysis", channelData);
+            } catch (Exception e) {
+                logger.warn("获取渠道分析图表数据失败: " + e.getMessage());
+                allChartsData.put("channelAnalysis", Map.of("categories", new ArrayList<>(), "series", new ArrayList<>()));
+            }
+            
+            // 添加查询信息
+            allChartsData.put("queryInfo", Map.of(
+                "startDate", start != null ? start.toString() : "自动计算",
+                "endDate", end != null ? end.toString() : "今日",
+                "queryTime", java.time.LocalDateTime.now(),
+                "chartsCount", 4
+            ));
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", allChartsData);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "查询图表数据集合失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 刷新图表数据缓存 - 优化版本
+     * 用于实时更新图表数据，支持分类型缓存刷新
+     * 
+     * @param chartType 图表类型（distribution/trends/monthly/funnel/all）
+     * @return 刷新结果
+     */
+    @PostMapping("/charts/refresh")
+    public ResponseEntity<Map<String, Object>> refreshChartData(
+            @RequestParam(required = false, defaultValue = "all") String chartType) {
+        
+        try {
+            long startTime = System.currentTimeMillis();
+            
+            // 根据图表类型执行不同的缓存刷新操作
+            switch (chartType.toLowerCase()) {
+                case "distribution":
+                    // 刷新分布图相关缓存
+                    salesStatsService.refreshStatsCache();
+                    logger.info("分布图表缓存刷新完成");
+                    break;
+                case "trends":
+                    // 刷新趋势图相关缓存
+                    salesStatsService.refreshStatsCache();
+                    logger.info("趋势图表缓存刷新完成");
+                    break;
+                case "monthly":
+                    // 刷新月度图相关缓存
+                    salesStatsService.refreshStatsCache();
+                    logger.info("月度图表缓存刷新完成");
+                    break;
+                case "funnel":
+                    // 刷新漏斗图相关缓存
+                    salesStatsService.refreshStatsCache();
+                    logger.info("漏斗图表缓存刷新完成");
+                    break;
+                case "all":
+                default:
+                    // 刷新所有图表缓存
+                    salesStatsService.refreshStatsCache();
+                    logger.info("所有图表缓存刷新完成");
+                    break;
+            }
+            
+            long endTime = System.currentTimeMillis();
+            long duration = endTime - startTime;
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "图表数据缓存刷新成功");
+            response.put("data", Map.of(
+                "refreshedType", chartType,
+                "refreshTime", java.time.LocalDateTime.now(),
+                "duration", duration + "ms"
+            ));
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "刷新图表数据缓存失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 验证图表数据参数
+     * 
+     * @param chartType 图表类型
+     * @param params 参数Map
+     * @return 验证结果
+     */
+    @PostMapping("/charts/validate")
+    public ResponseEntity<Map<String, Object>> validateChartParams(
+            @RequestParam String chartType,
+            @RequestBody Map<String, Object> params) {
+        
+        try {
+            Map<String, Object> validation = new HashMap<>();
+            List<String> errors = new ArrayList<>();
+            
+            switch (chartType.toLowerCase()) {
+                case "distribution":
+                    validateDistributionParams(params, errors);
+                    break;
+                case "monthly":
+                    validateMonthlyParams(params, errors);
+                    break;
+                case "funnel":
+                    validateFunnelParams(params, errors);
+                    break;
+                case "trends":
+                    validateTrendParams(params, errors);
+                    break;
+                default:
+                    errors.add("不支持的图表类型: " + chartType);
+            }
+            
+            validation.put("valid", errors.isEmpty());
+            validation.put("errors", errors);
+            validation.put("chartType", chartType);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "参数验证完成");
+            response.put("data", validation);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 400);
+            errorResponse.put("message", "参数验证失败: " + e.getMessage());
+            return ResponseEntity.status(400).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 验证图表数据完整性 - 用于前端开发调试
+     * 
+     * @param chartType 图表类型
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @return 验证结果
+     */
+    @GetMapping("/charts/validate")
+    public ResponseEntity<Map<String, Object>> validateChartData(
+            @RequestParam String chartType,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        
+        try {
+            Map<String, Object> validation = new HashMap<>();
+            List<String> issues = new ArrayList<>();
+            
+            // 日期参数解析
+            java.time.LocalDate start = null;
+            java.time.LocalDate end = null;
+            
+            if (StringUtils.hasText(startDate)) {
+                try {
+                    start = java.time.LocalDate.parse(startDate);
+                } catch (Exception e) {
+                    issues.add("开始日期格式不正确");
+                }
+            }
+            
+            if (StringUtils.hasText(endDate)) {
+                try {
+                    end = java.time.LocalDate.parse(endDate);
+                } catch (Exception e) {
+                    issues.add("结束日期格式不正确");
+                }
+            }
+            
+            // 验证图表数据
+            switch (chartType.toLowerCase()) {
+                case "distribution":
+                    validateDistributionChartData(validation, issues, start, end);
+                    break;
+                case "trends":
+                    validateTrendsChartData(validation, issues, start, end);
+                    break;
+                case "monthly":
+                    validateMonthlyChartData(validation, issues, start, end);
+                    break;
+                case "funnel":
+                    validateFunnelChartData(validation, issues, start, end);
+                    break;
+                default:
+                    issues.add("不支持的图表类型: " + chartType);
+            }
+            
+            validation.put("chartType", chartType);
+            validation.put("valid", issues.isEmpty());
+            validation.put("issues", issues);
+            validation.put("validatedAt", java.time.LocalDateTime.now());
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "验证完成");
+            response.put("data", validation);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "图表数据验证失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 获取图表数据摘要 - 优化版本
+     * 返回各类图表的数据概览信息，用于前端监控
+     * 
+     * @return 图表数据摘要
+     */
+    @GetMapping("/charts/summary")
+    public ResponseEntity<Map<String, Object>> getChartSummary() {
+        
+        try {
+            Map<String, Object> summary = new HashMap<>();
+            
+            // 获取数据范围信息
+            Map<String, Object> dataRange = salesStatsService.getDataRange();
+            summary.put("dataRange", dataRange);
+            
+            // 获取可用的图表类型
+            List<String> availableCharts = List.of("distribution", "monthly", "funnel", "trends");
+            summary.put("availableCharts", availableCharts);
+            
+            // 获取数据更新时间
+            summary.put("lastUpdated", java.time.LocalDateTime.now());
+            
+            // 获取数据统计信息
+            Map<String, Object> dataStats = new HashMap<>();
+            dataStats.put("totalRecords", salesStatsService.getTotalRecordsCount());
+            dataStats.put("dateRange", salesStatsService.getDateRange());
+            summary.put("dataStats", dataStats);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", summary);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "获取图表摘要失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    // ==================== 辅助功能接口 ====================
+    
+    /**
+     * 获取客户列表
+     * 支持搜索和筛选功能
+     * 
+     * @param keyword 搜索关键词
+     * @param type 客户类型
+     * @param active 是否活跃
+     * @param page 页码
+     * @param pageSize 每页大小
+     * @return 客户列表
+     */
+    @GetMapping("/customers")
+    public ResponseEntity<Map<String, Object>> getCustomers(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) Boolean active,
+            @RequestParam(required = false, defaultValue = "0") Integer page,
+            @RequestParam(required = false, defaultValue = "20") Integer pageSize) {
+        
+        try {
+            Map<String, Object> result = customerService.getCustomers(
+                page, pageSize, keyword, type, null, null, null, active, false);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", result);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "查询客户列表失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 获取活跃客户列表（用于下拉选择）
+     * 
+     * @return 活跃客户列表
+     */
+    @GetMapping("/customers/active")
+    public ResponseEntity<Map<String, Object>> getActiveCustomers() {
+        
+        try {
+            List<CustomerDTO> customers = customerService.getActiveCustomers();
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", customers);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "查询活跃客户列表失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 获取产品列表
+     * 支持搜索和筛选功能
+     * 
+     * @param keyword 搜索关键词
+     * @param category 产品类别
+     * @param active 是否启用
+     * @param page 页码
+     * @param pageSize 每页大小
+     * @return 产品列表
+     */
+    @GetMapping("/products")
+    public ResponseEntity<Map<String, Object>> getProducts(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) Boolean active,
+            @RequestParam(required = false, defaultValue = "1") Integer page,
+            @RequestParam(required = false, defaultValue = "20") Integer pageSize) {
+        
+        try {
+            Map<String, Object> result = salesProductService.getSalesProducts(
+                page, pageSize, keyword, category, null, active, null, null);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", result);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "查询产品列表失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 获取启用产品列表（用于下拉选择）
+     * 
+     * @return 启用产品列表
+     */
+    @GetMapping("/products/active")
+    public ResponseEntity<Map<String, Object>> getActiveProducts() {
+        
+        try {
+            List<SalesProductDTO> products = salesProductService.getActiveSalesProducts();
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", products);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "查询启用产品列表失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 获取销售人员列表
+     * 支持搜索和筛选功能
+     * 
+     * @param keyword 搜索关键词
+     * @param department 部门
+     * @param active 是否在职
+     * @param page 页码
+     * @param pageSize 每页大小
+     * @return 销售人员列表
+     */
+    @GetMapping("/staff")
+    public ResponseEntity<Map<String, Object>> getSalesStaff(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String department,
+            @RequestParam(required = false) Boolean active,
+            @RequestParam(required = false, defaultValue = "0") Integer page,
+            @RequestParam(required = false, defaultValue = "20") Integer pageSize) {
+        
+        try {
+            Map<String, Object> result = salesStaffService.getSalesStaff(
+                page, pageSize, keyword, department, null, active, false);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", result);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "查询销售人员列表失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 获取在职销售人员列表（用于下拉选择）
+     * 
+     * @return 在职销售人员列表
+     */
+    @GetMapping("/staff/active")
+    public ResponseEntity<Map<String, Object>> getActiveStaff() {
+        
+        try {
+            List<SalesStaffDTO> staff = salesStaffService.getActiveStaff();
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", staff);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "查询在职销售人员列表失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 批量操作接口
+     * 支持批量删除和批量状态修改等操作
+     * 
+     * @param batchRequest 批量操作请求
+     * @return 操作结果
+     */
+    @PostMapping("/batch")
+    public ResponseEntity<Map<String, Object>> batchOperation(
+            @Valid @RequestBody BatchOperationRequest batchRequest) {
+        
+        try {
+            String operation = batchRequest.getOperation();
+            List<Long> ids = batchRequest.getIds();
+            String entityType = (String) batchRequest.getParams().get("entityType");
+            
+            if (ids == null || ids.isEmpty()) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("code", 400);
+                errorResponse.put("message", "请选择要操作的记录");
+                return ResponseEntity.status(400).body(errorResponse);
+            }
+            
+            if (!StringUtils.hasText(entityType)) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("code", 400);
+                errorResponse.put("message", "请指定实体类型");
+                return ResponseEntity.status(400).body(errorResponse);
+            }
+            
+            // 根据实体类型和操作类型执行相应的批量操作
+            switch (entityType.toLowerCase()) {
+                case "salesrecord":
+                    handleSalesRecordBatchOperation(operation, ids, batchRequest.getParams());
+                    break;
+                case "customer":
+                    handleCustomerBatchOperation(operation, ids, batchRequest.getParams());
+                    break;
+                case "product":
+                    handleProductBatchOperation(operation, ids, batchRequest.getParams());
+                    break;
+                case "staff":
+                    handleStaffBatchOperation(operation, ids, batchRequest.getParams());
+                    break;
+                default:
+                    Map<String, Object> errorResponse = new HashMap<>();
+                    errorResponse.put("code", 400);
+                    errorResponse.put("message", "不支持的实体类型: " + entityType);
+                    return ResponseEntity.status(400).body(errorResponse);
+            }
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "批量操作成功");
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 400);
+            errorResponse.put("message", "批量操作失败: " + e.getMessage());
+            return ResponseEntity.status(400).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 处理销售记录批量操作
+     */
+    private void handleSalesRecordBatchOperation(String operation, List<Long> ids, Map<String, Object> params) {
+        switch (operation) {
+            case "delete":
+                salesService.batchDeleteSalesRecords(ids);
+                break;
+            case "updateStatus":
+                String statusStr = (String) params.get("status");
+                if (statusStr == null) {
+                    throw new IllegalArgumentException("请指定要更新的状态");
+                }
+                SalesStatus status = SalesStatus.valueOf(statusStr.toUpperCase());
+                salesService.batchUpdateSalesRecordStatus(ids, status);
+                break;
+            default:
+                throw new IllegalArgumentException("不支持的销售记录操作类型: " + operation);
+        }
+    }
+    
+    /**
+     * 处理客户批量操作
+     */
+    private void handleCustomerBatchOperation(String operation, List<Long> ids, Map<String, Object> params) {
+        switch (operation) {
+            case "delete":
+                for (Long id : ids) {
+                    customerService.deleteCustomer(id);
+                }
+                break;
+            case "updateCreditLevel":
+                String creditLevelStr = (String) params.get("creditLevel");
+                if (creditLevelStr == null) {
+                    throw new IllegalArgumentException("请指定要更新的信用等级");
+                }
+                com.yxrobot.entity.CreditLevel creditLevel = com.yxrobot.entity.CreditLevel.valueOf(creditLevelStr.toUpperCase());
+                for (Long id : ids) {
+                    customerService.updateCustomerCreditLevel(id, creditLevel);
+                }
+                break;
+            default:
+                throw new IllegalArgumentException("不支持的客户操作类型: " + operation);
+        }
+    }
+    
+    /**
+     * 处理产品批量操作
+     */
+    private void handleProductBatchOperation(String operation, List<Long> ids, Map<String, Object> params) {
+        switch (operation) {
+            case "delete":
+                salesProductService.batchDeleteSalesProducts(ids);
+                break;
+            case "updateStock":
+                Integer stockQuantity = (Integer) params.get("stockQuantity");
+                if (stockQuantity == null) {
+                    throw new IllegalArgumentException("请指定要更新的库存数量");
+                }
+                for (Long id : ids) {
+                    salesProductService.updateSalesProductStock(id, stockQuantity);
+                }
+                break;
+            default:
+                throw new IllegalArgumentException("不支持的产品操作类型: " + operation);
+        }
+    }
+    
+    /**
+     * 处理销售人员批量操作
+     */
+    private void handleStaffBatchOperation(String operation, List<Long> ids, Map<String, Object> params) {
+        switch (operation) {
+            case "delete":
+                for (Long id : ids) {
+                    salesStaffService.deleteSalesStaff(id);
+                }
+                break;
+            case "updateTarget":
+                String targetStr = (String) params.get("salesTarget");
+                if (targetStr == null) {
+                    throw new IllegalArgumentException("请指定要更新的销售目标");
+                }
+                java.math.BigDecimal salesTarget = new java.math.BigDecimal(targetStr);
+                for (Long id : ids) {
+                    salesStaffService.updateSalesTarget(id, salesTarget);
+                }
+                break;
+            default:
+                throw new IllegalArgumentException("不支持的销售人员操作类型: " + operation);
+        }
+    }
+    
+    // ==================== 统计数据计算私有方法 ====================
+    
+    /**
+     * 计算订单增长率
+     */
+    private java.math.BigDecimal calculateOrderGrowthRate(java.time.LocalDate startDate, java.time.LocalDate endDate) {
+        try {
+            // 计算上一周期的日期范围
+            long daysBetween = java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate);
+            java.time.LocalDate previousStart = startDate.minusDays(daysBetween);
+            java.time.LocalDate previousEnd = startDate.minusDays(1);
+            
+            // 获取当前周期和上一周期的订单数
+            Map<String, Object> currentStats = salesStatsService.getSalesStatsForFrontend(startDate, endDate, "daily");
+            Map<String, Object> previousStats = salesStatsService.getSalesStatsForFrontend(previousStart, previousEnd, "daily");
+            
+            Integer currentOrders = (Integer) currentStats.get("totalOrders");
+            Integer previousOrders = (Integer) previousStats.get("totalOrders");
+            
+            if (previousOrders != null && previousOrders > 0 && currentOrders != null) {
+                return new java.math.BigDecimal(currentOrders - previousOrders)
+                        .divide(new java.math.BigDecimal(previousOrders), 4, java.math.RoundingMode.HALF_UP)
+                        .multiply(new java.math.BigDecimal("100"));
+            }
+            
+            return java.math.BigDecimal.ZERO;
+        } catch (Exception e) {
+            return java.math.BigDecimal.ZERO;
+        }
+    }
+    
+    /**
+     * 计算客户增长率
+     */
+    private java.math.BigDecimal calculateCustomerGrowthRate(java.time.LocalDate startDate, java.time.LocalDate endDate) {
+        try {
+            // 计算上一周期的日期范围
+            long daysBetween = java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate);
+            java.time.LocalDate previousStart = startDate.minusDays(daysBetween);
+            java.time.LocalDate previousEnd = startDate.minusDays(1);
+            
+            // 获取当前周期和上一周期的新客户数
+            Map<String, Object> currentStats = salesStatsService.getSalesStatsForFrontend(startDate, endDate, "daily");
+            Map<String, Object> previousStats = salesStatsService.getSalesStatsForFrontend(previousStart, previousEnd, "daily");
+            
+            Integer currentCustomers = (Integer) currentStats.get("newCustomers");
+            Integer previousCustomers = (Integer) previousStats.get("newCustomers");
+            
+            if (previousCustomers != null && previousCustomers > 0 && currentCustomers != null) {
+                return new java.math.BigDecimal(currentCustomers - previousCustomers)
+                        .divide(new java.math.BigDecimal(previousCustomers), 4, java.math.RoundingMode.HALF_UP)
+                        .multiply(new java.math.BigDecimal("100"));
+            }
+            
+            return java.math.BigDecimal.ZERO;
+        } catch (Exception e) {
+            return java.math.BigDecimal.ZERO;
+        }
+    }
+    
+    /**
+     * 计算平均订单价值增长率
+     */
+    private java.math.BigDecimal calculateAvgOrderGrowthRate(java.time.LocalDate startDate, java.time.LocalDate endDate) {
+        try {
+            // 计算上一周期的日期范围
+            long daysBetween = java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate);
+            java.time.LocalDate previousStart = startDate.minusDays(daysBetween);
+            java.time.LocalDate previousEnd = startDate.minusDays(1);
+            
+            // 获取当前周期和上一周期的平均订单价值
+            Map<String, Object> currentStats = salesStatsService.getSalesStatsForFrontend(startDate, endDate, "daily");
+            Map<String, Object> previousStats = salesStatsService.getSalesStatsForFrontend(previousStart, previousEnd, "daily");
+            
+            java.math.BigDecimal currentAvg = (java.math.BigDecimal) currentStats.get("avgOrderAmount");
+            java.math.BigDecimal previousAvg = (java.math.BigDecimal) previousStats.get("avgOrderAmount");
+            
+            if (previousAvg != null && previousAvg.compareTo(java.math.BigDecimal.ZERO) > 0 && currentAvg != null) {
+                return currentAvg.subtract(previousAvg)
+                        .divide(previousAvg, 4, java.math.RoundingMode.HALF_UP)
+                        .multiply(new java.math.BigDecimal("100"));
+            }
+            
+            return java.math.BigDecimal.ZERO;
+        } catch (Exception e) {
+            return java.math.BigDecimal.ZERO;
+        }
+    }
+    
+    // ==================== 图表数据验证私有方法 ====================
+    
+    /**
+     * 验证分布图表数据
+     */
+    private void validateDistributionChartData(Map<String, Object> validation, List<String> issues, 
+                                             java.time.LocalDate start, java.time.LocalDate end) {
+        try {
+            Map<String, Object> productData = salesAnalysisService.getDistributionChartData("product", start, end);
+            Map<String, Object> regionData = salesAnalysisService.getDistributionChartData("region", start, end);
+            Map<String, Object> channelData = salesAnalysisService.getDistributionChartData("channel", start, end);
+            
+            validation.put("productDataAvailable", productData != null && !productData.isEmpty());
+            validation.put("regionDataAvailable", regionData != null && !regionData.isEmpty());
+            validation.put("channelDataAvailable", channelData != null && !channelData.isEmpty());
+            
+            if (productData == null || productData.isEmpty()) {
+                issues.add("产品分布数据为空");
+            }
+            if (regionData == null || regionData.isEmpty()) {
+                issues.add("地区分布数据为空");
+            }
+            if (channelData == null || channelData.isEmpty()) {
+                issues.add("渠道分布数据为空");
+            }
+        } catch (Exception e) {
+            issues.add("分布图表数据验证失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 验证趋势图表数据
+     */
+    private void validateTrendsChartData(Map<String, Object> validation, List<String> issues, 
+                                       java.time.LocalDate start, java.time.LocalDate end) {
+        try {
+            Map<String, Object> trendsData = salesAnalysisService.getTrendChartData(start, end, "day");
+            
+            validation.put("trendsDataAvailable", trendsData != null && !trendsData.isEmpty());
+            
+            if (trendsData != null) {
+                Object categories = trendsData.get("categories");
+                Object series = trendsData.get("series");
+                
+                validation.put("hasCategoriesData", categories != null);
+                validation.put("hasSeriesData", series != null);
+                
+                if (categories == null) {
+                    issues.add("趋势图表缺少categories数据");
+                }
+                if (series == null) {
+                    issues.add("趋势图表缺少series数据");
+                }
+            } else {
+                issues.add("趋势图表数据为空");
+            }
+        } catch (Exception e) {
+            issues.add("趋势图表数据验证失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 验证月度图表数据
+     */
+    private void validateMonthlyChartData(Map<String, Object> validation, List<String> issues, 
+                                        java.time.LocalDate start, java.time.LocalDate end) {
+        try {
+            // 这里可以添加月度图表数据验证逻辑
+            validation.put("monthlyDataValidation", "暂未实现");
+        } catch (Exception e) {
+            issues.add("月度图表数据验证失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 验证漏斗图表数据
+     */
+    private void validateFunnelChartData(Map<String, Object> validation, List<String> issues, 
+                                       java.time.LocalDate start, java.time.LocalDate end) {
+        try {
+            // 这里可以添加漏斗图表数据验证逻辑
+            validation.put("funnelDataValidation", "暂未实现");
+        } catch (Exception e) {
+            issues.add("漏斗图表数据验证失败: " + e.getMessage());
+        }
+    }
+    
+    // ==================== 图表参数验证私有方法 ====================
+    
+    /**
+     * 验证分布图参数
+     */
+    private void validateDistributionParams(Map<String, Object> params, List<String> errors) {
+        String type = (String) params.get("type");
+        if (type != null) {
+            List<String> validTypes = List.of("product", "region", "channel", "staff");
+            if (!validTypes.contains(type.toLowerCase())) {
+                errors.add("分布类型必须是: " + String.join(", ", validTypes));
+            }
+        }
+        
+        validateDateRange(params, errors);
+    }
+    
+    /**
+     * 验证月度图参数
+     */
+    private void validateMonthlyParams(Map<String, Object> params, List<String> errors) {
+        Object monthsObj = params.get("months");
+        if (monthsObj != null) {
+            try {
+                int months = Integer.parseInt(monthsObj.toString());
+                if (months < 1 || months > 24) {
+                    errors.add("月份数必须在1-24之间");
+                }
+            } catch (NumberFormatException e) {
+                errors.add("月份数必须是有效的数字");
+            }
+        }
+        
+        Object yearObj = params.get("year");
+        if (yearObj != null) {
+            try {
+                int year = Integer.parseInt(yearObj.toString());
+                int currentYear = java.time.LocalDate.now().getYear();
+                if (year < currentYear - 10 || year > currentYear + 1) {
+                    errors.add("年份必须在" + (currentYear - 10) + "-" + (currentYear + 1) + "之间");
+                }
+            } catch (NumberFormatException e) {
+                errors.add("年份必须是有效的数字");
+            }
+        }
+    }
+    
+    /**
+     * 验证漏斗图参数
+     */
+    private void validateFunnelParams(Map<String, Object> params, List<String> errors) {
+        validateDateRange(params, errors);
+    }
+    
+    /**
+     * 验证趋势图参数
+     */
+    private void validateTrendParams(Map<String, Object> params, List<String> errors) {
+        String groupBy = (String) params.get("groupBy");
+        if (groupBy != null) {
+            List<String> validGroupBy = List.of("day", "week", "month", "quarter", "year");
+            if (!validGroupBy.contains(groupBy.toLowerCase())) {
+                errors.add("分组方式必须是: " + String.join(", ", validGroupBy));
+            }
+        }
+        
+        validateDateRange(params, errors);
+    }
+    
+    /**
+     * 验证日期范围参数
+     */
+    private void validateDateRange(Map<String, Object> params, List<String> errors) {
+        String startDate = (String) params.get("startDate");
+        String endDate = (String) params.get("endDate");
+        
+        if (startDate != null) {
+            try {
+                java.time.LocalDate.parse(startDate);
+            } catch (Exception e) {
+                errors.add("开始日期格式不正确，应为YYYY-MM-DD格式");
+            }
+        }
+        
+        if (endDate != null) {
+            try {
+                java.time.LocalDate.parse(endDate);
+            } catch (Exception e) {
+                errors.add("结束日期格式不正确，应为YYYY-MM-DD格式");
+            }
+        }
+        
+        if (startDate != null && endDate != null) {
+            try {
+                java.time.LocalDate start = java.time.LocalDate.parse(startDate);
+                java.time.LocalDate end = java.time.LocalDate.parse(endDate);
+                
+                if (start.isAfter(end)) {
+                    errors.add("开始日期不能晚于结束日期");
+                }
+                
+                // 检查日期范围不能超过2年
+                if (java.time.temporal.ChronoUnit.DAYS.between(start, end) > 730) {
+                    errors.add("日期范围不能超过2年");
+                }
+            } catch (Exception e) {
+                // 日期格式错误已在上面处理
+            }
+        }
+    }
+    
+    // ==================== API健康检查和系统状态接口 ====================
+    
+    /**
+     * API健康检查接口 - 验证销售API服务状态
+     * 
+     * @return API状态信息
+     */
+    @GetMapping("/health")
+    public ResponseEntity<Map<String, Object>> healthCheck() {
+        
+        try {
+            Map<String, Object> healthInfo = new HashMap<>();
+            healthInfo.put("status", "UP");
+            healthInfo.put("service", "SalesController");
+            healthInfo.put("timestamp", java.time.LocalDateTime.now());
+            healthInfo.put("version", "1.0.0");
+            
+            // 检查关键服务状态
+            Map<String, Object> services = new HashMap<>();
+            services.put("salesService", salesService != null ? "UP" : "DOWN");
+            services.put("salesStatsService", salesStatsService != null ? "UP" : "DOWN");
+            services.put("salesAnalysisService", salesAnalysisService != null ? "UP" : "DOWN");
+            services.put("customerService", customerService != null ? "UP" : "DOWN");
+            services.put("salesProductService", salesProductService != null ? "UP" : "DOWN");
+            services.put("salesStaffService", salesStaffService != null ? "UP" : "DOWN");
+            healthInfo.put("services", services);
+            
+            // 检查数据库连接状态
+            try {
+                Long recordCount = salesService.getTotalSalesRecordsCount(null);
+                healthInfo.put("database", "UP");
+                healthInfo.put("recordCount", recordCount);
+            } catch (Exception e) {
+                healthInfo.put("database", "DOWN");
+                healthInfo.put("databaseError", e.getMessage());
+            }
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "健康检查完成");
+            response.put("data", healthInfo);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "健康检查失败: " + e.getMessage());
+            errorResponse.put("status", "DOWN");
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 获取API接口列表 - 用于前端开发调试
+     * 
+     * @return API接口列表
+     */
+    @GetMapping("/api-info")
+    public ResponseEntity<Map<String, Object>> getApiInfo() {
+        
+        try {
+            Map<String, Object> apiInfo = new HashMap<>();
+            
+            // 销售记录相关接口
+            List<Map<String, String>> recordsApis = List.of(
+                Map.of("method", "GET", "path", "/api/sales/records", "description", "获取销售记录列表"),
+                Map.of("method", "GET", "path", "/api/sales/records/{id}", "description", "获取销售记录详情"),
+                Map.of("method", "POST", "path", "/api/sales/records", "description", "创建销售记录"),
+                Map.of("method", "PUT", "path", "/api/sales/records/{id}", "description", "更新销售记录"),
+                Map.of("method", "DELETE", "path", "/api/sales/records/{id}", "description", "删除销售记录"),
+                Map.of("method", "POST", "path", "/api/sales/records/batch", "description", "批量操作销售记录")
+            );
+            apiInfo.put("records", recordsApis);
+            
+            // 统计分析相关接口
+            List<Map<String, String>> statsApis = List.of(
+                Map.of("method", "GET", "path", "/api/sales/stats", "description", "获取销售统计数据"),
+                Map.of("method", "GET", "path", "/api/sales/trends", "description", "获取销售趋势数据"),
+                Map.of("method", "GET", "path", "/api/sales/product-ranking", "description", "获取产品销售排行"),
+                Map.of("method", "GET", "path", "/api/sales/staff-performance", "description", "获取销售人员业绩排行")
+            );
+            apiInfo.put("stats", statsApis);
+            
+            // 图表数据相关接口
+            List<Map<String, String>> chartsApis = List.of(
+                Map.of("method", "GET", "path", "/api/sales/charts/distribution", "description", "获取销售分布图表数据"),
+                Map.of("method", "GET", "path", "/api/sales/charts/trends", "description", "获取销售趋势图表数据"),
+                Map.of("method", "GET", "path", "/api/sales/charts/monthly", "description", "获取月度销售图表数据"),
+                Map.of("method", "GET", "path", "/api/sales/charts/funnel", "description", "获取销售漏斗图表数据")
+            );
+            apiInfo.put("charts", chartsApis);
+            
+            // 辅助功能相关接口
+            List<Map<String, String>> auxiliaryApis = List.of(
+                Map.of("method", "GET", "path", "/api/sales/customers", "description", "获取客户列表"),
+                Map.of("method", "GET", "path", "/api/sales/products", "description", "获取产品列表"),
+                Map.of("method", "GET", "path", "/api/sales/staff", "description", "获取销售人员列表"),
+                Map.of("method", "POST", "path", "/api/sales/batch", "description", "批量操作")
+            );
+            apiInfo.put("auxiliary", auxiliaryApis);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", apiInfo);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "获取API信息失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    // ==================== 高级搜索和筛选功能接口 ====================
+    
+    /**
+     * 获取搜索建议
+     * 
+     * @param keyword 搜索关键词
+     * @return 搜索建议列表
+     */
+    @GetMapping("/search-suggestions")
+    public ResponseEntity<Map<String, Object>> getSearchSuggestions(
+            @RequestParam String keyword) {
+        
+        try {
+            List<Map<String, Object>> suggestions = salesService.getSearchSuggestions(keyword);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", suggestions);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "获取搜索建议失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 获取筛选选项
+     * 
+     * @return 筛选选项
+     */
+    @GetMapping("/filter-options")
+    public ResponseEntity<Map<String, Object>> getFilterOptions() {
+        
+        try {
+            Map<String, Object> options = salesService.getFilterOptions();
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", options);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "获取筛选选项失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 快速筛选 - 今日订单
+     * 
+     * @return 今日订单列表
+     */
+    @GetMapping("/quick-filter/today")
+    public ResponseEntity<Map<String, Object>> getTodayOrders() {
+        
+        try {
+            List<SalesRecordDTO> orders = salesService.getTodayOrders();
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", orders);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "获取今日订单失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 快速筛选 - 本周订单
+     * 
+     * @return 本周订单列表
+     */
+    @GetMapping("/quick-filter/this-week")
+    public ResponseEntity<Map<String, Object>> getThisWeekOrders() {
+        
+        try {
+            List<SalesRecordDTO> orders = salesService.getThisWeekOrders();
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", orders);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "获取本周订单失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 快速筛选 - 本月订单
+     * 
+     * @return 本月订单列表
+     */
+    @GetMapping("/quick-filter/this-month")
+    public ResponseEntity<Map<String, Object>> getThisMonthOrders() {
+        
+        try {
+            List<SalesRecordDTO> orders = salesService.getThisMonthOrders();
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", orders);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "获取本月订单失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 快速筛选 - 待处理订单
+     * 
+     * @return 待处理订单列表
+     */
+    @GetMapping("/quick-filter/pending")
+    public ResponseEntity<Map<String, Object>> getPendingOrders() {
+        
+        try {
+            List<SalesRecordDTO> orders = salesService.getPendingOrders();
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", orders);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "获取待处理订单失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 快速筛选 - 高价值订单
+     * 
+     * @param minAmount 最小金额阈值
+     * @return 高价值订单列表
+     */
+    @GetMapping("/quick-filter/high-value")
+    public ResponseEntity<Map<String, Object>> getHighValueOrders(
+            @RequestParam(required = false, defaultValue = "10000") java.math.BigDecimal minAmount) {
+        
+        try {
+            List<SalesRecordDTO> orders = salesService.getHighValueOrders(minAmount);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", orders);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "获取高价值订单失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 优化的销售记录查询 - 专为前端高性能查询设计
+     * 使用优化的SQL查询提高性能，支持大数据量分页
+     * 
+     * @param page 页码
+     * @param pageSize 每页大小
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @param keyword 搜索关键词
+     * @param status 订单状态
+     * @return 销售记录列表响应
+     */
+    @GetMapping("/records-optimized")
+    public ResponseEntity<Map<String, Object>> getSalesRecordsOptimized(
+            @RequestParam(required = false, defaultValue = "1") Integer page,
+            @RequestParam(required = false, defaultValue = "20") Integer pageSize,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String status) {
+        
+        try {
+            // 使用专门为前端设计的查询方法
+            Map<String, Object> result = salesService.getSalesRecordsForFrontend(
+                page, pageSize, startDate, endDate, keyword, status);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", result);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "优化查询失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 获取销售记录总数 - 用于前端性能监控
+     * 
+     * @return 总记录数
+     */
+    @GetMapping("/records/count")
+    public ResponseEntity<Map<String, Object>> getSalesRecordsCount() {
+        
+        try {
+            Long totalCount = salesService.getTotalSalesRecordsCount(null);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "查询成功");
+            response.put("data", Map.of(
+                "totalCount", totalCount,
+                "countedAt", java.time.LocalDateTime.now()
+            ));
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "查询总数失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    /**
+     * 批量操作请求DTO
+     */
+    public static class BatchOperationRequest {
+        @NotNull(message = "操作类型不能为空")
+        private String operation;
+        
+        @NotNull(message = "ID列表不能为空")
+        private List<Long> ids;
+        
+        private Map<String, Object> params = new HashMap<>();
+        
+        // Getter和Setter方法
+        public String getOperation() {
+            return operation;
+        }
+        
+        public void setOperation(String operation) {
+            this.operation = operation;
+        }
+        
+        public List<Long> getIds() {
+            return ids;
+        }
+        
+        public void setIds(List<Long> ids) {
+            this.ids = ids;
+        }
+        
+        public Map<String, Object> getParams() {
+            return params;
+        }
+        
+        public void setParams(Map<String, Object> params) {
+            this.params = params;
+        }
+    }
+}

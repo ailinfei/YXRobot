@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yxrobot.mapper.CharityActivityMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="CharityActivityResultMap" type="com.yxrobot.entity.CharityActivity">
+        <id column="id" property="id"/>
+        <result column="project_id" property="projectId"/>
+        <result column="title" property="title"/>
+        <result column="description" property="description"/>
+        <result column="type" property="type"/>
+        <result column="date" property="date"/>
+        <result column="start_time" property="startTime"/>
+        <result column="end_time" property="endTime"/>
+        <result column="location" property="location"/>
+        <result column="participants" property="participants"/>
+        <result column="target_participants" property="targetParticipants"/>
+        <result column="organizer" property="organizer"/>
+        <result column="status" property="status"/>
+        <result column="budget" property="budget"/>
+        <result column="actual_cost" property="actualCost"/>
+        <result column="manager" property="manager"/>
+        <result column="manager_contact" property="managerContact"/>
+        <result column="volunteer_needed" property="volunteerNeeded"/>
+        <result column="actual_volunteers" property="actualVolunteers"/>
+        <result column="achievements" property="achievements"/>
+        <result column="photos" property="photos" typeHandler="com.yxrobot.config.StringArrayTypeHandler"/>
+        <result column="notes" property="notes"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="create_by" property="createBy"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <!-- 基础查询字段 -->
+    <sql id="Base_Column_List">
+        id, project_id, title, description, type, date, start_time, end_time, location,
+        participants, target_participants, organizer, status, budget, actual_cost,
+        manager, manager_contact, volunteer_needed, actual_volunteers, achievements,
+        photos, notes, create_time, update_time, create_by, update_by, deleted
+    </sql>
+
+    <!-- 查询条件 -->
+    <sql id="Query_Where_Clause">
+        <where>
+            deleted = 0
+            <if test="keyword != null and keyword != ''">
+                AND (title LIKE CONCAT('%', #{keyword}, '%') 
+                     OR organizer LIKE CONCAT('%', #{keyword}, '%')
+                     OR location LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="type != null and type != ''">
+                AND type = #{type}
+            </if>
+            <if test="status != null and status != ''">
+                AND status = #{status}
+            </if>
+            <if test="startDate != null">
+                AND date >= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND date &lt;= #{endDate}
+            </if>
+        </where>
+    </sql>
+
+    <!-- 根据查询条件获取公益活动列表 -->
+    <select id="selectByQuery" resultMap="CharityActivityResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM charity_activities
+        <include refid="Query_Where_Clause"/>
+        ORDER BY date DESC, create_time DESC
+        <if test="offset != null and limit != null">
+            LIMIT #{limit} OFFSET #{offset}
+        </if>
+    </select>
+
+    <!-- 根据查询条件统计活动总数 -->
+    <select id="countByQuery" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM charity_activities
+        <include refid="Query_Where_Clause"/>
+    </select>
+
+    <!-- 根据ID查询活动详情 -->
+    <select id="selectById" resultMap="CharityActivityResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM charity_activities
+        WHERE id = #{id} AND deleted = 0
+    </select>
+
+    <!-- 根据项目ID查询活动列表 -->
+    <select id="selectByProjectId" resultMap="CharityActivityResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM charity_activities
+        WHERE project_id = #{projectId} AND deleted = 0
+        ORDER BY date DESC
+    </select>
+
+    <!-- 插入新活动 -->
+    <insert id="insert" parameterType="com.yxrobot.entity.CharityActivity" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO charity_activities (
+            project_id, title, description, type, date, start_time, end_time, location,
+            participants, target_participants, organizer, status, budget, actual_cost,
+            manager, manager_contact, volunteer_needed, actual_volunteers, achievements,
+            photos, notes, create_time, update_time, create_by, update_by, deleted
+        ) VALUES (
+            #{projectId}, #{title}, #{description}, #{type}, #{date}, #{startTime}, #{endTime}, #{location},
+            #{participants}, #{targetParticipants}, #{organizer}, #{status}, #{budget}, #{actualCost},
+            #{manager}, #{managerContact}, #{volunteerNeeded}, #{actualVolunteers}, #{achievements},
+            #{photos,typeHandler=com.yxrobot.config.StringArrayTypeHandler}, #{notes}, #{createTime}, #{updateTime}, #{createBy}, #{updateBy}, #{deleted}
+        )
+    </insert>
+
+    <!-- 根据ID更新活动信息 -->
+    <update id="updateById" parameterType="com.yxrobot.entity.CharityActivity">
+        UPDATE charity_activities
+        SET project_id = #{projectId},
+            title = #{title},
+            description = #{description},
+            type = #{type},
+            date = #{date},
+            start_time = #{startTime},
+            end_time = #{endTime},
+            location = #{location},
+            participants = #{participants},
+            target_participants = #{targetParticipants},
+            organizer = #{organizer},
+            status = #{status},
+            budget = #{budget},
+            actual_cost = #{actualCost},
+            manager = #{manager},
+            manager_contact = #{managerContact},
+            volunteer_needed = #{volunteerNeeded},
+            actual_volunteers = #{actualVolunteers},
+            achievements = #{achievements},
+            photos = #{photos,typeHandler=com.yxrobot.config.StringArrayTypeHandler},
+            notes = #{notes},
+            update_time = #{updateTime},
+            update_by = #{updateBy}
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <!-- 根据ID软删除活动 -->
+    <update id="deleteById">
+        UPDATE charity_activities
+        SET deleted = 1, update_time = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <!-- 批量软删除活动 -->
+    <update id="batchDeleteByIds">
+        UPDATE charity_activities
+        SET deleted = 1, update_time = NOW()
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        AND deleted = 0
+    </update>
+
+</mapper>

@@ -1,0 +1,278 @@
+package com.yxrobot.exception;
+
+import com.yxrobot.common.Result;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+
+import java.util.Arrays;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+/**
+ * 全局异常处理器销售相关测试类
+ * 
+ * @author YXRobot开发团队
+ * @version 1.0.0
+ * @since 2025-01-27
+ */
+@ExtendWith(MockitoExtension.class)
+class GlobalExceptionHandlerSalesTest {
+    
+    @InjectMocks
+    private GlobalExceptionHandler globalExceptionHandler;
+    
+    @Mock
+    private ExceptionMonitor exceptionMonitor;
+    
+    @BeforeEach
+    void setUp() {
+        // 初始化测试环境
+    }
+    
+    @Test
+    void testHandleSalesException() {
+        // 准备测试数据
+        String errorMessage = "销售操作失败";
+        SalesException exception = new SalesException(errorMessage);
+        
+        // 执行测试
+        ResponseEntity<Result<Object>> response = globalExceptionHandler.handleSalesException(exception);
+        
+        // 验证结果
+        assertNotNull(response);
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        
+        Result<Object> result = response.getBody();
+        assertNotNull(result);
+        assertEquals(400, result.getCode());
+        assertEquals(errorMessage, result.getMessage());
+        assertNull(result.getData());
+        
+        // 验证异常监控调用
+        verify(exceptionMonitor, times(1)).recordException("SalesException", errorMessage, exception);
+    }
+    
+    @Test
+    void testHandleSalesRecordNotFoundException() {
+        // 准备测试数据
+        String errorMessage = "销售记录不存在，ID: 999";
+        SalesRecordNotFoundException exception = new SalesRecordNotFoundException(errorMessage);
+        
+        // 执行测试
+        ResponseEntity<Result<Object>> response = globalExceptionHandler.handleSalesRecordNotFoundException(exception);
+        
+        // 验证结果
+        assertNotNull(response);
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        
+        Result<Object> result = response.getBody();
+        assertNotNull(result);
+        assertEquals(404, result.getCode());
+        assertEquals(errorMessage, result.getMessage());
+        assertNull(result.getData());
+        
+        // 验证异常监控调用
+        verify(exceptionMonitor, times(1)).recordException("SalesRecordNotFoundException", errorMessage, exception);
+    }
+    
+    @Test
+    void testHandleSalesValidationException() {
+        // 准备测试数据
+        String errorMessage = "销售数据验证失败：订单号格式不正确";
+        SalesValidationException exception = new SalesValidationException(errorMessage);
+        
+        // 执行测试
+        ResponseEntity<Result<Object>> response = globalExceptionHandler.handleSalesValidationException(exception);
+        
+        // 验证结果
+        assertNotNull(response);
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        
+        Result<Object> result = response.getBody();
+        assertNotNull(result);
+        assertEquals(400, result.getCode());
+        assertEquals(errorMessage, result.getMessage());
+        assertNull(result.getData());
+        
+        // 验证异常监控调用
+        verify(exceptionMonitor, times(1)).recordException("SalesValidationException", errorMessage, exception);
+    }
+    
+    @Test
+    void testHandleSalesOperationException() {
+        // 准备测试数据
+        String errorMessage = "销售操作执行失败：数据库连接超时";
+        SalesOperationException exception = new SalesOperationException(errorMessage);
+        
+        // 执行测试
+        ResponseEntity<Result<Object>> response = globalExceptionHandler.handleSalesOperationException(exception);
+        
+        // 验证结果
+        assertNotNull(response);
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        
+        Result<Object> result = response.getBody();
+        assertNotNull(result);
+        assertEquals(500, result.getCode());
+        assertEquals(errorMessage, result.getMessage());
+        assertNull(result.getData());
+        
+        // 验证异常监控调用
+        verify(exceptionMonitor, times(1)).recordException("SalesOperationException", errorMessage, exception);
+    }
+    
+    @Test
+    void testHandleMethodArgumentNotValidException_SalesForm() {
+        // 准备测试数据
+        MethodArgumentNotValidException exception = mock(MethodArgumentNotValidException.class);
+        BindingResult bindingResult = mock(BindingResult.class);
+        
+        List<FieldError> fieldErrors = Arrays.asList(
+            new FieldError("salesRecordForm", "orderNumber", "订单号不能为空"),
+            new FieldError("salesRecordForm", "customerId", "请选择客户"),
+            new FieldError("salesRecordForm", "salesAmount", "销售金额必须大于0")
+        );
+        
+        when(exception.getBindingResult()).thenReturn(bindingResult);
+        when(bindingResult.getFieldErrors()).thenReturn(fieldErrors);
+        
+        // 执行测试
+        ResponseEntity<Result<Object>> response = globalExceptionHandler.handleValidationException(exception);
+        
+        // 验证结果
+        assertNotNull(response);
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        
+        Result<Object> result = response.getBody();
+        assertNotNull(result);
+        assertEquals(400, result.getCode());
+        assertTrue(result.getMessage().contains("数据验证失败"));
+        assertTrue(result.getMessage().contains("订单号不能为空"));
+        assertTrue(result.getMessage().contains("请选择客户"));
+        assertTrue(result.getMessage().contains("销售金额必须大于0"));
+    }
+    
+    @Test
+    void testHandleIllegalArgumentException_SalesRelated() {
+        // 准备测试数据
+        String errorMessage = "删除ID列表不能为空";
+        IllegalArgumentException exception = new IllegalArgumentException(errorMessage);
+        
+        // 执行测试
+        ResponseEntity<Result<Object>> response = globalExceptionHandler.handleIllegalArgumentException(exception);
+        
+        // 验证结果
+        assertNotNull(response);
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        
+        Result<Object> result = response.getBody();
+        assertNotNull(result);
+        assertEquals(400, result.getCode());
+        assertEquals(errorMessage, result.getMessage());
+        assertNull(result.getData());
+        
+        // 验证异常监控调用
+        verify(exceptionMonitor, times(1)).recordException("IllegalArgumentException", errorMessage, exception);
+    }
+    
+    @Test
+    void testHandleRuntimeException_SalesRelated() {
+        // 准备测试数据
+        String errorMessage = "销售数据处理过程中发生未知错误";
+        RuntimeException exception = new RuntimeException(errorMessage);
+        
+        // 执行测试
+        ResponseEntity<Result<Object>> response = globalExceptionHandler.handleRuntimeException(exception);
+        
+        // 验证结果
+        assertNotNull(response);
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        
+        Result<Object> result = response.getBody();
+        assertNotNull(result);
+        assertEquals(500, result.getCode());
+        assertEquals("系统内部错误，请稍后重试", result.getMessage());
+        assertNull(result.getData());
+        
+        // 验证异常监控调用
+        verify(exceptionMonitor, times(1)).recordException("RuntimeException", errorMessage, exception);
+    }
+    
+    @Test
+    void testExceptionChaining() {
+        // 测试异常链处理
+        RuntimeException rootCause = new RuntimeException("数据库连接失败");
+        SalesOperationException salesException = new SalesOperationException("销售记录保存失败", rootCause);
+        
+        // 执行测试
+        ResponseEntity<Result<Object>> response = globalExceptionHandler.handleSalesOperationException(salesException);
+        
+        // 验证结果
+        assertNotNull(response);
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        
+        Result<Object> result = response.getBody();
+        assertNotNull(result);
+        assertEquals(500, result.getCode());
+        assertEquals("销售记录保存失败", result.getMessage());
+        
+        // 验证异常监控调用
+        verify(exceptionMonitor, times(1)).recordException("SalesOperationException", "销售记录保存失败", salesException);
+    }
+    
+    @Test
+    void testExceptionWithNullMessage() {
+        // 测试空消息异常处理
+        SalesException exception = new SalesException(null);
+        
+        // 执行测试
+        ResponseEntity<Result<Object>> response = globalExceptionHandler.handleSalesException(exception);
+        
+        // 验证结果
+        assertNotNull(response);
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        
+        Result<Object> result = response.getBody();
+        assertNotNull(result);
+        assertEquals(400, result.getCode());
+        assertEquals("销售操作失败", result.getMessage()); // 应该有默认消息
+        
+        // 验证异常监控调用
+        verify(exceptionMonitor, times(1)).recordException(eq("SalesException"), any(), eq(exception));
+    }
+    
+    @Test
+    void testExceptionResponseFormat() {
+        // 测试异常响应格式的一致性
+        SalesValidationException exception = new SalesValidationException("测试验证异常");
+        
+        // 执行测试
+        ResponseEntity<Result<Object>> response = globalExceptionHandler.handleSalesValidationException(exception);
+        
+        // 验证响应格式
+        assertNotNull(response);
+        assertNotNull(response.getBody());
+        
+        Result<Object> result = response.getBody();
+        
+        // 验证必要字段存在
+        assertNotNull(result.getCode());
+        assertNotNull(result.getMessage());
+        assertTrue(result.getCode() > 0);
+        assertFalse(result.getMessage().isEmpty());
+        
+        // 验证错误响应不包含敏感数据
+        assertNull(result.getData());
+    }
+}

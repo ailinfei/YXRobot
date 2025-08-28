@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>销售图表数据控制器测试 - 任务9验证</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            border-left: 4px solid #3498db;
+            padding-left: 10px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
+        .api-info {
+            background-color: #e8f4fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            border-left: 4px solid #3498db;
+        }
+        .test-button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        .test-button:hover {
+            background-color: #2980b9;
+        }
+        .test-button.success {
+            background-color: #27ae60;
+        }
+        .test-button.error {
+            background-color: #e74c3c;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .result.success {
+            background-color: #d5f4e6;
+            border: 1px solid #27ae60;
+            color: #1e8449;
+        }
+        .result.error {
+            background-color: #fadbd8;
+            border: 1px solid #e74c3c;
+            color: #c0392b;
+        }
+        .result.info {
+            background-color: #ebf3fd;
+            border: 1px solid #3498db;
+            color: #2471a3;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-success { background-color: #27ae60; }
+        .status-error { background-color: #e74c3c; }
+        .status-pending { background-color: #f39c12; }
+        .summary {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 30px;
+            border: 2px solid #dee2e6;
+        }
+        .chart-preview {
+            background-color: #ffffff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 10px;
+            min-height: 100px;
+        }
+        .param-input {
+            margin: 5px 0;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 200px;
+        }
+        .param-group {
+            margin-bottom: 15px;
+        }
+        .param-label {
+            display: inline-block;
+            width: 120px;
+            font-weight: bold;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 销售图表数据控制器测试 - 任务9验证</h1>
+        
+        <div class="api-info">
+            <h3>📋 测试目标</h3>
+            <p><strong>任务9：实现图表数据控制器 - 适配前端图表功能</strong></p>
+            <ul>
+                <li>✅ 实现GET /api/sales/charts/trends接口，返回销售趋势图表数据</li>
+                <li>✅ 实现GET /api/sales/charts/distribution接口，返回分布图表数据</li>
+                <li>✅ 支持type参数（product、region、channel、staff）的不同分布类型</li>
+                <li>✅ 确保返回数据格式适配ECharts（categories + series结构）</li>
+                <li>✅ 添加图表数据缓存和性能优化</li>
+            </ul>
+        </div>
+
+        <!-- 销售趋势图表数据测试 -->
+        <div class="test-section">
+            <h2>📈 销售趋势图表数据测试</h2>
+            <div class="api-info">
+                <strong>接口：</strong> GET /api/sales/charts/trends<br>
+                <strong>功能：</strong> 获取销售趋势图表数据，适配ECharts格式<br>
+                <strong>返回格式：</strong> {categories: [], series: [{name, type, data}]}
+            </div>
+            
+            <div class="param-group">
+                <span class="param-label">开始日期：</span>
+                <input type="date" id="trendsStartDate" class="param-input" value="2024-01-01">
+                <span class="param-label">结束日期：</span>
+                <input type="date" id="trendsEndDate" class="param-input" value="2024-12-31">
+                <span class="param-label">分组方式：</span>
+                <select id="trendsGroupBy" class="param-input">
+                    <option value="day">按天</option>
+                    <option value="week">按周</option>
+                    <option value="month" selected>按月</option>
+                </select>
+            </div>
+            
+            <button class="test-button" onclick="testTrendChartData()">
+                <span class="status-indicator status-pending"></span>测试销售趋势图表
+            </button>
+            <button class="test-button" onclick="testTrendChartDataEmpty()">测试空数据状态</button>
+            <button class="test-button" onclick="testTrendChartDataInvalidParams()">测试参数验证</button>
+            
+            <div id="trendsResult" class="result" style="display: none;"></div>
+            <div id="trendsChartPreview" class="chart-preview" style="display: none;">
+                <h4>📊 图表数据预览</h4>
+                <div id="trendsChartData"></div>
+            </div>
+        </div>
+
+        <!-- 销售分布图表数据测试 -->
+        <div class="test-section">
+            <h2>🥧 销售分布图表数据测试</h2>
+            <div class="api-info">
+                <strong>接口：</strong> GET /api/sales/charts/distribution<br>
+                <strong>功能：</strong> 获取销售分布图表数据，支持多种分布类型<br>
+                <strong>支持类型：</strong> product（产品）、region（地区）、channel（渠道）、staff（人员）
+            </div>
+            
+            <div class="param-group">
+                <span class="param-label">分布类型：</span>
+                <select id="distributionType" class="param-input">
+                    <option value="product" selected>产品分布</option>
+                    <option value="region">地区分布</option>
+                    <option value="channel">渠道分布</option>
+                    <option value="staff">人员分布</option>
+                </select>
+                <span class="param-label">开始日期：</span>
+                <input type="date" id="distributionStartDate" class="param-input" value="2024-01-01">
+                <span class="param-label">结束日期：</span>
+                <input type="date" id="distributionEndDate" class="param-input" value="2024-12-31">
+            </div>
+            
+            <button class="test-button" onclick="testDistributionChartData()">
+                <span class="status-indicator status-pending"></span>测试分布图表
+            </button>
+            <button class="test-button" onclick="testAllDistributionTypes()">测试所有分布类型</button>
+            <button class="test-button" onclick="testDistributionInvalidType()">测试无效类型</button>
+            
+            <div id="distributionResult" class="result" style="display: none;"></div>
+            <div id="distributionChartPreview" class="chart-preview" style="display: none;">
+                <h4>📊 分布图表数据预览</h4>
+                <div id="distributionChartData"></div>
+            </div>
+        </div>
+
+        <!-- 专用接口测试 -->
+        <div class="test-section">
+            <h2>🎯 专用图表接口测试</h2>
+            <div class="api-info">
+                <strong>专用接口：</strong> 产品分布、地区分布、渠道分析、人员业绩<br>
+                <strong>功能：</strong> 提供特定类型的图表数据，简化前端调用
+            </div>
+            
+            <button class="test-button" onclick="testProductDistribution()">产品分布图表</button>
+            <button class="test-button" onclick="testRegionDistribution()">地区分布图表</button>
+            <button class="test-button" onclick="testChannelAnalysis()">渠道分析图表</button>
+            <button class="test-button" onclick="testStaffPerformance()">人员业绩图表</button>
+            
+            <div id="specialResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- 缓存和性能测试 -->
+        <div class="test-section">
+            <h2>⚡ 缓存和性能测试</h2>
+            <div class="api-info">
+                <strong>功能：</strong> 测试图表数据缓存状态和性能优化<br>
+                <strong>接口：</strong> /cache-status, /clear-cache
+            </div>
+            
+            <button class="test-button" onclick="testCacheStatus()">查看缓存状态</button>
+            <button class="test-button" onclick="testClearCache()">清除缓存</button>
+            <button class="test-button" onclick="testPerformance()">性能测试</button>
+            
+            <div id="cacheResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- 测试总结 -->
+        <div class="summary">
+            <h2>📊 测试总结</h2>
+            <div id="testSummary">
+                <p>点击上方按钮开始测试...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const BASE_URL = 'http://localhost:8080/api/sales/charts';
+        let testResults = {
+            total: 0,
+            passed: 0,
+            failed: 0,
+            tests: []
+        };
+
+        // 通用请求函数
+        async function makeRequest(url, options = {}) {
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+                
+                const data = await response.json();
+                return {
+                    success: response.ok,
+                    status: response.status,
+                    data: data
+                };
+            } catch (error) {
+                return {
+                    success: false,
+                    status: 0,
+                    error: error.message
+                };
+            }
+        }
+
+        // 显示结果
+        function showResult(elementId, result, testName) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            
+            if (result.success) {
+                element.className = 'result success';
+                element.textContent = `✅ ${testName} 成功\n\n` + JSON.stringify(result.data, null, 2);
+                testResults.passed++;
+            } else {
+                element.className = 'result error';
+                element.textContent = `❌ ${testName} 失败\n\n状态码: ${result.status}\n错误: ${result.error || JSON.stringify(result.data, null, 2)}`;
+                testResults.failed++;
+            }
+            
+            testResults.total++;
+            testResults.tests.push({
+                name: testName,
+                success: result.success,
+                timestamp: new Date().toLocaleString()
+            });
+            
+            updateSummary();
+        }
+
+        // 更新测试总结
+        function updateSummary() {
+            const summaryElement = document.getElementById('testSummary');
+            const passRate = testResults.total > 0 ? (testResults.passed / testResults.total * 100).toFixed(1) : 0;
+            
+            let summaryHtml = `
+                <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                    <div><strong>总测试数:</strong> ${testResults.total}</div>
+                    <div><strong>通过:</strong> <span style="color: #27ae60;">${testResults.passed}</span></div>
+                    <div><strong>失败:</strong> <span style="color: #e74c3c;">${testResults.failed}</span></div>
+                    <div><strong>通过率:</strong> <span style="color: ${passRate >= 80 ? '#27ae60' : '#e74c3c'};">${passRate}%</span></div>
+                </div>
+            `;
+            
+            if (testResults.tests.length > 0) {
+                summaryHtml += '<h4>测试详情:</h4><ul>';
+                testResults.tests.forEach(test => {
+                    const icon = test.success ? '✅' : '❌';
+                    const color = test.success ? '#27ae60' : '#e74c3c';
+                    summaryHtml += `<li style="color: ${color}; margin-bottom: 5px;">${icon} ${test.name} - ${test.timestamp}</li>`;
+                });
+                summaryHtml += '</ul>';
+            }
+            
+            summaryElement.innerHTML = summaryHtml;
+        }
+
+        // 测试销售趋势图表数据
+        async function testTrendChartData() {
+            const startDate = document.getElementById('trendsStartDate').value;
+            const endDate = document.getElementById('trendsEndDate').value;
+            const groupBy = document.getElementById('trendsGroupBy').value;
+            
+            const url = `${BASE_URL}/trends?startDate=${startDate}&endDate=${endDate}&groupBy=${groupBy}`;
+            const result = await makeRequest(url);
+            
+            showResult('trendsResult', result, '销售趋势图表数据');
+            
+            if (result.success && result.data.data) {
+                showChartPreview('trendsChartPreview', 'trendsChartData', result.data.data, '趋势图表');
+            }
+        }
+
+        // 测试空数据状态
+        async function testTrendChartDataEmpty() {
+            const url = `${BASE_URL}/trends?startDate=2030-01-01&endDate=2030-01-02&groupBy=day`;
+            const result = await makeRequest(url);
+            showResult('trendsResult', result, '趋势图表空数据测试');
+        }
+
+        // 测试参数验证
+        async function testTrendChartDataInvalidParams() {
+            const url = `${BASE_URL}/trends?startDate=invalid-date&groupBy=invalid`;
+            const result = await makeRequest(url);
+            showResult('trendsResult', result, '趋势图表参数验证测试');
+        }
+
+        // 测试分布图表数据
+        async function testDistributionChartData() {
+            const type = document.getElementById('distributionType').value;
+            const startDate = document.getElementById('distributionStartDate').value;
+            const endDate = document.getElementById('distributionEndDate').value;
+            
+            const url = `${BASE_URL}/distribution?type=${type}&startDate=${startDate}&endDate=${endDate}`;
+            const result = await makeRequest(url);
+            
+            showResult('distributionResult', result, `${type}分布图表数据`);
+            
+            if (result.success && result.data.data) {
+                showChartPreview('distributionChartPreview', 'distributionChartData', result.data.data, `${type}分布图表`);
+            }
+        }
+
+        // 测试所有分布类型
+        async function testAllDistributionTypes() {
+            const types = ['product', 'region', 'channel', 'staff'];
+            let allResults = [];
+            
+            for (const type of types) {
+                const url = `${BASE_URL}/distribution?type=${type}`;
+                const result = await makeRequest(url);
+                allResults.push({type, result});
+            }
+            
+            const overallSuccess = allResults.every(r => r.result.success);
+            showResult('distributionResult', {
+                success: overallSuccess,
+                data: allResults
+            }, '所有分布类型测试');
+        }
+
+        // 测试无效分布类型
+        async function testDistributionInvalidType() {
+            const url = `${BASE_URL}/distribution?type=invalid`;
+            const result = await makeRequest(url);
+            showResult('distributionResult', result, '无效分布类型测试');
+        }
+
+        // 测试产品分布
+        async function testProductDistribution() {
+            const url = `${BASE_URL}/product-distribution`;
+            const result = await makeRequest(url);
+            showResult('specialResult', result, '产品分布专用接口');
+        }
+
+        // 测试地区分布
+        async function testRegionDistribution() {
+            const url = `${BASE_URL}/region-distribution`;
+            const result = await makeRequest(url);
+            showResult('specialResult', result, '地区分布专用接口');
+        }
+
+        // 测试渠道分析
+        async function testChannelAnalysis() {
+            const url = `${BASE_URL}/channel-analysis`;
+            const result = await makeRequest(url);
+            showResult('specialResult', result, '渠道分析专用接口');
+        }
+
+        // 测试人员业绩
+        async function testStaffPerformance() {
+            const url = `${BASE_URL}/staff-performance`;
+            const result = await makeRequest(url);
+            showResult('specialResult', result, '人员业绩专用接口');
+        }
+
+        // 测试缓存状态
+        async function testCacheStatus() {
+            const url = `${BASE_URL}/cache-status`;
+            const result = await makeRequest(url);
+            showResult('cacheResult', result, '缓存状态查询');
+        }
+
+        // 测试清除缓存
+        async function testClearCache() {
+            const url = `${BASE_URL}/clear-cache`;
+            const result = await makeRequest(url, {method: 'POST'});
+            showResult('cacheResult', result, '清除缓存');
+        }
+
+        // 性能测试
+        async function testPerformance() {
+            const startTime = Date.now();
+            const url = `${BASE_URL}/trends?groupBy=month`;
+            
+            const result = await makeRequest(url);
+            const endTime = Date.now();
+            const responseTime = endTime - startTime;
+            
+            const performanceResult = {
+                ...result,
+                data: {
+                    ...result.data,
+                    performance: {
+                        responseTime: responseTime + 'ms',
+                        status: responseTime < 1000 ? '优秀' : responseTime < 3000 ? '良好' : '需优化'
+                    }
+                }
+            };
+            
+            showResult('cacheResult', performanceResult, `性能测试 (${responseTime}ms)`);
+        }
+
+        // 显示图表预览
+        function showChartPreview(previewId, dataId, chartData, title) {
+            const previewElement = document.getElementById(previewId);
+            const dataElement = document.getElementById(dataId);
+            
+            previewElement.style.display = 'block';
+            
+            let previewHtml = `<h5>${title}数据结构验证:</h5>`;
+            
+            if (chartData.categories && chartData.series) {
+                previewHtml += `
+                    <p><strong>✅ Categories (${chartData.categories.length}项):</strong> ${JSON.stringify(chartData.categories.slice(0, 3))}${chartData.categories.length > 3 ? '...' : ''}</p>
+                    <p><strong>✅ Series (${chartData.series.length}个系列):</strong></p>
+                    <ul>
+                `;
+                
+                chartData.series.forEach(series => {
+                    previewHtml += `<li>${series.name} (${series.type || 'default'}) - ${series.data ? series.data.length : 0}个数据点</li>`;
+                });
+                
+                previewHtml += '</ul>';
+                previewHtml += '<p><strong>✅ ECharts格式兼容性:</strong> 通过</p>';
+            } else {
+                previewHtml += '<p><strong>❌ 数据格式错误:</strong> 缺少categories或series字段</p>';
+            }
+            
+            dataElement.innerHTML = previewHtml;
+        }
+
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('销售图表数据控制器测试页面已加载');
+            console.log('任务9：实现图表数据控制器 - 适配前端图表功能');
+            
+            // 设置默认日期
+            const today = new Date();
+            const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
+            
+            document.getElementById('trendsStartDate').value = lastMonth.toISOString().split('T')[0];
+            document.getElementById('trendsEndDate').value = today.toISOString().split('T')[0];
+            document.getElementById('distributionStartDate').value = lastMonth.toISOString().split('T')[0];
+            document.getElementById('distributionEndDate').value = today.toISOString().split('T')[0];
+        });
+    </script>
+</body>
+</html>

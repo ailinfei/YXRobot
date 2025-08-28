@@ -1,0 +1,349 @@
+package com.yxrobot.controller;
+
+import com.yxrobot.dto.*;
+import com.yxrobot.entity.Product;
+import com.yxrobot.entity.SalesRecord;
+import com.yxrobot.entity.SalesStatus;
+import com.yxrobot.service.SalesService;
+import com.yxrobot.service.SalesStatsService;
+import com.yxrobot.service.SalesAnalysisService;
+import com.yxrobot.service.ProductService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
+
+import javax.validation.Valid;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotNull;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * 销售记录管理控制器 - 修复版本
+ * 只保留核心销售记录功能，移除对已删除Service的依赖
+ * 
+ * @author YXRobot开发团队
+ * @version 2.0
+ * @since 2025-01-26
+ */
+@RestController
+@RequestMapping("/api/sales")
+@Validated
+public class SalesControllerFixed {
+    
+    private static final Logger logger = LoggerFactory.getLogger(SalesControllerFixed.class);
+    
+    @Autowired
+    private SalesService salesService;
+    
+    @Autowired
+    private SalesStatsService salesStatsService;
+    
+    @Autowired
+    private SalesAnalysisService salesAnalysisService;
+    
+    @Autowired
+    private ProductService productService;
+    
+    /**
+     * 获取销售记录列表 - 核心功能
+     * 支持分页查询和条件筛选
+     * 
+     * @param page 页码（从1开始）
+     * @param pageSize 每页大小
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @param status 订单状态
+     * @param customerId 客户ID
+     * @param productId 产品ID
+     * @param salesStaffId 销售人员ID
+     * @param minAmount 最小金额
+     * @param maxAmount 最大金额
+     * @param region 销售地区
+     * @param channel 销售渠道
+     * @param orderNumber 订单号
+     * @return 销售记录列表
+     */
+    @GetMapping("/records")
+    public ResponseEntity<Map<String, Object>> getSalesRecords(
+            @RequestParam(defaultValue = "1") @Min(1) int page,
+            @RequestParam(defaultValue = "10") @Min(1) int pageSize,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Long customerId,
+            @RequestParam(required = false) Long productId,
+            @RequestParam(required = false) Long salesStaffId,
+            @RequestParam(required = false) BigDecimal minAmount,
+            @RequestParam(required = false) BigDecimal maxAmount,
+            @RequestParam(required = false) String region,
+            @RequestParam(required = false) String channel,
+            @RequestParam(required = false) String orderNumber) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            // 构建查询条件
+            SalesRecordQueryDTO queryDTO = new SalesRecordQueryDTO();
+            queryDTO.setPage(page);
+            queryDTO.setPageSize(pageSize);
+            queryDTO.setStartDate(startDate);
+            queryDTO.setEndDate(endDate);
+            queryDTO.setStatus(status);
+            queryDTO.setCustomerId(customerId);
+            queryDTO.setProductId(productId);
+            queryDTO.setSalesStaffId(salesStaffId);
+            queryDTO.setMinAmount(minAmount);
+            queryDTO.setMaxAmount(maxAmount);
+            queryDTO.setRegion(region);
+            queryDTO.setChannel(channel);
+            queryDTO.setOrderNumber(orderNumber);
+            
+            // 查询销售记录
+            Map<String, Object> result = salesService.getSalesRecords(queryDTO);
+            
+            response.put("success", true);
+            response.put("data", result.get("records"));
+            response.put("total", result.get("total"));
+            response.put("page", page);
+            response.put("pageSize", pageSize);
+            response.put("message", "查询成功");
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            logger.error("查询销售记录失败", e);
+            response.put("success", false);
+            response.put("message", "查询失败：" + e.getMessage());
+            return ResponseEntity.ok(response);
+        }
+    }
+    
+    /**
+     * 根据ID获取销售记录详情
+     * @param id 销售记录ID
+     * @return 销售记录详情
+     */
+    @GetMapping("/records/{id}")
+    public ResponseEntity<Map<String, Object>> getSalesRecordById(@PathVariable Long id) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            SalesRecord record = salesService.getSalesRecordById(id);
+            if (record != null) {
+                response.put("success", true);
+                response.put("data", record);
+                response.put("message", "查询成功");
+            } else {
+                response.put("success", false);
+                response.put("message", "销售记录不存在");
+            }
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("查询销售记录详情失败", e);
+            response.put("success", false);
+            response.put("message", "查询失败：" + e.getMessage());
+            return ResponseEntity.ok(response);
+        }
+    }
+    
+    /**
+     * 创建销售记录
+     * @param salesRecordDTO 销售记录信息
+     * @return 创建结果
+     */
+    @PostMapping("/records")
+    public ResponseEntity<Map<String, Object>> createSalesRecord(@Valid @RequestBody SalesRecordFormDTO salesRecordDTO) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            SalesRecord createdRecord = salesService.createSalesRecord(salesRecordDTO);
+            response.put("success", true);
+            response.put("data", createdRecord);
+            response.put("message", "创建成功");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("创建销售记录失败", e);
+            response.put("success", false);
+            response.put("message", "创建失败：" + e.getMessage());
+            return ResponseEntity.ok(response);
+        }
+    }
+    
+    /**
+     * 更新销售记录
+     * @param id 销售记录ID
+     * @param salesRecordDTO 销售记录信息
+     * @return 更新结果
+     */
+    @PutMapping("/records/{id}")
+    public ResponseEntity<Map<String, Object>> updateSalesRecord(@PathVariable Long id, @Valid @RequestBody SalesRecordFormDTO salesRecordDTO) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            salesRecordDTO.setId(id);
+            SalesRecord updatedRecord = salesService.updateSalesRecord(salesRecordDTO);
+            response.put("success", true);
+            response.put("data", updatedRecord);
+            response.put("message", "更新成功");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("更新销售记录失败", e);
+            response.put("success", false);
+            response.put("message", "更新失败：" + e.getMessage());
+            return ResponseEntity.ok(response);
+        }
+    }
+    
+    /**
+     * 删除销售记录
+     * @param id 销售记录ID
+     * @return 删除结果
+     */
+    @DeleteMapping("/records/{id}")
+    public ResponseEntity<Map<String, Object>> deleteSalesRecord(@PathVariable Long id) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            boolean success = salesService.deleteSalesRecord(id);
+            if (success) {
+                response.put("success", true);
+                response.put("message", "删除成功");
+            } else {
+                response.put("success", false);
+                response.put("message", "删除失败");
+            }
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("删除销售记录失败", e);
+            response.put("success", false);
+            response.put("message", "删除失败：" + e.getMessage());
+            return ResponseEntity.ok(response);
+        }
+    }
+    
+    /**
+     * 获取销售统计数据
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @param groupBy 分组方式（daily, weekly, monthly, yearly）
+     * @return 统计数据
+     */
+    @GetMapping("/stats")
+    public ResponseEntity<Map<String, Object>> getSalesStats(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            @RequestParam(defaultValue = "daily") String groupBy) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            List<SalesStatsDTO> stats = salesStatsService.getSalesStats(startDate, endDate, groupBy);
+            response.put("success", true);
+            response.put("data", stats);
+            response.put("message", "查询成功");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("查询销售统计失败", e);
+            response.put("success", false);
+            response.put("message", "查询失败：" + e.getMessage());
+            return ResponseEntity.ok(response);
+        }
+    }
+    
+    /**
+     * 获取销售图表数据
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @param chartType 图表类型
+     * @return 图表数据
+     */
+    @GetMapping("/charts")
+    public ResponseEntity<Map<String, Object>> getSalesCharts(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            @RequestParam(defaultValue = "sales_trend") String chartType) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            List<SalesChartDataDTO> chartData = salesAnalysisService.getSalesChartData(startDate, endDate, chartType);
+            response.put("success", true);
+            response.put("data", chartData);
+            response.put("message", "查询成功");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("查询销售图表数据失败", e);
+            response.put("success", false);
+            response.put("message", "查询失败：" + e.getMessage());
+            return ResponseEntity.ok(response);
+        }
+    }
+    
+    /**
+     * 获取产品列表（用于销售记录中的产品选择）
+     * @return 产品列表
+     */
+    @GetMapping("/products")
+    public ResponseEntity<Map<String, Object>> getProducts() {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            List<Product> products = productService.getAllActive();
+            response.put("success", true);
+            response.put("data", products);
+            response.put("total", products.size());
+            response.put("message", "查询成功");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("查询产品列表失败", e);
+            response.put("success", false);
+            response.put("message", "查询失败：" + e.getMessage());
+            return ResponseEntity.ok(response);
+        }
+    }
+    
+    /**
+     * 系统健康检查
+     * @return 系统状态
+     */
+    @GetMapping("/health")
+    public ResponseEntity<Map<String, Object>> healthCheck() {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            Map<String, Object> healthInfo = new HashMap<>();
+            healthInfo.put("status", "UP");
+            healthInfo.put("timestamp", System.currentTimeMillis());
+            
+            // 检查服务状态
+            Map<String, String> services = new HashMap<>();
+            services.put("salesService", salesService != null ? "UP" : "DOWN");
+            services.put("salesStatsService", salesStatsService != null ? "UP" : "DOWN");
+            services.put("salesAnalysisService", salesAnalysisService != null ? "UP" : "DOWN");
+            services.put("productService", productService != null ? "UP" : "DOWN");
+            
+            healthInfo.put("services", services);
+            
+            response.put("success", true);
+            response.put("data", healthInfo);
+            response.put("message", "系统运行正常");
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            logger.error("健康检查失败", e);
+            response.put("success", false);
+            response.put("message", "健康检查失败：" + e.getMessage());
+            return ResponseEntity.ok(response);
+        }
+    }
+}

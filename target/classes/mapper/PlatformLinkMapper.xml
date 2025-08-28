@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yxrobot.mapper.PlatformLinkMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="PlatformLinkResultMap" type="com.yxrobot.entity.PlatformLink">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="platform_name" property="platformName" jdbcType="VARCHAR"/>
+        <result column="platform_type" property="platformType" jdbcType="VARCHAR" 
+                typeHandler="com.yxrobot.handler.PlatformTypeHandler"/>
+        <result column="link_url" property="linkUrl" jdbcType="VARCHAR"/>
+        <result column="region" property="region" jdbcType="VARCHAR"/>
+        <result column="country" property="country" jdbcType="VARCHAR"/>
+        <result column="language_code" property="languageCode" jdbcType="VARCHAR"/>
+        <result column="language_name" property="languageName" jdbcType="VARCHAR"/>
+        <result column="is_enabled" property="isEnabled" jdbcType="TINYINT"/>
+        <result column="link_status" property="linkStatus" jdbcType="VARCHAR" 
+                typeHandler="com.yxrobot.handler.LinkStatusHandler"/>
+        <result column="last_checked_at" property="lastCheckedAt" jdbcType="TIMESTAMP"/>
+        <result column="click_count" property="clickCount" jdbcType="INTEGER"/>
+        <result column="conversion_count" property="conversionCount" jdbcType="INTEGER"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+        <result column="updated_at" property="updatedAt" jdbcType="TIMESTAMP"/>
+        <result column="is_deleted" property="isDeleted" jdbcType="TINYINT"/>
+    </resultMap>
+
+    <!-- 基础列 -->
+    <sql id="Base_Column_List">
+        id, platform_name, platform_type, link_url, region, country, 
+        language_code, language_name, is_enabled, link_status, 
+        last_checked_at, click_count, conversion_count, 
+        created_at, updated_at, is_deleted
+    </sql>
+
+    <!-- 查询条件 -->
+    <sql id="Where_Clause">
+        <where>
+            is_deleted = 0
+            <if test="params.platformType != null and params.platformType != ''">
+                AND platform_type = #{params.platformType}
+            </if>
+            <if test="params.region != null and params.region != ''">
+                AND region = #{params.region}
+            </if>
+            <if test="params.languageCode != null and params.languageCode != ''">
+                AND language_code = #{params.languageCode}
+            </if>
+            <if test="params.linkStatus != null and params.linkStatus != ''">
+                AND link_status = #{params.linkStatus}
+            </if>
+            <if test="params.isEnabled != null">
+                AND is_enabled = #{params.isEnabled}
+            </if>
+            <if test="params.keyword != null and params.keyword != ''">
+                AND (platform_name LIKE CONCAT('%', #{params.keyword}, '%') 
+                     OR link_url LIKE CONCAT('%', #{params.keyword}, '%'))
+            </if>
+        </where>
+    </sql>
+
+    <!-- 根据ID查询 -->
+    <select id="selectById" resultMap="PlatformLinkResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM platform_links
+        WHERE id = #{id} AND is_deleted = 0
+    </select>
+
+    <!-- 分页查询列表 -->
+    <select id="selectList" resultMap="PlatformLinkResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM platform_links
+        <include refid="Where_Clause"/>
+        ORDER BY 
+        <choose>
+            <when test="params.orderBy != null and params.orderBy != ''">
+                ${params.orderBy}
+                <if test="params.orderDirection != null and params.orderDirection != ''">
+                    ${params.orderDirection}
+                </if>
+            </when>
+            <otherwise>
+                created_at DESC
+            </otherwise>
+        </choose>
+        <if test="params.offset != null and params.limit != null">
+            LIMIT #{params.offset}, #{params.limit}
+        </if>
+    </select>
+
+    <!-- 查询总数 -->
+    <select id="selectCount" resultType="int">
+        SELECT COUNT(*)
+        FROM platform_links
+        <include refid="Where_Clause"/>
+    </select>
+
+    <!-- 插入 -->
+    <insert id="insert" parameterType="com.yxrobot.entity.PlatformLink" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO platform_links (
+            platform_name, platform_type, link_url, region, country,
+            language_code, language_name, is_enabled, link_status,
+            click_count, conversion_count, created_at, updated_at, is_deleted
+        ) VALUES (
+            #{platformName}, #{platformType}, #{linkUrl}, #{region}, #{country},
+            #{languageCode}, #{languageName}, #{isEnabled}, #{linkStatus},
+            #{clickCount}, #{conversionCount}, NOW(), NOW(), #{isDeleted}
+        )
+    </insert>
+
+    <!-- 更新 -->
+    <update id="update" parameterType="com.yxrobot.entity.PlatformLink">
+        UPDATE platform_links
+        <set>
+            <if test="platformName != null and platformName != ''">
+                platform_name = #{platformName},
+            </if>
+            <if test="platformType != null">
+                platform_type = #{platformType},
+            </if>
+            <if test="linkUrl != null and linkUrl != ''">
+                link_url = #{linkUrl},
+            </if>
+            <if test="region != null and region != ''">
+                region = #{region},
+            </if>
+            <if test="country != null and country != ''">
+                country = #{country},
+            </if>
+            <if test="languageCode != null and languageCode != ''">
+                language_code = #{languageCode},
+            </if>
+            <if test="languageName != null and languageName != ''">
+                language_name = #{languageName},
+            </if>
+            <if test="isEnabled != null">
+                is_enabled = #{isEnabled},
+            </if>
+            <if test="linkStatus != null">
+                link_status = #{linkStatus},
+            </if>
+            <if test="lastCheckedAt != null">
+                last_checked_at = #{lastCheckedAt},
+            </if>
+            <if test="clickCount != null">
+                click_count = #{clickCount},
+            </if>
+            <if test="conversionCount != null">
+                conversion_count = #{conversionCount},
+            </if>
+            updated_at = NOW()
+        </set>
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <!-- 软删除 -->
+    <update id="deleteById">
+        UPDATE platform_links 
+        SET is_deleted = 1, updated_at = NOW()
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <!-- 更新启用状态 -->
+    <update id="updateEnabledStatus">
+        UPDATE platform_links 
+        SET is_enabled = #{isEnabled}, updated_at = NOW()
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <!-- 更新链接状态 -->
+    <update id="updateLinkStatus">
+        UPDATE platform_links 
+        SET link_status = #{linkStatus}, last_checked_at = NOW(), updated_at = NOW()
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <!-- 更新点击量 -->
+    <update id="updateClickCount">
+        UPDATE platform_links 
+        SET click_count = #{clickCount}, updated_at = NOW()
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <!-- 更新转化量 -->
+    <update id="updateConversionCount">
+        UPDATE platform_links 
+        SET conversion_count = #{conversionCount}, updated_at = NOW()
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <!-- 获取统计数据 -->
+    <select id="selectStats" resultType="map">
+        SELECT 
+            COUNT(*) as totalLinks,
+            SUM(CASE WHEN is_enabled = 1 AND link_status = 'active' THEN 1 ELSE 0 END) as activeLinks,
+            SUM(CASE WHEN is_enabled = 0 OR link_status != 'active' THEN 1 ELSE 0 END) as inactiveLinks,
+            COALESCE(SUM(click_count), 0) as totalClicks,
+            COALESCE(SUM(conversion_count), 0) as totalConversions,
+            CASE 
+                WHEN SUM(click_count) > 0 THEN ROUND((SUM(conversion_count) * 100.0 / SUM(click_count)), 2)
+                ELSE 0.0 
+            END as conversionRate
+        FROM platform_links 
+        WHERE is_deleted = 0
+    </select>
+
+    <!-- 获取地区统计数据 -->
+    <select id="selectRegionStats" resultType="map">
+        SELECT 
+            region,
+            COUNT(*) as linkCount,
+            COALESCE(SUM(click_count), 0) as clickCount,
+            COALESCE(SUM(conversion_count), 0) as conversionCount
+        FROM platform_links 
+        WHERE is_deleted = 0
+        GROUP BY region
+        ORDER BY linkCount DESC, clickCount DESC
+    </select>
+
+    <!-- 获取语言统计数据 -->
+    <select id="selectLanguageStats" resultType="map">
+        SELECT 
+            language_code as languageCode,
+            language_name as languageName,
+            COUNT(*) as linkCount,
+            COALESCE(SUM(click_count), 0) as clickCount,
+            COALESCE(SUM(conversion_count), 0) as conversionCount
+        FROM platform_links 
+        WHERE is_deleted = 0
+        GROUP BY language_code, language_name
+        ORDER BY linkCount DESC, clickCount DESC
+    </select>
+
+    <!-- 获取表现最佳的链接 -->
+    <select id="selectTopPerformingLinks" resultType="map">
+        SELECT 
+            id,
+            platform_name as platformName,
+            region,
+            click_count as clickCount,
+            conversion_count as conversionCount,
+            CASE 
+                WHEN click_count > 0 THEN ROUND((conversion_count * 100.0 / click_count), 2)
+                ELSE 0.0 
+            END as conversionRate
+        FROM platform_links 
+        WHERE is_deleted = 0 AND click_count > 0
+        ORDER BY click_count DESC, conversion_count DESC
+        <if test="limit != null and limit > 0">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 检查是否存在 -->
+    <select id="checkExists" resultType="int">
+        SELECT COUNT(*)
+        FROM platform_links
+        WHERE platform_name = #{platformName} 
+          AND region = #{region} 
+          AND language_code = #{languageCode}
+          AND is_deleted = 0
+        <if test="excludeId != null">
+            AND id != #{excludeId}
+        </if>
+    </select>
+
+    <!-- 根据地区和语言查询 -->
+    <select id="selectByRegionAndLanguage" resultMap="PlatformLinkResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM platform_links
+        WHERE region = #{region} 
+          AND language_code = #{languageCode}
+          AND is_deleted = 0
+        ORDER BY platform_name
+    </select>
+
+    <!-- 根据平台类型查询 -->
+    <select id="selectByPlatformType" resultMap="PlatformLinkResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM platform_links
+        WHERE platform_type = #{platformType}
+          AND is_deleted = 0
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 查询需要检查的链接 -->
+    <select id="selectLinksForCheck" resultMap="PlatformLinkResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM platform_links
+        WHERE is_deleted = 0 
+          AND is_enabled = 1
+          AND (last_checked_at IS NULL 
+               OR last_checked_at &lt; DATE_SUB(NOW(), INTERVAL 1 HOUR))
+        ORDER BY 
+            CASE WHEN last_checked_at IS NULL THEN 0 ELSE 1 END,
+            last_checked_at ASC
+        <if test="limit != null and limit > 0">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+</mapper>
