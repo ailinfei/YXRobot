@@ -1,13 +1,16 @@
 package com.yxrobot.service;
 
 import com.yxrobot.entity.SalesProduct;
+import com.yxrobot.dto.SalesProductDTO;
 import com.yxrobot.mapper.SalesProductMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 销售产品服务类
@@ -188,5 +191,38 @@ public class SalesProductService {
     public boolean isProductCodeExists(String productCode, Long excludeId) {
         SalesProduct product = salesProductMapper.selectByProductCode(productCode);
         return product != null && !product.getId().equals(excludeId);
+    }
+    
+    /**
+     * 获取所有产品的DTO列表 - 为销售控制器提供
+     */
+    public List<SalesProductDTO> getAllProducts() {
+        List<SalesProduct> products = getAllActiveSalesProducts();
+        return products.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * 将SalesProduct实体转换为DTO
+     */
+    private SalesProductDTO convertToDTO(SalesProduct product) {
+        SalesProductDTO dto = new SalesProductDTO();
+        dto.setId(product.getId());
+        dto.setProductName(product.getProductName());
+        dto.setProductCode(product.getProductCode());
+        dto.setCategory(product.getCategory());
+        dto.setBrand(product.getBrand());
+        dto.setModel(product.getModel());
+        dto.setUnitPrice(product.getUnitPrice());
+        dto.setCostPrice(product.getCostPrice());
+        dto.setStockQuantity(product.getStockQuantity());
+        dto.setUnit(product.getUnit());
+        dto.setDescription(product.getDescription());
+        dto.setSpecifications(product.getSpecifications());
+        dto.setIsActive(product.getIsActive());
+        dto.setCreatedAt(product.getCreatedAt() != null ? product.getCreatedAt().toString() : null);
+        dto.setUpdatedAt(product.getUpdatedAt() != null ? product.getUpdatedAt().toString() : null);
+        return dto;
     }
 }

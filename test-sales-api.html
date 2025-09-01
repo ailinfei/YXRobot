@@ -3,339 +3,281 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>销售API测试</title>
+    <title>Sales API Test</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            margin: 20px;
             background-color: #f5f5f5;
         }
         .container {
+            max-width: 1000px;
+            margin: 0 auto;
             background: white;
             padding: 20px;
-            border-radius: 8px;
+            border-radius: 10px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
         }
         .test-section {
             margin-bottom: 30px;
-            padding: 15px;
+            padding: 20px;
             border: 1px solid #ddd;
-            border-radius: 5px;
+            border-radius: 8px;
         }
-        .test-section h3 {
-            margin-top: 0;
-            color: #333;
-        }
-        button {
-            background: #007bff;
+        .test-button {
+            background-color: #409EFF;
             color: white;
+            padding: 10px 20px;
             border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
+            border-radius: 5px;
             cursor: pointer;
-            margin-right: 10px;
-            margin-bottom: 10px;
+            font-size: 16px;
+            margin: 10px 5px;
         }
-        button:hover {
-            background: #0056b3;
+        .test-button:hover {
+            background-color: #337ecc;
         }
         .result {
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 4px;
-            padding: 10px;
-            margin-top: 10px;
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #409EFF;
+        }
+        .error {
+            border-left-color: #f56c6c;
+            background-color: #fef0f0;
+        }
+        .success {
+            border-left-color: #67c23a;
+            background-color: #f0f9ff;
+        }
+        pre {
             white-space: pre-wrap;
-            font-family: monospace;
-            font-size: 12px;
+            word-wrap: break-word;
             max-height: 300px;
             overflow-y: auto;
         }
-        .success {
-            border-color: #28a745;
-            background-color: #d4edda;
+        .input-group {
+            margin-bottom: 15px;
         }
-        .error {
-            border-color: #dc3545;
-            background-color: #f8d7da;
-        }
-        .status {
+        .input-group label {
             display: inline-block;
-            padding: 2px 8px;
-            border-radius: 3px;
-            font-size: 12px;
+            width: 120px;
             font-weight: bold;
         }
-        .status.success {
-            background: #28a745;
-            color: white;
-        }
-        .status.error {
-            background: #dc3545;
-            color: white;
-        }
-        .status.pending {
-            background: #ffc107;
-            color: black;
+        .input-group input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 200px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>销售数据管理模块 API 测试</h1>
-        <p>测试后端API接口的连通性和数据返回</p>
-        
+        <h1>Sales API 测试工具</h1>
+        <p>测试新创建的 SalesController 各个API端点</p>
+
+        <!-- 销售统计API测试 -->
         <div class="test-section">
-            <h3>1. 销售统计数据测试</h3>
-            <button onclick="testSalesStats()">获取销售统计</button>
-            <button onclick="testSalesTrends()">获取销售趋势</button>
-            <div id="stats-result" class="result"></div>
+            <h3>1. 销售统计API测试</h3>
+            <p><code>GET /api/sales/stats</code></p>
+            
+            <div class="input-group">
+                <label>开始日期:</label>
+                <input type="date" id="statsStartDate" value="2025-07-30">
+            </div>
+            <div class="input-group">
+                <label>结束日期:</label>
+                <input type="date" id="statsEndDate" value="2025-08-29">
+            </div>
+            <div class="input-group">
+                <label>统计类型:</label>
+                <select id="statType" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 200px;">
+                    <option value="daily">每日</option>
+                    <option value="weekly">每周</option>
+                    <option value="monthly">每月</option>
+                    <option value="yearly">每年</option>
+                </select>
+            </div>
+            
+            <button class="test-button" onclick="testSalesStats()">测试销售统计</button>
+            <button class="test-button" onclick="testSalesStatsNoParams()">测试无参数统计</button>
+            
+            <div id="salesStatsResult" class="result" style="display: none;">
+                <h4>销售统计结果：</h4>
+                <pre id="salesStatsContent"></pre>
+            </div>
         </div>
 
+        <!-- 销售记录API测试 -->
         <div class="test-section">
-            <h3>2. 销售记录数据测试</h3>
-            <button onclick="testSalesRecords()">获取销售记录列表</button>
-            <button onclick="testSalesRecordById()">获取销售记录详情</button>
-            <div id="records-result" class="result"></div>
+            <h3>2. 销售记录API测试</h3>
+            <p><code>GET /api/sales/records</code></p>
+            
+            <div class="input-group">
+                <label>页码:</label>
+                <input type="number" id="recordsPage" value="1" min="1">
+            </div>
+            <div class="input-group">
+                <label>每页大小:</label>
+                <input type="number" id="recordsPageSize" value="10" min="1" max="100">
+            </div>
+            
+            <button class="test-button" onclick="testSalesRecords()">测试销售记录</button>
+            
+            <div id="salesRecordsResult" class="result" style="display: none;">
+                <h4>销售记录结果：</h4>
+                <pre id="salesRecordsContent"></pre>
+            </div>
         </div>
 
+        <!-- 趋势图表API测试 -->
         <div class="test-section">
-            <h3>3. 图表数据测试</h3>
-            <button onclick="testChartsDistribution()">获取分布图数据</button>
-            <button onclick="testChartsMonthly()">获取月度图表数据</button>
-            <button onclick="testChartsTrends()">获取趋势图数据</button>
-            <div id="charts-result" class="result"></div>
+            <h3>3. 趋势图表API测试</h3>
+            <p><code>GET /api/sales/charts/trends</code></p>
+            
+            <button class="test-button" onclick="testTrendCharts()">测试趋势图表</button>
+            
+            <div id="trendsResult" class="result" style="display: none;">
+                <h4>趋势图表结果：</h4>
+                <pre id="trendsContent"></pre>
+            </div>
         </div>
 
+        <!-- 分布图表API测试 -->
         <div class="test-section">
-            <h3>4. 辅助功能测试</h3>
-            <button onclick="testCustomers()">获取客户列表</button>
-            <button onclick="testProducts()">获取产品列表</button>
-            <button onclick="testStaff()">获取销售人员列表</button>
-            <div id="auxiliary-result" class="result"></div>
+            <h3>4. 分布图表API测试</h3>
+            <p><code>GET /api/sales/charts/distribution</code></p>
+            
+            <div class="input-group">
+                <label>分布类型:</label>
+                <select id="distributionType" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 200px;">
+                    <option value="product">产品分布</option>
+                    <option value="region">地区分布</option>
+                    <option value="channel">渠道分布</option>
+                    <option value="staff">员工分布</option>
+                </select>
+            </div>
+            
+            <button class="test-button" onclick="testDistributionCharts()">测试分布图表</button>
+            
+            <div id="distributionResult" class="result" style="display: none;">
+                <h4>分布图表结果：</h4>
+                <pre id="distributionContent"></pre>
+            </div>
         </div>
 
-        <div class="test-section">
-            <h3>5. 综合测试</h3>
-            <button onclick="runAllTests()">运行所有测试</button>
-            <button onclick="clearResults()">清除结果</button>
-            <div id="all-result" class="result"></div>
+        <!-- 清除所有结果 -->
+        <div style="text-align: center; margin-top: 30px;">
+            <button class="test-button" onclick="clearAllResults()">清除所有结果</button>
         </div>
     </div>
 
     <script>
-        const API_BASE = 'http://localhost:8081';
-        
-        function log(elementId, message, type = 'info') {
-            const element = document.getElementById(elementId);
-            const timestamp = new Date().toLocaleTimeString();
-            const statusClass = type === 'success' ? 'success' : type === 'error' ? 'error' : 'pending';
-            const statusText = type === 'success' ? 'SUCCESS' : type === 'error' ? 'ERROR' : 'INFO';
+        // 销售统计API测试
+        async function testSalesStats() {
+            const startDate = document.getElementById('statsStartDate').value;
+            const endDate = document.getElementById('statsEndDate').value;
+            const statType = document.getElementById('statType').value;
             
-            element.innerHTML += `[${timestamp}] <span class="status ${statusClass}">${statusText}</span> ${message}\n`;
-            element.scrollTop = element.scrollHeight;
+            const url = `http://localhost:8081/api/sales/stats?startDate=${startDate}&endDate=${endDate}&statType=${statType}`;
             
-            if (type === 'success') {
-                element.classList.add('success');
-                element.classList.remove('error');
-            } else if (type === 'error') {
-                element.classList.add('error');
-                element.classList.remove('success');
-            }
+            await testAPI('salesStatsResult', 'salesStatsContent', url, '销售统计API');
         }
 
-        async function apiCall(url, options = {}) {
+        async function testSalesStatsNoParams() {
+            const url = `http://localhost:8081/api/sales/stats`;
+            await testAPI('salesStatsResult', 'salesStatsContent', url, '销售统计API(无参数)');
+        }
+
+        // 销售记录API测试
+        async function testSalesRecords() {
+            const page = document.getElementById('recordsPage').value;
+            const pageSize = document.getElementById('recordsPageSize').value;
+            
+            const url = `http://localhost:8081/api/sales/records?page=${page}&pageSize=${pageSize}`;
+            
+            await testAPI('salesRecordsResult', 'salesRecordsContent', url, '销售记录API');
+        }
+
+        // 趋势图表API测试
+        async function testTrendCharts() {
+            const url = `http://localhost:8081/api/sales/charts/trends?groupBy=day`;
+            await testAPI('trendsResult', 'trendsContent', url, '趋势图表API');
+        }
+
+        // 分布图表API测试
+        async function testDistributionCharts() {
+            const type = document.getElementById('distributionType').value;
+            const url = `http://localhost:8081/api/sales/charts/distribution?type=${type}`;
+            await testAPI('distributionResult', 'distributionContent', url, '分布图表API');
+        }
+
+        // 通用API测试函数
+        async function testAPI(resultId, contentId, url, apiName) {
+            showLoading(resultId, contentId, apiName);
             try {
-                const response = await fetch(API_BASE + url, {
+                console.log(`正在测试: ${url}`);
+                
+                const response = await fetch(url, {
+                    method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
-                        ...options.headers
-                    },
-                    ...options
+                    }
                 });
                 
                 const data = await response.json();
-                return { success: response.ok, data, status: response.status };
-            } catch (error) {
-                return { success: false, error: error.message, status: 0 };
-            }
-        }
-
-        async function testSalesStats() {
-            log('stats-result', '测试销售统计数据...', 'pending');
-            
-            const result = await apiCall('/api/sales/stats?startDate=2025-01-01&endDate=2025-01-27');
-            
-            if (result.success) {
-                log('stats-result', `销售统计数据获取成功: ${JSON.stringify(result.data, null, 2)}`, 'success');
-            } else {
-                log('stats-result', `销售统计数据获取失败: ${result.error || result.data?.message || '未知错误'}`, 'error');
-            }
-        }
-
-        async function testSalesTrends() {
-            log('stats-result', '测试销售趋势数据...', 'pending');
-            
-            const result = await apiCall('/api/sales/trends?startDate=2025-01-01&endDate=2025-01-27&groupBy=day');
-            
-            if (result.success) {
-                log('stats-result', `销售趋势数据获取成功: ${JSON.stringify(result.data, null, 2)}`, 'success');
-            } else {
-                log('stats-result', `销售趋势数据获取失败: ${result.error || result.data?.message || '未知错误'}`, 'error');
-            }
-        }
-
-        async function testSalesRecords() {
-            log('records-result', '测试销售记录列表...', 'pending');
-            
-            const result = await apiCall('/api/sales/records?page=1&pageSize=10');
-            
-            if (result.success) {
-                const recordCount = result.data?.data?.list?.length || 0;
-                log('records-result', `销售记录列表获取成功，共${recordCount}条记录: ${JSON.stringify(result.data, null, 2)}`, 'success');
-            } else {
-                log('records-result', `销售记录列表获取失败: ${result.error || result.data?.message || '未知错误'}`, 'error');
-            }
-        }
-
-        async function testSalesRecordById() {
-            log('records-result', '测试销售记录详情...', 'pending');
-            
-            const result = await apiCall('/api/sales/records/1');
-            
-            if (result.success) {
-                log('records-result', `销售记录详情获取成功: ${JSON.stringify(result.data, null, 2)}`, 'success');
-            } else {
-                log('records-result', `销售记录详情获取失败: ${result.error || result.data?.message || '未知错误'}`, 'error');
-            }
-        }
-
-        async function testChartsDistribution() {
-            log('charts-result', '测试分布图数据...', 'pending');
-            
-            const result = await apiCall('/api/sales/charts/distribution?type=product&startDate=2025-01-01&endDate=2025-01-27');
-            
-            if (result.success) {
-                log('charts-result', `分布图数据获取成功: ${JSON.stringify(result.data, null, 2)}`, 'success');
-            } else {
-                log('charts-result', `分布图数据获取失败: ${result.error || result.data?.message || '未知错误'}`, 'error');
-            }
-        }
-
-        async function testChartsMonthly() {
-            log('charts-result', '测试月度图表数据...', 'pending');
-            
-            const result = await apiCall('/api/sales/charts/monthly?year=2025&months=12');
-            
-            if (result.success) {
-                log('charts-result', `月度图表数据获取成功: ${JSON.stringify(result.data, null, 2)}`, 'success');
-            } else {
-                log('charts-result', `月度图表数据获取失败: ${result.error || result.data?.message || '未知错误'}`, 'error');
-            }
-        }
-
-        async function testChartsTrends() {
-            log('charts-result', '测试趋势图数据...', 'pending');
-            
-            const result = await apiCall('/api/sales/charts/trends?startDate=2025-01-01&endDate=2025-01-27&groupBy=day');
-            
-            if (result.success) {
-                log('charts-result', `趋势图数据获取成功: ${JSON.stringify(result.data, null, 2)}`, 'success');
-            } else {
-                log('charts-result', `趋势图数据获取失败: ${result.error || result.data?.message || '未知错误'}`, 'error');
-            }
-        }
-
-        async function testCustomers() {
-            log('auxiliary-result', '测试客户列表...', 'pending');
-            
-            const result = await apiCall('/api/sales/customers?page=1&pageSize=10');
-            
-            if (result.success) {
-                const customerCount = result.data?.data?.list?.length || 0;
-                log('auxiliary-result', `客户列表获取成功，共${customerCount}条记录: ${JSON.stringify(result.data, null, 2)}`, 'success');
-            } else {
-                log('auxiliary-result', `客户列表获取失败: ${result.error || result.data?.message || '未知错误'}`, 'error');
-            }
-        }
-
-        async function testProducts() {
-            log('auxiliary-result', '测试产品列表...', 'pending');
-            
-            const result = await apiCall('/api/sales/products?page=1&pageSize=10');
-            
-            if (result.success) {
-                const productCount = result.data?.data?.list?.length || 0;
-                log('auxiliary-result', `产品列表获取成功，共${productCount}条记录: ${JSON.stringify(result.data, null, 2)}`, 'success');
-            } else {
-                log('auxiliary-result', `产品列表获取失败: ${result.error || result.data?.message || '未知错误'}`, 'error');
-            }
-        }
-
-        async function testStaff() {
-            log('auxiliary-result', '测试销售人员列表...', 'pending');
-            
-            const result = await apiCall('/api/sales/staff?page=1&pageSize=10');
-            
-            if (result.success) {
-                const staffCount = result.data?.data?.list?.length || 0;
-                log('auxiliary-result', `销售人员列表获取成功，共${staffCount}条记录: ${JSON.stringify(result.data, null, 2)}`, 'success');
-            } else {
-                log('auxiliary-result', `销售人员列表获取失败: ${result.error || result.data?.message || '未知错误'}`, 'error');
-            }
-        }
-
-        async function runAllTests() {
-            log('all-result', '开始运行所有测试...', 'pending');
-            
-            const tests = [
-                { name: '销售统计', fn: () => apiCall('/api/sales/stats') },
-                { name: '销售记录', fn: () => apiCall('/api/sales/records?page=1&pageSize=5') },
-                { name: '图表数据', fn: () => apiCall('/api/sales/charts/distribution?type=product') },
-                { name: '客户列表', fn: () => apiCall('/api/sales/customers?page=1&pageSize=5') },
-                { name: '产品列表', fn: () => apiCall('/api/sales/products?page=1&pageSize=5') },
-                { name: '销售人员', fn: () => apiCall('/api/sales/staff?page=1&pageSize=5') }
-            ];
-            
-            let successCount = 0;
-            let totalCount = tests.length;
-            
-            for (const test of tests) {
-                log('all-result', `正在测试: ${test.name}...`, 'pending');
                 
-                const result = await test.fn();
-                
-                if (result.success) {
-                    log('all-result', `✓ ${test.name} 测试通过`, 'success');
-                    successCount++;
+                if (response.ok) {
+                    showResult(resultId, contentId, `✅ ${apiName} 成功！HTTP状态：${response.status}`, data, 'success');
                 } else {
-                    log('all-result', `✗ ${test.name} 测试失败: ${result.error || result.data?.message || '未知错误'}`, 'error');
+                    showResult(resultId, contentId, `❌ ${apiName} 失败！HTTP状态：${response.status}`, data, 'error');
                 }
-            }
-            
-            log('all-result', `\n测试完成！成功: ${successCount}/${totalCount}`, successCount === totalCount ? 'success' : 'error');
-            
-            if (successCount === totalCount) {
-                log('all-result', '🎉 所有API测试通过！销售数据管理模块后端接口工作正常。', 'success');
-            } else {
-                log('all-result', '⚠️ 部分API测试失败，请检查后端服务状态。', 'error');
+            } catch (error) {
+                showResult(resultId, contentId, `❌ ${apiName} 网络错误：`, error.message, 'error');
             }
         }
 
-        function clearResults() {
-            const resultElements = document.querySelectorAll('.result');
-            resultElements.forEach(element => {
-                element.innerHTML = '';
-                element.classList.remove('success', 'error');
+        function showLoading(resultId, contentId, apiName) {
+            const resultDiv = document.getElementById(resultId);
+            const resultContent = document.getElementById(contentId);
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result';
+            resultContent.textContent = `正在测试 ${apiName}...`;
+        }
+
+        function showResult(resultId, contentId, title, data, type) {
+            const resultDiv = document.getElementById(resultId);
+            const resultContent = document.getElementById(contentId);
+            
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result ' + type;
+            
+            const content = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+            resultContent.textContent = title + '\n\n' + content;
+        }
+
+        function clearAllResults() {
+            const resultIds = ['salesStatsResult', 'salesRecordsResult', 'trendsResult', 'distributionResult'];
+            resultIds.forEach(id => {
+                document.getElementById(id).style.display = 'none';
             });
         }
 
-        // 页面加载时显示说明
+        // 页面加载时设置默认日期
         window.onload = function() {
-            log('all-result', '销售API测试工具已就绪。请确保后端服务运行在 http://localhost:8081', 'info');
-            log('all-result', '点击上方按钮开始测试各个API接口。', 'info');
+            const today = new Date();
+            const endDate = today.toISOString().split('T')[0];
+            const startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+            
+            document.getElementById('statsStartDate').value = startDate;
+            document.getElementById('statsEndDate').value = endDate;
         };
     </script>
 </body>

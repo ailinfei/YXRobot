@@ -1,28 +1,21 @@
-# 测试环境配置
+# 测试环境配置文件
 spring:
-  # 数据源配置 - 使用H2内存数据库进行测试
+  profiles:
+    active: test
+  
+  # 数据源配置 - 使用内存数据库进行测试
   datasource:
     url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
     username: sa
     password: 
-    driver-class-name: org.h2.Driver
     
-    # 连接池配置
-    hikari:
-      minimum-idle: 1
-      maximum-pool-size: 5
-      auto-commit: true
-      idle-timeout: 30000
-      pool-name: YXRobotTestHikariCP
-      max-lifetime: 1800000
-      connection-timeout: 30000
-
-  # H2数据库控制台配置（测试时可用）
+  # H2数据库控制台配置
   h2:
     console:
       enabled: true
       path: /h2-console
-
+      
   # JPA配置
   jpa:
     hibernate:
@@ -32,46 +25,75 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.H2Dialect
-
-# MyBatis配置
-mybatis:
-  mapper-locations: classpath:mapper/*.xml
-  type-aliases-package: com.yxrobot.entity
-  configuration:
-    map-underscore-to-camel-case: true
-    cache-enabled: false
-    lazy-loading-enabled: false
-    multiple-result-sets-enabled: true
-    use-column-label: true
-    use-generated-keys: true
-    auto-mapping-behavior: partial
-    default-executor-type: simple
-    default-statement-timeout: 25000
-
-# 文件上传配置（测试环境）
-file:
-  upload:
-    path: ./test-uploads
-  access:
-    url:
-      prefix: /api/v1/files
-
+        
+  # MyBatis配置
+  mybatis:
+    mapper-locations: classpath:mapper/*.xml
+    type-aliases-package: com.yxrobot.entity
+    configuration:
+      map-underscore-to-camel-case: true
+      cache-enabled: true
+      lazy-loading-enabled: true
+      multiple-result-sets-enabled: true
+      use-column-label: true
+      use-generated-keys: true
+      auto-mapping-behavior: partial
+      auto-mapping-unknown-column-behavior: warning
+      default-statement-timeout: 25
+      default-fetch-size: 100
+      safe-row-bounds-enabled: false
+      local-cache-scope: session
+      jdbc-type-for-null: other
+      lazy-load-trigger-methods: equals,clone,hashCode,toString
+      
 # 日志配置
 logging:
   level:
     com.yxrobot: DEBUG
-    org.springframework.web: INFO
-    org.mybatis: DEBUG
     org.springframework.test: DEBUG
+    org.mybatis: DEBUG
+    org.springframework.transaction: DEBUG
   pattern:
-    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
-
-# 测试环境特殊配置
-management:
-  endpoints:
-    web:
-      exposure:
-        include: "*"
-  endpoint:
-    health:
-      show-details: always
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    
+# 测试专用配置
+test:
+  # 数据库初始化
+  database:
+    init-schema: true
+    init-data: true
+    
+  # 缓存配置
+  cache:
+    enabled: false
+    
+  # 性能监控
+  performance:
+    enabled: false
+    
+  # 外部服务模拟
+  mock:
+    enabled: true
+    
+# 租赁模块测试配置
+rental:
+  test:
+    # 测试数据配置
+    data:
+      customer-count: 10
+      device-count: 20
+      record-count: 50
+      
+    # 验证配置
+    validation:
+      strict-mode: true
+      
+    # 性能测试配置
+    performance:
+      max-response-time: 2000
+      concurrent-users: 10
+      
+    # 模拟数据配置
+    mock:
+      enable-real-data: false
+      use-random-data: true

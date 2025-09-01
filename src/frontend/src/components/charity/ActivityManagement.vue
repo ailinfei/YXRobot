@@ -318,7 +318,7 @@ const loadActivities = async () => {
   try {
     const params = {
       page: pagination.page,
-      pageSize: pagination.pageSize,
+      size: pagination.pageSize,
       keyword: searchForm.keyword,
       type: searchForm.type,
       status: searchForm.status,

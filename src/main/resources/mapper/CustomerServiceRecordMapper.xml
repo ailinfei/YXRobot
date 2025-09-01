@@ -1,0 +1,424 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yxrobot.mapper.CustomerServiceRecordMapper">
+
+    <!-- 客户服务记录关联实体结果映射 -->
+    <resultMap id="CustomerServiceRecordResultMap" type="com.yxrobot.entity.CustomerServiceRecord">
+        <id column="id" property="id"/>
+        <result column="customer_id" property="customerId"/>
+        <result column="service_id" property="serviceId"/>
+        <result column="customer_role" property="customerRole" typeHandler="com.yxrobot.handler.ServiceRoleTypeHandler"/>
+        <result column="relation_notes" property="relationNotes"/>
+        <result column="created_time" property="createdTime"/>
+        <result column="updated_time" property="updatedTime"/>
+        <result column="status" property="status"/>
+        <!-- 关联的服务记录信息 -->
+        <association property="serviceRecord" javaType="com.yxrobot.entity.ServiceRecord">
+            <id column="service_id" property="id"/>
+            <result column="service_number" property="serviceNumber"/>
+            <result column="service_type" property="serviceType" typeHandler="com.yxrobot.handler.ServiceTypeTypeHandler"/>
+            <result column="service_title" property="serviceTitle"/>
+            <result column="service_description" property="serviceDescription"/>
+            <result column="service_status" property="serviceStatus" typeHandler="com.yxrobot.handler.ServiceStatusTypeHandler"/>
+            <result column="priority" property="priority" typeHandler="com.yxrobot.handler.PriorityTypeHandler"/>
+            <result column="service_cost" property="serviceCost"/>
+            <result column="service_date" property="serviceDate"/>
+        </association>
+    </resultMap>
+
+    <!-- 服务记录DTO结果映射 -->
+    <resultMap id="ServiceRecordDTOResultMap" type="com.yxrobot.dto.ServiceRecordDTO">
+        <id column="id" property="id"/>
+        <result column="service_number" property="serviceNumber"/>
+        <result column="service_type" property="serviceType"/>
+        <result column="service_title" property="serviceTitle"/>
+        <result column="service_description" property="serviceDescription"/>
+        <result column="service_staff" property="serviceStaff"/>
+        <result column="service_cost" property="serviceCost"/>
+        <result column="service_status" property="serviceStatus"/>
+        <result column="priority" property="priority"/>
+        <result column="assigned_to" property="assignedTo"/>
+        <result column="resolved_at" property="resolvedAt"/>
+        <result column="service_date" property="serviceDate"/>
+        <result column="service_created_at" property="createdAt"/>
+        <result column="service_updated_at" property="updatedAt"/>
+        <result column="customer_role" property="customerRole"/>
+        <result column="relation_notes" property="notes"/>
+    </resultMap>
+
+    <!-- 服务记录实体结果映射 -->
+    <resultMap id="ServiceRecordResultMap" type="com.yxrobot.entity.ServiceRecord">
+        <id column="id" property="id"/>
+        <result column="service_number" property="serviceNumber"/>
+        <result column="service_type" property="serviceType" typeHandler="com.yxrobot.handler.ServiceTypeTypeHandler"/>
+        <result column="service_title" property="serviceTitle"/>
+        <result column="service_description" property="serviceDescription"/>
+        <result column="service_staff" property="serviceStaff"/>
+        <result column="service_cost" property="serviceCost"/>
+        <result column="service_status" property="serviceStatus" typeHandler="com.yxrobot.handler.ServiceStatusTypeHandler"/>
+        <result column="priority" property="priority" typeHandler="com.yxrobot.handler.PriorityTypeHandler"/>
+        <result column="assigned_to" property="assignedTo"/>
+        <result column="resolved_at" property="resolvedAt"/>
+        <result column="service_date" property="serviceDate"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+        <result column="is_deleted" property="isDeleted"/>
+    </resultMap>
+
+    <!-- 基础SQL片段 -->
+    <sql id="customerServiceRecordColumns">
+        csr.id, csr.customer_id, csr.service_id, csr.customer_role, csr.relation_notes,
+        csr.created_time, csr.updated_time, csr.status
+    </sql>
+
+    <!-- 服务记录DTO查询SQL片段（包含服务记录信息） -->
+    <sql id="serviceRecordDTOColumns">
+        csr.id, csr.customer_role, csr.relation_notes,
+        sr.service_number, sr.service_type, sr.service_title, sr.service_description,
+        sr.service_staff, sr.service_cost, sr.service_status, sr.priority,
+        sr.assigned_to, sr.resolved_at, sr.service_date,
+        sr.created_at as service_created_at, sr.updated_at as service_updated_at
+    </sql>
+
+    <!-- 服务记录信息SQL片段 -->
+    <sql id="serviceRecordColumns">
+        sr.id, sr.service_number, sr.service_type, sr.service_title, sr.service_description,
+        sr.service_staff, sr.service_cost, sr.service_status, sr.priority,
+        sr.assigned_to, sr.resolved_at, sr.service_date,
+        sr.created_at, sr.updated_at, sr.is_deleted
+    </sql>
+
+    <!-- ==================== 基础CRUD操作 ==================== -->
+
+    <!-- 根据ID查询客户服务记录关联 -->
+    <select id="selectById" resultMap="CustomerServiceRecordResultMap">
+        SELECT <include refid="customerServiceRecordColumns"/>,
+               <include refid="serviceRecordColumns"/>
+        FROM customer_service_relation csr
+        LEFT JOIN service_records sr ON csr.service_id = sr.id AND sr.is_deleted = 0
+        WHERE csr.id = #{id} AND csr.status = 1
+    </select>
+
+    <!-- 根据ID查询服务记录DTO -->
+    <select id="selectDTOById" resultMap="ServiceRecordDTOResultMap">
+        SELECT <include refid="serviceRecordDTOColumns"/>
+        FROM customer_service_relation csr
+        INNER JOIN service_records sr ON csr.service_id = sr.id AND sr.is_deleted = 0
+        WHERE csr.id = #{id} AND csr.status = 1
+    </select>
+
+    <!-- 根据客户ID查询服务记录关联列表 -->
+    <select id="selectByCustomerId" resultMap="CustomerServiceRecordResultMap">
+        SELECT <include refid="customerServiceRecordColumns"/>,
+               <include refid="serviceRecordColumns"/>
+        FROM customer_service_relation csr
+        LEFT JOIN service_records sr ON csr.service_id = sr.id AND sr.is_deleted = 0
+        WHERE csr.customer_id = #{customerId} AND csr.status = 1
+        ORDER BY csr.created_time DESC
+    </select>
+
+    <!-- 根据客户ID查询服务记录DTO列表 -->
+    <select id="selectDTOByCustomerId" resultMap="ServiceRecordDTOResultMap">
+        SELECT <include refid="serviceRecordDTOColumns"/>
+        FROM customer_service_relation csr
+        INNER JOIN service_records sr ON csr.service_id = sr.id AND sr.is_deleted = 0
+        WHERE csr.customer_id = #{customerId} AND csr.status = 1
+        ORDER BY sr.service_date DESC, csr.created_time DESC
+    </select>
+
+    <!-- 根据服务记录ID查询客户关联列表 -->
+    <select id="selectByServiceId" resultMap="CustomerServiceRecordResultMap">
+        SELECT <include refid="customerServiceRecordColumns"/>
+        FROM customer_service_relation csr
+        WHERE csr.service_id = #{serviceId} AND csr.status = 1
+        ORDER BY csr.created_time DESC
+    </select>
+
+    <!-- 插入客户服务记录关联 -->
+    <insert id="insert" parameterType="com.yxrobot.entity.CustomerServiceRecord" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO customer_service_relation (
+            customer_id, service_id, customer_role, relation_notes, created_time, updated_time, status
+        ) VALUES (
+            #{customerId}, #{serviceId}, #{customerRole}, #{relationNotes}, NOW(), NOW(), 1
+        )
+    </insert>
+
+    <!-- 更新客户服务记录关联 -->
+    <update id="updateById" parameterType="com.yxrobot.entity.CustomerServiceRecord">
+        UPDATE customer_service_relation SET
+            customer_role = #{customerRole},
+            relation_notes = #{relationNotes},
+            updated_time = NOW()
+        WHERE id = #{id} AND status = 1
+    </update>
+
+    <!-- 根据ID删除客户服务记录关联 -->
+    <update id="deleteById">
+        UPDATE customer_service_relation SET status = 0, updated_time = NOW()
+        WHERE id = #{id} AND status = 1
+    </update>
+
+    <!-- 根据客户ID和服务记录ID删除关联 -->
+    <update id="deleteByCustomerAndService">
+        UPDATE customer_service_relation SET status = 0, updated_time = NOW()
+        WHERE customer_id = #{customerId} AND service_id = #{serviceId} AND status = 1
+    </update>
+
+    <!-- ==================== 关联查询功能 ==================== -->
+
+    <!-- 查询客户的所有服务记录 -->
+    <select id="selectServiceRecordsByCustomerId" resultMap="ServiceRecordResultMap">
+        SELECT <include refid="serviceRecordColumns"/>
+        FROM service_records sr
+        INNER JOIN customer_service_relation csr ON sr.id = csr.service_id
+        WHERE csr.customer_id = #{customerId} AND csr.status = 1 AND sr.is_deleted = 0
+        ORDER BY sr.service_date DESC
+    </select>
+
+    <!-- 查询客户的维护服务记录列表 -->
+    <select id="selectMaintenanceServicesByCustomerId" resultMap="ServiceRecordDTOResultMap">
+        SELECT <include refid="serviceRecordDTOColumns"/>
+        FROM customer_service_relation csr
+        INNER JOIN service_records sr ON csr.service_id = sr.id AND sr.is_deleted = 0
+        WHERE csr.customer_id = #{customerId} AND sr.service_type = 'maintenance' AND csr.status = 1
+        ORDER BY sr.service_date DESC
+    </select>
+
+    <!-- 查询客户的升级服务记录列表 -->
+    <select id="selectUpgradeServicesByCustomerId" resultMap="ServiceRecordDTOResultMap">
+        SELECT <include refid="serviceRecordDTOColumns"/>
+        FROM customer_service_relation csr
+        INNER JOIN service_records sr ON csr.service_id = sr.id AND sr.is_deleted = 0
+        WHERE csr.customer_id = #{customerId} AND sr.service_type = 'upgrade' AND csr.status = 1
+        ORDER BY sr.service_date DESC
+    </select>
+
+    <!-- 查询客户的咨询服务记录列表 -->
+    <select id="selectConsultationServicesByCustomerId" resultMap="ServiceRecordDTOResultMap">
+        SELECT <include refid="serviceRecordDTOColumns"/>
+        FROM customer_service_relation csr
+        INNER JOIN service_records sr ON csr.service_id = sr.id AND sr.is_deleted = 0
+        WHERE csr.customer_id = #{customerId} AND sr.service_type = 'consultation' AND csr.status = 1
+        ORDER BY sr.service_date DESC
+    </select>
+
+    <!-- 查询客户的投诉处理记录列表 -->
+    <select id="selectComplaintServicesByCustomerId" resultMap="ServiceRecordDTOResultMap">
+        SELECT <include refid="serviceRecordDTOColumns"/>
+        FROM customer_service_relation csr
+        INNER JOIN service_records sr ON csr.service_id = sr.id AND sr.is_deleted = 0
+        WHERE csr.customer_id = #{customerId} AND sr.service_type = 'complaint' AND csr.status = 1
+        ORDER BY sr.service_date DESC
+    </select>
+
+    <!-- 查询客户的进行中服务记录列表 -->
+    <select id="selectInProgressServicesByCustomerId" resultMap="ServiceRecordDTOResultMap">
+        SELECT <include refid="serviceRecordDTOColumns"/>
+        FROM customer_service_relation csr
+        INNER JOIN service_records sr ON csr.service_id = sr.id AND sr.is_deleted = 0
+        WHERE csr.customer_id = #{customerId} AND sr.service_status = 'in_progress' AND csr.status = 1
+        ORDER BY sr.service_date DESC
+    </select>
+
+    <!-- 查询客户的已完成服务记录列表 -->
+    <select id="selectCompletedServicesByCustomerId" resultMap="ServiceRecordDTOResultMap">
+        SELECT <include refid="serviceRecordDTOColumns"/>
+        FROM customer_service_relation csr
+        INNER JOIN service_records sr ON csr.service_id = sr.id AND sr.is_deleted = 0
+        WHERE csr.customer_id = #{customerId} AND sr.service_status = 'completed' AND csr.status = 1
+        ORDER BY sr.resolved_at DESC
+    </select>
+
+    <!-- ==================== 统计查询功能 ==================== -->
+
+    <!-- 查询客户服务记录统计信息 -->
+    <select id="selectCustomerServiceStats" resultType="java.util.Map">
+        SELECT 
+            COUNT(*) as total_services,
+            COUNT(CASE WHEN sr.service_type = 'maintenance' THEN 1 END) as maintenance_services,
+            COUNT(CASE WHEN sr.service_type = 'upgrade' THEN 1 END) as upgrade_services,
+            COUNT(CASE WHEN sr.service_type = 'consultation' THEN 1 END) as consultation_services,
+            COUNT(CASE WHEN sr.service_type = 'complaint' THEN 1 END) as complaint_services,
+            COUNT(CASE WHEN sr.service_status = 'completed' THEN 1 END) as completed_services,
+            COUNT(CASE WHEN sr.service_status = 'in_progress' THEN 1 END) as in_progress_services,
+            COUNT(CASE WHEN sr.service_status = 'cancelled' THEN 1 END) as cancelled_services,
+            COUNT(CASE WHEN sr.priority = 'urgent' THEN 1 END) as urgent_services,
+            COUNT(CASE WHEN sr.priority = 'high' THEN 1 END) as high_priority_services,
+            COALESCE(SUM(sr.service_cost), 0) as total_service_cost,
+            COALESCE(AVG(sr.service_cost), 0) as avg_service_cost,
+            COALESCE(MAX(sr.service_cost), 0) as max_service_cost
+        FROM customer_service_relation csr
+        INNER JOIN service_records sr ON csr.service_id = sr.id AND sr.is_deleted = 0
+        WHERE csr.customer_id = #{customerId} AND csr.status = 1
+    </select>
+
+    <!-- 查询客户服务记录数量统计 -->
+    <select id="selectCustomerServiceCount" resultType="java.util.Map">
+        SELECT 
+            COUNT(*) as total,
+            COUNT(CASE WHEN sr.service_type = 'maintenance' THEN 1 END) as maintenance,
+            COUNT(CASE WHEN sr.service_type = 'upgrade' THEN 1 END) as upgrade,
+            COUNT(CASE WHEN sr.service_type = 'consultation' THEN 1 END) as consultation,
+            COUNT(CASE WHEN sr.service_type = 'complaint' THEN 1 END) as complaint
+        FROM customer_service_relation csr
+        INNER JOIN service_records sr ON csr.service_id = sr.id AND sr.is_deleted = 0
+        WHERE csr.customer_id = #{customerId} AND csr.status = 1
+    </select>
+
+    <!-- 查询客户服务费用统计 -->
+    <select id="selectCustomerServiceCostStats" resultType="java.util.Map">
+        SELECT 
+            COALESCE(SUM(sr.service_cost), 0) as total_cost,
+            COALESCE(AVG(sr.service_cost), 0) as avg_cost,
+            COALESCE(SUM(CASE WHEN sr.service_type = 'maintenance' THEN sr.service_cost ELSE 0 END), 0) as maintenance_cost,
+            COALESCE(SUM(CASE WHEN sr.service_type = 'upgrade' THEN sr.service_cost ELSE 0 END), 0) as upgrade_cost,
+            COALESCE(SUM(CASE WHEN sr.service_status = 'completed' THEN sr.service_cost ELSE 0 END), 0) as completed_cost
+        FROM customer_service_relation csr
+        INNER JOIN service_records sr ON csr.service_id = sr.id AND sr.is_deleted = 0
+        WHERE csr.customer_id = #{customerId} AND csr.status = 1
+    </select>
+
+    <!-- 查询服务类型分布统计 -->
+    <select id="selectServiceTypeDistribution" resultType="java.util.Map">
+        SELECT 
+            sr.service_type as service_type,
+            COUNT(*) as count,
+            COALESCE(SUM(sr.service_cost), 0) as total_cost,
+            ROUND(COUNT(*) * 100.0 / (
+                SELECT COUNT(*) 
+                FROM customer_service_relation csr2 
+                INNER JOIN service_records sr2 ON csr2.service_id = sr2.id AND sr2.is_deleted = 0
+                WHERE csr2.customer_id = #{customerId} AND csr2.status = 1
+            ), 2) as percentage
+        FROM customer_service_relation csr
+        INNER JOIN service_records sr ON csr.service_id = sr.id AND sr.is_deleted = 0
+        WHERE csr.customer_id = #{customerId} AND csr.status = 1
+        GROUP BY sr.service_type
+        ORDER BY count DESC
+    </select>
+
+    <!-- ==================== 数据验证功能 ==================== -->
+
+    <!-- 检查客户服务记录关联是否存在 -->
+    <select id="existsByCustomerAndService" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM customer_service_relation
+        WHERE customer_id = #{customerId} AND service_id = #{serviceId} 
+        AND customer_role = #{customerRole} AND status = 1
+    </select>
+
+    <!-- 查询客户服务记录关联数量 -->
+    <select id="countByCustomerId" resultType="int">
+        SELECT COUNT(*)
+        FROM customer_service_relation
+        WHERE customer_id = #{customerId} AND status = 1
+    </select>
+
+    <!-- 查询服务记录关联数量 -->
+    <select id="countByServiceId" resultType="int">
+        SELECT COUNT(*)
+        FROM customer_service_relation
+        WHERE service_id = #{serviceId} AND status = 1
+    </select>
+
+    <!-- ==================== 服务管理功能 ==================== -->
+
+    <!-- 查询客户最近的服务记录 -->
+    <select id="selectRecentServicesByCustomerId" resultMap="ServiceRecordDTOResultMap">
+        SELECT <include refid="serviceRecordDTOColumns"/>
+        FROM customer_service_relation csr
+        INNER JOIN service_records sr ON csr.service_id = sr.id AND sr.is_deleted = 0
+        WHERE csr.customer_id = #{customerId} AND csr.status = 1
+        ORDER BY sr.service_date DESC
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 查询客户的高优先级服务记录 -->
+    <select id="selectHighPriorityServices" resultMap="ServiceRecordDTOResultMap">
+        SELECT <include refid="serviceRecordDTOColumns"/>
+        FROM customer_service_relation csr
+        INNER JOIN service_records sr ON csr.service_id = sr.id AND sr.is_deleted = 0
+        WHERE csr.customer_id = #{customerId} AND csr.status = 1
+        AND sr.priority IN ('high', 'urgent')
+        ORDER BY 
+            CASE sr.priority 
+                WHEN 'urgent' THEN 1 
+                WHEN 'high' THEN 2 
+                ELSE 3 
+            END, sr.service_date DESC
+    </select>
+
+    <!-- 查询客户的紧急服务记录 -->
+    <select id="selectUrgentServices" resultMap="ServiceRecordDTOResultMap">
+        SELECT <include refid="serviceRecordDTOColumns"/>
+        FROM customer_service_relation csr
+        INNER JOIN service_records sr ON csr.service_id = sr.id AND sr.is_deleted = 0
+        WHERE csr.customer_id = #{customerId} AND csr.status = 1
+        AND sr.priority = 'urgent'
+        ORDER BY sr.service_date DESC
+    </select>
+
+    <!-- 查询指定日期范围内的客户服务记录 -->
+    <select id="selectServicesByDateRange" resultMap="ServiceRecordDTOResultMap">
+        SELECT <include refid="serviceRecordDTOColumns"/>
+        FROM customer_service_relation csr
+        INNER JOIN service_records sr ON csr.service_id = sr.id AND sr.is_deleted = 0
+        WHERE csr.customer_id = #{customerId} AND csr.status = 1
+        AND sr.service_date BETWEEN #{startDate} AND #{endDate}
+        ORDER BY sr.service_date DESC
+    </select>
+
+    <!-- 查询需要跟进的服务记录 -->
+    <select id="selectServicesNeedingFollowUp" resultMap="ServiceRecordDTOResultMap">
+        SELECT <include refid="serviceRecordDTOColumns"/>
+        FROM customer_service_relation csr
+        INNER JOIN service_records sr ON csr.service_id = sr.id AND sr.is_deleted = 0
+        WHERE csr.customer_id = #{customerId} AND csr.status = 1
+        AND sr.service_status = 'in_progress'
+        ORDER BY sr.priority DESC, sr.service_date ASC
+    </select>
+
+    <!-- 更新服务记录关联状态 -->
+    <update id="updateRelationStatus">
+        UPDATE customer_service_relation SET status = #{status}, updated_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 批量更新服务记录关联状态 -->
+    <update id="batchUpdateRelationStatus">
+        UPDATE customer_service_relation SET status = #{status}, updated_time = NOW()
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <!-- ==================== 高级查询功能 ==================== -->
+
+    <!-- 查询客户的平均服务费用 -->
+    <select id="selectAverageServiceCost" resultType="java.math.BigDecimal">
+        SELECT COALESCE(AVG(sr.service_cost), 0)
+        FROM customer_service_relation csr
+        INNER JOIN service_records sr ON csr.service_id = sr.id AND sr.is_deleted = 0
+        WHERE csr.customer_id = #{customerId} AND csr.status = 1
+        AND sr.service_status = 'completed'
+    </select>
+
+    <!-- 查询客户月度服务统计 -->
+    <select id="selectMonthlyServiceStats" resultType="java.util.Map">
+        SELECT 
+            DATE_FORMAT(sr.service_date, '%Y-%m') as month,
+            COUNT(*) as service_count,
+            COALESCE(SUM(sr.service_cost), 0) as total_cost,
+            COALESCE(AVG(sr.service_cost), 0) as avg_cost
+        FROM customer_service_relation csr
+        INNER JOIN service_records sr ON csr.service_id = sr.id AND sr.is_deleted = 0
+        WHERE csr.customer_id = #{customerId} AND csr.status = 1
+        AND sr.service_date >= DATE_SUB(CURDATE(), INTERVAL #{months} MONTH)
+        GROUP BY DATE_FORMAT(sr.service_date, '%Y-%m')
+        ORDER BY month DESC
+    </select>
+
+</mapper>

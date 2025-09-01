@@ -22,35 +22,35 @@ export type NewsItem = News
  * 获取新闻列表
  */
 export const getNewsList = (params: NewsListParams = {}) => {
-  return request.get<ApiResponse<NewsListResponse>>('/api/news', params)
+  return request.get<ApiResponse<NewsListResponse>>('/api/admin/news', params)
 }
 
 /**
  * 获取新闻详情
  */
 export const getNewsDetail = (id: number) => {
-  return request.get<ApiResponse<News>>(`/api/news/${id}`)
+  return request.get<ApiResponse<News>>(`/api/admin/news/${id}`)
 }
 
 /**
  * 创建新闻
  */
 export const createNews = (data: NewsForm) => {
-  return request.post<ApiResponse<News>>('/api/news', data)
+  return request.post<ApiResponse<News>>('/api/admin/news', data)
 }
 
 /**
  * 更新新闻
  */
 export const updateNews = (id: number, data: Partial<NewsForm>) => {
-  return request.put<ApiResponse<News>>(`/api/news/${id}`, data)
+  return request.put<ApiResponse<News>>(`/api/admin/news/${id}`, data)
 }
 
 /**
  * 删除新闻
  */
 export const deleteNews = (id: number) => {
-  return request.delete<ApiResponse<void>>(`/api/news/${id}`)
+  return request.delete<ApiResponse<void>>(`/api/admin/news/${id}`)
 }
 
 // ==================== 新闻状态管理API ====================
@@ -59,7 +59,7 @@ export const deleteNews = (id: number) => {
  * 发布新闻
  */
 export const publishNews = (id: number, publishTime?: string) => {
-  return request.post<ApiResponse<News>>(`/api/news/${id}/publish`, {
+  return request.post<ApiResponse<News>>(`/api/admin/news/${id}/publish`, {
     publishTime
   })
 }
@@ -68,7 +68,7 @@ export const publishNews = (id: number, publishTime?: string) => {
  * 下线新闻
  */
 export const offlineNews = (id: number, reason?: string) => {
-  return request.post<ApiResponse<News>>(`/api/news/${id}/offline`, {
+  return request.post<ApiResponse<News>>(`/api/admin/news/${id}/offline`, {
     reason
   })
 }
@@ -77,14 +77,14 @@ export const offlineNews = (id: number, reason?: string) => {
  * 批量操作新闻
  */
 export const batchOperateNews = (params: NewsBatchOperationParams) => {
-  return request.post<ApiResponse<void>>('/api/news/batch', params)
+  return request.post<ApiResponse<void>>('/api/admin/news/batch', params)
 }
 
 /**
  * 更新新闻状态
  */
 export const updateNewsStatus = (params: NewsStatusUpdateParams) => {
-  return request.post<ApiResponse<News>>(`/api/news/${params.id}/status`, {
+  return request.post<ApiResponse<News>>(`/api/admin/news/${params.id}/status`, {
     status: params.status,
     publishTime: params.publishTime,
     reason: params.reason
@@ -97,21 +97,21 @@ export const updateNewsStatus = (params: NewsStatusUpdateParams) => {
  * 获取新闻分类列表
  */
 export const getNewsCategories = () => {
-  return request.get<ApiResponse<NewsCategory[]>>('/api/news/categories')
+  return request.get<ApiResponse<NewsCategory[]>>('/api/admin/news/category-list')
 }
 
 /**
  * 获取新闻标签列表
  */
 export const getNewsTags = () => {
-  return request.get<ApiResponse<NewsTag[]>>('/api/news/tags')
+  return request.get<ApiResponse<NewsTag[]>>('/api/admin/news/tag-list')
 }
 
 /**
  * 创建新闻标签
  */
 export const createNewsTag = (data: Partial<NewsTag>) => {
-  return request.post<ApiResponse<NewsTag>>('/api/news/tags', data)
+  return request.post<ApiResponse<NewsTag>>('/api/admin/news/tags', data)
 }
 
 // ==================== 新闻统计和分析API ====================
@@ -120,21 +120,21 @@ export const createNewsTag = (data: Partial<NewsTag>) => {
  * 获取新闻统计数据
  */
 export const getNewsStats = () => {
-  return request.get<ApiResponse<NewsStats>>('/api/news/stats')
+  return request.get<ApiResponse<NewsStats>>('/api/admin/news/stats')
 }
 
 /**
  * 获取热门新闻
  */
 export const getHotNews = (limit: number = 10) => {
-  return request.get<ApiResponse<News[]>>('/api/news/hot', { limit })
+  return request.get<ApiResponse<News[]>>('/api/admin/news/hot', { limit })
 }
 
 /**
  * 获取相关新闻
  */
 export const getRelatedNews = (id: number, limit: number = 5) => {
-  return request.get<ApiResponse<News[]>>(`/api/news/${id}/related`, { limit })
+  return request.get<ApiResponse<News[]>>(`/api/admin/news/${id}/related`, { limit })
 }
 
 // ==================== 新闻互动API ====================
@@ -143,21 +143,21 @@ export const getRelatedNews = (id: number, limit: number = 5) => {
  * 记录新闻浏览
  */
 export const recordNewsView = (id: number) => {
-  return request.post<ApiResponse<void>>(`/api/news/${id}/view`)
+  return request.post<ApiResponse<void>>(`/api/admin/news/${id}/view`)
 }
 
 /**
  * 点赞新闻
  */
 export const likeNews = (id: number) => {
-  return request.post<ApiResponse<void>>(`/api/news/${id}/like`)
+  return request.post<ApiResponse<void>>(`/api/admin/news/${id}/like`)
 }
 
 /**
  * 收藏新闻
  */
 export const collectNews = (id: number) => {
-  return request.post<ApiResponse<void>>(`/api/news/${id}/collect`)
+  return request.post<ApiResponse<void>>(`/api/admin/news/${id}/collect`)
 }
 
 // ==================== 文件上传API ====================
@@ -169,7 +169,7 @@ export const uploadNewsImage = (file: File) => {
   const formData = new FormData()
   formData.append('file', file)
 
-  return request.post<ApiResponse<FileUploadResponse>>('/api/news/upload-image', formData, {
+  return request.post<ApiResponse<FileUploadResponse>>('/api/admin/news/upload-image', formData, {
     headers: {
       'Content-Type': 'multipart/form-data'
     }
@@ -183,7 +183,7 @@ export const uploadNewsAttachment = (file: File) => {
   const formData = new FormData()
   formData.append('file', file)
 
-  return request.post<ApiResponse<FileUploadResponse>>('/api/news/upload-attachment', formData, {
+  return request.post<ApiResponse<FileUploadResponse>>('/api/admin/news/upload-attachment', formData, {
     headers: {
       'Content-Type': 'multipart/form-data'
     }

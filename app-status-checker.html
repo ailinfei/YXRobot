@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>应用状态快速检查</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status-check {
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .status-running {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .status-stopped {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .status-checking {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+        .check-btn {
+            background: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        .check-btn:hover {
+            background: #0056b3;
+        }
+        .command-box {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: 'Consolas', monospace;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Spring Boot 应用状态检查</h1>
+        
+        <div id="status-display" class="status-check status-checking">
+            <h3>⏳ 检查中...</h3>
+            <p>正在检测应用是否运行在端口8081...</p>
+        </div>
+        
+        <div style="text-align: center;">
+            <button class="check-btn" onclick="checkAppStatus()">🔄 重新检查</button>
+            <button class="check-btn" onclick="openApp()">🌐 打开应用</button>
+            <button class="check-btn" onclick="openSales()">📊 销售页面</button>
+        </div>
+        
+        <div class="command-box">
+            <h4>📋 启动命令</h4>
+            <p>如果应用未运行，请在命令行中执行：</p>
+            <code>mvn -f "E:\YXRobot\workspace\projects\YXRobot\pom.xml" spring-boot:run "-Dspring-boot.run.profiles=dev"</code>
+        </div>
+        
+        <div id="help-info" style="display: none;">
+            <h4>❓ 启动问题排查</h4>
+            <ul>
+                <li>确保JDK 21已正确安装</li>
+                <li>检查8081端口是否被其他程序占用</li>
+                <li>确认Maven已正确配置</li>
+                <li>检查数据库连接是否正常</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let checkInterval;
+
+        async function checkAppStatus() {
+            const statusDiv = document.getElementById('status-display');
+            statusDiv.className = 'status-check status-checking';
+            statusDiv.innerHTML = '<h3>⏳ 检查中...</h3><p>正在检测应用状态...</p>';
+            
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+                
+                const response = await fetch('http://localhost:8081/', {
+                    signal: controller.signal,
+                    method: 'GET'
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (response.status === 200 || response.status === 404) {
+                    statusDiv.className = 'status-check status-running';
+                    statusDiv.innerHTML = `
+                        <h3>✅ 应用正在运行</h3>
+                        <p>Spring Boot应用已成功启动在端口8081</p>
+                        <p>状态码: ${response.status}</p>
+                    `;
+                    
+                    // 隐藏帮助信息
+                    document.getElementById('help-info').style.display = 'none';
+                    
+                    return true;
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                statusDiv.className = 'status-check status-stopped';
+                statusDiv.innerHTML = `
+                    <h3>❌ 应用未运行</h3>
+                    <p>无法连接到Spring Boot应用</p>
+                    <p>错误: ${error.message}</p>
+                `;
+                
+                // 显示帮助信息
+                document.getElementById('help-info').style.display = 'block';
+                
+                return false;
+            }
+        }
+
+        function openApp() {
+            window.open('http://localhost:8081', '_blank');
+        }
+
+        function openSales() {
+            window.open('http://localhost:8081/admin/business/sales', '_blank');
+        }
+
+        // 页面加载时检查
+        window.onload = function() {
+            checkAppStatus();
+            // 每30秒自动检查一次
+            checkInterval = setInterval(checkAppStatus, 30000);
+        };
+
+        // 页面关闭时清理定时器
+        window.onbeforeunload = function() {
+            if (checkInterval) {
+                clearInterval(checkInterval);
+            }
+        };
+    </script>
+</body>
+</html>

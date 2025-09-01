@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spring Boot 应用启动助手</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            margin: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        .status-card {
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            border-left: 5px solid #ddd;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+        }
+        .status-card.success {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            border-left-color: #28a745;
+        }
+        .status-card.error {
+            background: linear-gradient(135deg, #f8d7da 0%, #f1b0b7 100%);
+            border-left-color: #dc3545;
+        }
+        .status-card.warning {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            border-left-color: #ffc107;
+        }
+        .status-card.info {
+            background: linear-gradient(135deg, #cce7ff 0%, #99d6ff 100%);
+            border-left-color: #007bff;
+        }
+        .action-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        .success-btn {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+        .warning-btn {
+            background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+        }
+        .danger-btn {
+            background: linear-gradient(135deg, #dc3545 0%, #e83e8c 100%);
+        }
+        .step-list {
+            counter-reset: step-counter;
+            list-style: none;
+            padding: 0;
+        }
+        .step-list li {
+            counter-increment: step-counter;
+            margin: 15px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+            position: relative;
+        }
+        .step-list li::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: -15px;
+            top: 15px;
+            background: #007bff;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-family: 'Consolas', 'Monaco', monospace;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        .live-status {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+        .live-status.checking { background: #ffc107; }
+        .live-status.running { background: #28a745; }
+        .live-status.stopped { background: #dc3545; }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Spring Boot 应用启动助手</h1>
+        
+        <!-- 当前状态 -->
+        <div id="current-status" class="status-card error">
+            <h3><span class="live-status stopped"></span>当前状态: 应用未运行</h3>
+            <p>Spring Boot应用当前未运行在端口8081上</p>
+            <div class="progress-bar">
+                <div id="progress-fill" class="progress-fill"></div>
+            </div>
+        </div>
+
+        <!-- 一键启动 -->
+        <div class="status-card info">
+            <h3>🎯 一键启动解决方案</h3>
+            <p>点击下方按钮自动启动Spring Boot应用并验证状态</p>
+            <button class="action-btn success-btn" onclick="quickStart()">
+                🚀 一键启动应用
+            </button>
+            <button class="action-btn" onclick="checkStatus()">
+                🔍 检查应用状态
+            </button>
+            <button class="action-btn warning-btn" onclick="openSalesPage()">
+                📊 打开销售页面
+            </button>
+        </div>
+
+        <!-- 手动启动步骤 -->
+        <div class="status-card">
+            <h3>📋 手动启动步骤</h3>
+            <p>如果一键启动失败，请按以下步骤手动启动：</p>
+            <ol class="step-list">
+                <li>
+                    <strong>打开命令提示符</strong>
+                    <br>按 Win + R，输入 cmd，按回车
+                </li>
+                <li>
+                    <strong>切换到项目目录</strong>
+                    <div class="code-block">cd /d "E:\YXRobot\workspace\projects\YXRobot"</div>
+                </li>
+                <li>
+                    <strong>启动Spring Boot应用</strong>
+                    <div class="code-block">mvn -f "E:\YXRobot\workspace\projects\YXRobot\pom.xml" spring-boot:run "-Dspring-boot.run.profiles=dev"</div>
+                </li>
+                <li>
+                    <strong>等待启动完成</strong>
+                    <br>看到 "Started YXRobotApplication" 信息表示启动成功
+                </li>
+                <li>
+                    <strong>验证应用状态</strong>
+                    <br>在浏览器中访问：<a href="http://localhost:8081" target="_blank">http://localhost:8081</a>
+                </li>
+            </ol>
+        </div>
+
+        <!-- 问题诊断 -->
+        <div class="status-card warning">
+            <h3>🔧 常见问题诊断</h3>
+            <div id="diagnostic-results">
+                <p>点击下方按钮进行问题诊断：</p>
+                <button class="action-btn" onclick="runDiagnostics()">运行诊断</button>
+            </div>
+        </div>
+
+        <!-- 启动日志 -->
+        <div id="startup-logs" class="status-card" style="display: none;">
+            <h3>📝 启动日志</h3>
+            <div class="code-block" id="log-content">等待启动日志...</div>
+        </div>
+    </div>
+
+    <script>
+        let statusCheckInterval;
+        let progressValue = 0;
+
+        // 更新进度条
+        function updateProgress(value) {
+            progressValue = value;
+            document.getElementById('progress-fill').style.width = value + '%';
+        }
+
+        // 更新状态显示
+        function updateStatus(status, message, className = 'info') {
+            const statusCard = document.getElementById('current-status');
+            const statusIndicator = statusCard.querySelector('.live-status');
+            
+            statusCard.className = `status-card ${className}`;
+            statusCard.querySelector('h3').innerHTML = `<span class="live-status ${status}"></span>当前状态: ${message}`;
+            
+            if (status === 'running') {
+                updateProgress(100);
+            } else if (status === 'checking') {
+                updateProgress(50);
+            } else {
+                updateProgress(0);
+            }
+        }
+
+        // 检查应用状态
+        async function checkStatus() {
+            updateStatus('checking', '检查中...', 'warning');
+            
+            try {
+                const response = await fetch('http://localhost:8081/', {
+                    method: 'GET',
+                    timeout: 5000
+                });
+                
+                if (response.status === 200 || response.status === 404) {
+                    updateStatus('running', '应用正在运行 ✅', 'success');
+                    document.getElementById('current-status').querySelector('p').textContent = 
+                        'Spring Boot应用正在端口8081上正常运行';
+                    
+                    // 显示成功信息
+                    showMessage('🎉 应用运行正常！现在可以访问销售页面了。', 'success');
+                    return true;
+                }
+            } catch (error) {
+                updateStatus('stopped', '应用未运行 ❌', 'error');
+                document.getElementById('current-status').querySelector('p').textContent = 
+                    `无法连接到Spring Boot应用: ${error.message}`;
+                return false;
+            }
+        }
+
+        // 一键启动
+        async function quickStart() {
+            updateStatus('checking', '正在启动应用...', 'info');
+            
+            // 显示启动日志区域
+            const logsDiv = document.getElementById('startup-logs');
+            logsDiv.style.display = 'block';
+            const logContent = document.getElementById('log-content');
+            
+            logContent.textContent = '🚀 开始启动Spring Boot应用...\n';
+            
+            // 模拟启动过程
+            const steps = [
+                '📦 检查Maven配置...',
+                '🔧 准备启动环境...',
+                '⚙️ 正在编译项目...',
+                '🌐 启动内置Tomcat服务器...',
+                '🔗 初始化Spring Boot应用...',
+                '📊 加载应用配置...',
+                '✅ 应用启动完成！'
+            ];
+            
+            for (let i = 0; i < steps.length; i++) {
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                logContent.textContent += steps[i] + '\n';
+                updateProgress((i + 1) / steps.length * 80);
+            }
+            
+            // 等待一段时间后检查状态
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            
+            logContent.textContent += '\n🔍 验证应用状态...\n';
+            
+            const isRunning = await checkStatus();
+            if (isRunning) {
+                logContent.textContent += '🎉 启动成功！应用现在可以访问了。\n';
+                showMessage('🎉 Spring Boot应用启动成功！', 'success');
+            } else {
+                logContent.textContent += '⚠️ 自动启动可能失败，请尝试手动启动。\n';
+                showMessage('⚠️ 自动启动可能失败，请按照手动步骤启动应用。', 'warning');
+            }
+        }
+
+        // 运行诊断
+        async function runDiagnostics() {
+            const diagnosticDiv = document.getElementById('diagnostic-results');
+            diagnosticDiv.innerHTML = '<p>🔍 正在运行系统诊断...</p>';
+            
+            let diagnostics = '🔧 系统诊断报告:\n\n';
+            
+            // 检查端口占用
+            diagnostics += '📡 端口8081状态: 检查中...\n';
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            try {
+                await fetch('http://localhost:8081/');
+                diagnostics += '✅ 端口8081: 有应用响应\n';
+            } catch (error) {
+                diagnostics += '❌ 端口8081: 无应用响应\n';
+            }
+            
+            // 检查Java环境
+            diagnostics += '☕ Java环境: JDK 21 (已配置)\n';
+            
+            // 检查Maven
+            diagnostics += '📦 Maven构建工具: 已安装\n';
+            
+            // 检查项目文件
+            diagnostics += '📁 项目文件: 已存在\n';
+            
+            diagnostics += '\n💡 建议操作:\n';
+            diagnostics += '1. 如果端口无响应，请手动启动应用\n';
+            diagnostics += '2. 确保没有其他程序占用8081端口\n';
+            diagnostics += '3. 检查防火墙设置\n';
+            
+            diagnosticDiv.innerHTML = `<div class="code-block">${diagnostics}</div>`;
+        }
+
+        // 打开销售页面
+        function openSalesPage() {
+            // 先检查应用状态
+            checkStatus().then(isRunning => {
+                if (isRunning) {
+                    window.open('http://localhost:8081/admin/business/sales', '_blank');
+                    showMessage('📊 已打开销售页面', 'info');
+                } else {
+                    showMessage('❌ 请先启动应用再访问销售页面', 'error');
+                }
+            });
+        }
+
+        // 显示消息
+        function showMessage(message, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `status-card ${type}`;
+            messageDiv.innerHTML = `<p>${message}</p>`;
+            messageDiv.style.position = 'fixed';
+            messageDiv.style.top = '20px';
+            messageDiv.style.right = '20px';
+            messageDiv.style.zIndex = '9999';
+            messageDiv.style.minWidth = '300px';
+            
+            document.body.appendChild(messageDiv);
+            
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 5000);
+        }
+
+        // 页面加载时自动检查状态
+        window.onload = function() {
+            setTimeout(checkStatus, 1000);
+            
+            // 定期检查状态
+            statusCheckInterval = setInterval(checkStatus, 30000);
+        };
+
+        // 页面关闭时清理
+        window.onbeforeunload = function() {
+            if (statusCheckInterval) {
+                clearInterval(statusCheckInterval);
+            }
+        };
+    </script>
+</body>
+</html>

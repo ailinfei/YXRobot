@@ -217,6 +217,24 @@
             </el-button>
           </template>
         </el-table-column>
+        
+        <!-- 空状态 -->
+        <template #empty>
+          <div class="empty-state">
+            <el-icon size="48" color="#c0c4cc">
+              <Search />
+            </el-icon>
+            <p class="empty-text">暂无设备数据</p>
+            <p class="empty-description">
+              {{ searchKeyword || deviceModelFilter || statusFilter ? '请尝试调整筛选条件' : '系统中暂无设备数据' }}
+            </p>
+            <el-button v-if="searchKeyword || deviceModelFilter || statusFilter" 
+                       type="primary" 
+                       @click="clearFilters">
+              清除筛选条件
+            </el-button>
+          </div>
+        </template>
       </el-table>
       
       <!-- 分页 -->
@@ -318,16 +336,18 @@ import {
   ArrowUp,
   Search
 } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 import { CountUp } from '@/components/common'
 import DeviceDetailDialog from '@/components/rental/DeviceDetailDialog.vue'
 import * as echarts from 'echarts'
-import { mockRentalAPI } from '@/api/mock/rental'
+import { useRentalApi } from '@/composables/useRentalApi'
 import type { 
   RentalStats, 
   RentalTrendData, 
   DeviceUtilizationData,
-  RentalRevenueAnalysis 
-} from '@/api/rental'
+  RentalRevenueAnalysis,
+  DeviceStatus
+} from '@/types/rental'
 
 // 响应式数据
 const dateRange = ref<[string, string]>(['2024-01-01', '2024-01-31'])
@@ -346,28 +366,21 @@ const pageSize = ref(20)
 const showDeviceDetail = ref(false)
 const selectedDevice = ref<DeviceUtilizationData | null>(null)
 
-// 右侧面板数据
-const todayStats = ref({
+// 右侧面板数据（使用computed从API状态获取）
+const todayStats = computed(() => apiTodayStats.value || {
   revenue: 45680,
   orders: 23,
   activeDevices: 198,
   avgUtilization: 78.5
 })
 
-const deviceStatusStats = computed(() => {
-  const stats = { active: 0, idle: 0, maintenance: 0 }
-  deviceUtilizationData.value.forEach(device => {
-    stats[device.currentStatus as keyof typeof stats]++
-  })
-  return stats
+const deviceStatusStats = computed(() => apiDeviceStatusStats.value || {
+  active: 198,
+  idle: 67,
+  maintenance: 20
 })
 
-const topDevices = computed(() => {
-  return deviceUtilizationData.value
-    .slice()
-    .sort((a, b) => b.utilizationRate - a.utilizationRate)
-    .slice(0, 5)
-})
+const topDevices = computed(() => apiTopDevices.value || [])
 
 // 筛选后的设备数据
 const filteredDeviceData = computed(() => {
@@ -413,11 +426,29 @@ let utilizationRankingChartInstance: echarts.ECharts | null = null
 let regionDistributionChartInstance: echarts.ECharts | null = null
 let deviceModelChartInstance: echarts.ECharts | null = null
 
-// 数据
-const rentalStats = ref<RentalStats | null>(null)
-const trendData = ref<RentalTrendData[]>([])
-const deviceUtilizationData = ref<DeviceUtilizationData[]>([])
-const revenueAnalysis = ref<RentalRevenueAnalysis | null>(null)
+// 使用API状态管理
+const {
+  // 状态
+  isAnyLoading,
+  hasAnyError,
+  
+  // 数据
+  rentalStats,
+  todayStats: apiTodayStats,
+  deviceStatusStats: apiDeviceStatusStats,
+  topDevices: apiTopDevices,
+  trendData,
+  deviceData: deviceUtilizationData,
+  revenueAnalysis,
+  
+  // 方法
+  loadDashboardData,
+  loadChartData,
+  fetchTrendData,
+  fetchDeviceData,
+  refreshAllData,
+  clearErrors
+} = useRentalApi()
 
 // 处理日期范围变化
 const handleDateRangeChange = (dates: [string, string]) => {
@@ -434,7 +465,9 @@ const exportReport = () => {
 const refreshData = async () => {
   refreshLoading.value = true
   try {
-    await loadAllData()
+    await refreshAllData()
+    await nextTick()
+    updateAllCharts()
   } finally {
     setTimeout(() => {
       refreshLoading.value = false
@@ -456,18 +489,43 @@ const handleSearch = () => {
 // 加载趋势数据
 const loadTrendData = async () => {
   try {
-    const response = await mockRentalAPI.getRentalTrendData({ period: trendPeriod.value })
-    trendData.value = response.data
+    await fetchTrendData({ period: trendPeriod.value as any })
     updateRentalTrendChart()
   } catch (error) {
-    console.error('加载趋势数据失败:', error)
+    console.error('❌ 加载趋势数据失败:', error)
+    ElMessage.warning('趋势数据加载失败')
   }
 }
 
 // 加载设备数据
 const loadDeviceData = async () => {
-  // 数据已经在loadAllData中加载，这里只需要重置分页
-  currentPage.value = 1
+  try {
+    tableLoading.value = true
+    
+    // 构建查询参数
+    const params: any = {}
+    if (deviceModelFilter.value) {
+      params.deviceModel = deviceModelFilter.value
+    }
+    if (statusFilter.value) {
+      params.status = statusFilter.value
+    }
+    if (searchKeyword.value) {
+      params.keyword = searchKeyword.value
+    }
+    
+    await fetchDeviceData(params)
+    console.log('🔧 设备数据筛选加载成功')
+    
+    // 重置分页
+    currentPage.value = 1
+    
+  } catch (error) {
+    console.error('❌ 加载设备数据失败:', error)
+    ElMessage.error('设备数据加载失败')
+  } finally {
+    tableLoading.value = false
+  }
 }
 
 // 加载所有数据
@@ -475,61 +533,37 @@ const loadAllData = async () => {
   console.log('🔄 开始加载租赁分析数据...')
   
   try {
-    // 先设置默认数据，确保页面有内容显示
-    setDefaultData()
+    // 显示加载状态
+    tableLoading.value = true
     
-    // 然后尝试加载真实数据
-    const [statsRes, trendRes, deviceRes, analysisRes] = await Promise.all([
-      mockRentalAPI.getRentalStats(),
-      mockRentalAPI.getRentalTrendData({ period: trendPeriod.value }),
-      mockRentalAPI.getDeviceUtilizationData({}),
-      mockRentalAPI.getRentalRevenueAnalysis({})
+    // 使用新的API服务加载数据
+    await Promise.all([
+      loadDashboardData(),
+      loadChartData(trendPeriod.value as any)
     ])
     
-    // 如果API调用成功，使用真实数据
-    if (statsRes && statsRes.data) {
-      rentalStats.value = statsRes.data
-      console.log('📊 租赁统计数据加载成功:', rentalStats.value)
-    }
-    
-    if (trendRes && trendRes.data) {
-      trendData.value = trendRes.data
-      console.log('📈 趋势数据加载成功，数据点数量:', trendData.value.length)
-    }
-    
-    if (deviceRes && deviceRes.data) {
-      deviceUtilizationData.value = deviceRes.data
-      console.log('🔧 设备数据加载成功，设备数量:', deviceUtilizationData.value.length)
-    }
-    
-    if (analysisRes && analysisRes.data) {
-      revenueAnalysis.value = analysisRes.data
-      console.log('💰 收入分析数据加载成功:', revenueAnalysis.value)
-    }
+    console.log('✅ 租赁分析数据加载完成')
     
   } catch (error) {
-    console.error('❌ 加载数据失败，使用默认数据:', error)
-    // 确保有默认数据
-    if (!rentalStats.value) {
-      setDefaultData()
-    }
+    console.error('❌ 加载数据失败:', error)
+    ElMessage.error('数据加载失败，请检查网络连接或稍后重试')
+  } finally {
+    tableLoading.value = false
   }
   
   // 确保数据加载完成后再更新图表
   await nextTick()
   try {
     updateAllCharts()
-    console.log('✅ 租赁分析数据和图表更新完成')
+    console.log('✅ 图表更新完成')
   } catch (chartError) {
     console.error('❌ 图表更新失败:', chartError)
   }
 }
 
-// 设置默认数据
-const setDefaultData = () => {
-  console.log('📊 设置默认租赁数据...')
-  
-  rentalStats.value = {
+// 获取默认租赁统计数据
+const getDefaultRentalStats = (): RentalStats => {
+  return {
     totalRentalRevenue: 1285420,
     totalRentalDevices: 285,
     activeRentalDevices: 198,
@@ -539,39 +573,33 @@ const setDefaultData = () => {
     revenueGrowthRate: 18.6,
     deviceGrowthRate: 12.3
   }
-  
-  // 生成最近30天的趋势数据
+}
+
+// 获取默认趋势数据
+const getDefaultTrendData = (): RentalTrendData[] => {
   const dates = []
-  const revenues = []
-  const orders = []
   const today = new Date()
   
   for (let i = 29; i >= 0; i--) {
     const date = new Date(today)
     date.setDate(date.getDate() - i)
     dates.push(date.toISOString().slice(0, 10))
-    
-    // 生成有趋势的数据
-    const baseRevenue = 35000 + Math.sin(i * 0.1) * 8000 + Math.random() * 5000
-    const baseOrders = 45 + Math.sin(i * 0.15) * 15 + Math.random() * 10
-    
-    revenues.push(Math.floor(baseRevenue))
-    orders.push(Math.floor(baseOrders))
   }
   
-  trendData.value = dates.map((date, index) => ({
+  return dates.map((date, index) => ({
     date,
-    revenue: revenues[index],
-    orderCount: orders[index],
+    revenue: Math.floor(35000 + Math.sin(index * 0.1) * 8000 + Math.random() * 5000),
+    orderCount: Math.floor(45 + Math.sin(index * 0.15) * 15 + Math.random() * 10),
     deviceCount: Math.floor(Math.random() * 50) + 150,
     utilizationRate: Math.floor(Math.random() * 30) + 60
   }))
-  
-  // 生成设备利用率数据
+}
+
+// 获取默认设备数据
+const getDefaultDeviceData = (): DeviceUtilizationData[] => {
   const deviceModels = ['YX-Robot-Pro', 'YX-Robot-Standard', 'YX-Robot-Lite', 'YX-Robot-Mini']
-  const statuses = ['active', 'idle', 'maintenance']
+  const statuses: ('active' | 'idle' | 'maintenance')[] = ['active', 'idle', 'maintenance']
   const regions = ['华东', '华北', '华南', '华中', '西南', '西北', '东北', '华西']
-  const maintenanceStatuses = ['normal', 'warning', 'urgent']
   const devices = []
   
   for (let i = 1; i <= 50; i++) {
@@ -579,28 +607,6 @@ const setDefaultData = () => {
     const totalRentalDays = Math.floor(Math.random() * 250) + 50
     const utilizationRate = Math.floor((totalRentalDays / totalAvailableDays) * 100)
     const deviceModel = deviceModels[Math.floor(Math.random() * deviceModels.length)]
-    
-    // 根据设备型号设置不同的性能基准
-    let basePerformance = 85
-    let baseSignal = 78
-    switch (deviceModel) {
-      case 'YX-Robot-Pro':
-        basePerformance = 90
-        baseSignal = 85
-        break
-      case 'YX-Robot-Standard':
-        basePerformance = 85
-        baseSignal = 80
-        break
-      case 'YX-Robot-Lite':
-        basePerformance = 80
-        baseSignal = 75
-        break
-      case 'YX-Robot-Mini':
-        basePerformance = 75
-        baseSignal = 70
-        break
-    }
     
     devices.push({
       deviceId: `YX-${String(i).padStart(4, '0')}`,
@@ -612,18 +618,19 @@ const setDefaultData = () => {
       lastRentalDate: Math.random() > 0.2 ? 
         new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000).toISOString().slice(0, 10) : 
         undefined,
-      // 新增字段
       region: regions[Math.floor(Math.random() * regions.length)],
-      performanceScore: Math.floor(basePerformance + (Math.random() - 0.5) * 20),
-      signalStrength: Math.floor(baseSignal + (Math.random() - 0.5) * 30),
-      maintenanceStatus: maintenanceStatuses[Math.floor(Math.random() * maintenanceStatuses.length)]
+      performanceScore: Math.floor(Math.random() * 40) + 60,
+      signalStrength: Math.floor(Math.random() * 40) + 60,
+      maintenanceStatus: 'normal'
     })
   }
   
-  deviceUtilizationData.value = devices.sort((a, b) => b.utilizationRate - a.utilizationRate)
-  
-  // 生成收入分析数据
-  revenueAnalysis.value = {
+  return devices.sort((a, b) => b.utilizationRate - a.utilizationRate)
+}
+
+// 获取默认收入分析数据
+const getDefaultRevenueAnalysis = (): RentalRevenueAnalysis => {
+  return {
     period: '2024年度',
     totalRevenue: 2450000,
     orderCount: 2800,
@@ -665,8 +672,6 @@ const setDefaultData = () => {
       { region: '华西', revenue: 122500, orderCount: 140, deviceCount: 28 }
     ]
   }
-  
-  console.log('✅ 默认租赁数据设置完成')
 }
 
 // 获取利用率颜色
@@ -723,6 +728,14 @@ const viewDeviceDetail = (device: DeviceUtilizationData) => {
   console.log('查看设备详情:', device)
   selectedDevice.value = device
   showDeviceDetail.value = true
+}
+
+// 清除筛选条件
+const clearFilters = () => {
+  searchKeyword.value = ''
+  deviceModelFilter.value = ''
+  statusFilter.value = ''
+  loadDeviceData()
 }
 
 // 查看所有设备
@@ -1505,6 +1518,25 @@ onUnmounted(() => {
       justify-content: center;
       margin-top: 20px;
       padding: 16px 0;
+    }
+
+    .empty-state {
+      padding: 40px 20px;
+      text-align: center;
+      color: #909399;
+
+      .empty-text {
+        margin: 16px 0 8px;
+        font-size: 16px;
+        font-weight: 500;
+        color: #606266;
+      }
+
+      .empty-description {
+        margin: 0 0 20px;
+        font-size: 14px;
+        color: #909399;
+      }
     }
   }
   }

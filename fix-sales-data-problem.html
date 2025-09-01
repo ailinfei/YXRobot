@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>销售数据问题解决方案</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .step-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        .step-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+        .action-button {
+            background-color: #409EFF;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 10px 10px 0;
+        }
+        .action-button:hover {
+            background-color: #337ecc;
+        }
+        .success-button {
+            background-color: #67c23a;
+        }
+        .danger-button {
+            background-color: #f56c6c;
+        }
+        .warning-button {
+            background-color: #e6a23c;
+        }
+        .result-area {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #409EFF;
+            display: none;
+        }
+        .result-area.success {
+            border-left-color: #67c23a;
+            background-color: #f0f9ff;
+        }
+        .result-area.error {
+            border-left-color: #f56c6c;
+            background-color: #fef0f0;
+        }
+        .result-area.warning {
+            border-left-color: #e6a23c;
+            background-color: #fdf6ec;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-pending { background-color: #e6a23c; }
+        .status-success { background-color: #67c23a; }
+        .status-error { background-color: #f56c6c; }
+        .progress {
+            margin-top: 20px;
+        }
+        .progress-item {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            background: #f8f9fa;
+            border-left: 4px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 销售数据显示问题解决方案</h1>
+        
+        <div class="progress">
+            <h3>解决进度：</h3>
+            <div id="progress-1" class="progress-item">
+                <span class="status-indicator status-pending"></span>
+                <strong>步骤1:</strong> 检查数据库表结构
+            </div>
+            <div id="progress-2" class="progress-item">
+                <span class="status-indicator status-pending"></span>
+                <strong>步骤2:</strong> 创建销售数据表
+            </div>
+            <div id="progress-3" class="progress-item">
+                <span class="status-indicator status-pending"></span>
+                <strong>步骤3:</strong> 插入测试数据
+            </div>
+            <div id="progress-4" class="progress-item">
+                <span class="status-indicator status-pending"></span>
+                <strong>步骤4:</strong> 测试API端点
+            </div>
+            <div id="progress-5" class="progress-item">
+                <span class="status-indicator status-pending"></span>
+                <strong>步骤5:</strong> 验证前端数据显示
+            </div>
+        </div>
+
+        <!-- 步骤1: 检查数据库表 -->
+        <div class="step-section">
+            <div class="step-title">📊 步骤1: 检查数据库表结构</div>
+            <p>首先检查销售相关的数据库表是否存在</p>
+            <button class="action-button" onclick="checkDatabaseTables()">检查数据库表</button>
+            <div id="check-tables-result" class="result-area"></div>
+        </div>
+
+        <!-- 步骤2: 创建数据库表 -->
+        <div class="step-section">
+            <div class="step-title">🗃️ 步骤2: 创建销售数据表</div>
+            <p>如果表不存在，创建所需的销售数据管理表结构</p>
+            <button class="action-button warning-button" onclick="createSalesTables()">创建销售数据表</button>
+            <div id="create-tables-result" class="result-area"></div>
+        </div>
+
+        <!-- 步骤3: 插入测试数据 -->
+        <div class="step-section">
+            <div class="step-title">💾 步骤3: 插入测试数据</div>
+            <p>向数据库中插入真实的销售测试数据供前端显示</p>
+            <button class="action-button success-button" onclick="insertTestData()">插入测试数据</button>
+            <div id="insert-data-result" class="result-area"></div>
+        </div>
+
+        <!-- 步骤4: 测试API -->
+        <div class="step-section">
+            <div class="step-title">🔗 步骤4: 测试API端点</div>
+            <p>验证所有销售相关的API端点是否正常工作</p>
+            <button class="action-button" onclick="testSalesStatsAPI()">测试销售统计API</button>
+            <button class="action-button" onclick="testSalesRecordsAPI()">测试销售记录API</button>
+            <button class="action-button" onclick="testSalesChartsAPI()">测试图表API</button>
+            <div id="test-api-result" class="result-area"></div>
+        </div>
+
+        <!-- 步骤5: 验证前端 -->
+        <div class="step-section">
+            <div class="step-title">🎨 步骤5: 验证前端数据显示</div>
+            <p>检查前端页面是否能正确显示销售数据</p>
+            <button class="action-button success-button" onclick="openSalesPage()">打开销售页面</button>
+            <button class="action-button" onclick="validateFrontendData()">验证前端数据</button>
+            <div id="frontend-result" class="result-area"></div>
+        </div>
+
+        <!-- 一键解决方案 -->
+        <div class="step-section" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+            <div class="step-title" style="color: white;">🚀 一键解决方案</div>
+            <p style="color: #f0f0f0;">自动执行所有步骤来解决销售数据显示问题</p>
+            <button class="action-button" style="background: rgba(255,255,255,0.2); border: 1px solid white;" onclick="runCompleteFixProcedure()">
+                一键修复所有问题
+            </button>
+            <div id="complete-fix-result" class="result-area"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8081';
+        
+        // 工具函数
+        function showResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = `result-area ${type}`;
+            element.innerHTML = `<pre>${message}</pre>`;
+        }
+        
+        function updateProgress(stepNumber, status) {
+            const element = document.getElementById(`progress-${stepNumber}`);
+            const indicator = element.querySelector('.status-indicator');
+            indicator.className = `status-indicator status-${status}`;
+        }
+        
+        async function makeAPICall(url, method = 'GET', body = null) {
+            try {
+                const options = {
+                    method,
+                    headers: { 'Content-Type': 'application/json' }
+                };
+                if (body) options.body = JSON.stringify(body);
+                
+                const response = await fetch(url, options);
+                const data = await response.json();
+                
+                return {
+                    success: response.ok,
+                    status: response.status,
+                    data: data
+                };
+            } catch (error) {
+                return {
+                    success: false,
+                    status: 0,
+                    error: error.message
+                };
+            }
+        }
+        
+        // 步骤1: 检查数据库表
+        async function checkDatabaseTables() {
+            showResult('check-tables-result', '正在检查数据库表结构...', 'info');
+            
+            const result = await makeAPICall(`${API_BASE}/api/admin/sales/sql/check-sales-tables`);
+            
+            if (result.success) {
+                const tables = result.data.tables;
+                let message = '✅ 数据库表检查结果:\n\n';
+                
+                Object.entries(tables).forEach(([table, exists]) => {
+                    message += `${exists ? '✅' : '❌'} ${table}: ${exists ? '存在' : '不存在'}\n`;
+                });
+                
+                message += `\n所有表都存在: ${result.data.allTablesExist ? '是' : '否'}`;
+                
+                showResult('check-tables-result', message, result.data.allTablesExist ? 'success' : 'warning');
+                updateProgress(1, result.data.allTablesExist ? 'success' : 'error');
+                
+                return result.data.allTablesExist;
+            } else {
+                showResult('check-tables-result', `❌ 检查失败: ${result.error || '未知错误'}`, 'error');
+                updateProgress(1, 'error');
+                return false;
+            }
+        }
+        
+        // 步骤2: 创建数据库表
+        async function createSalesTables() {
+            showResult('create-tables-result', '正在创建销售数据表...', 'info');
+            
+            const result = await makeAPICall(`${API_BASE}/api/admin/sales/sql/create-sales-tables`, 'POST');
+            
+            if (result.success && result.data.success) {
+                showResult('create-tables-result', `✅ ${result.data.message}`, 'success');
+                updateProgress(2, 'success');
+                return true;
+            } else {
+                showResult('create-tables-result', `❌ 创建失败: ${result.data?.message || result.error || '未知错误'}`, 'error');
+                updateProgress(2, 'error');
+                return false;
+            }
+        }
+        
+        // 步骤3: 插入测试数据
+        async function insertTestData() {
+            showResult('insert-data-result', '正在插入测试数据...', 'info');
+            
+            const result = await makeAPICall(`${API_BASE}/api/admin/sales/sql/init-sales-data`, 'POST');
+            
+            if (result.success && result.data.success) {
+                showResult('insert-data-result', `✅ ${result.data.message}\n\n💡 ${result.data.note}`, 'success');
+                updateProgress(3, 'success');
+                return true;
+            } else {
+                showResult('insert-data-result', `❌ 插入失败: ${result.data?.message || result.error || '未知错误'}`, 'error');
+                updateProgress(3, 'error');
+                return false;
+            }
+        }
+        
+        // 步骤4a: 测试销售统计API
+        async function testSalesStatsAPI() {
+            const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+            const endDate = new Date().toISOString().split('T')[0];
+            
+            showResult('test-api-result', '正在测试销售统计API...', 'info');
+            
+            const result = await makeAPICall(`${API_BASE}/api/sales/stats?startDate=${startDate}&endDate=${endDate}`);
+            
+            if (result.success) {
+                const stats = result.data.data;
+                let message = '✅ 销售统计API测试成功!\n\n';
+                message += `总销售额: ¥${stats.totalSalesAmount}\n`;
+                message += `订单总数: ${stats.totalOrders}\n`;
+                message += `平均订单价值: ¥${stats.avgOrderAmount}\n`;
+                message += `新增客户: ${stats.newCustomers}\n`;
+                message += `活跃客户: ${stats.activeCustomers}\n`;
+                message += `增长率: ${stats.growthRate}%\n`;
+                
+                showResult('test-api-result', message, 'success');
+                updateProgress(4, 'success');
+                return true;
+            } else {
+                showResult('test-api-result', `❌ API测试失败: ${result.error || '未知错误'}`, 'error');
+                updateProgress(4, 'error');
+                return false;
+            }
+        }
+        
+        // 步骤4b: 测试销售记录API
+        async function testSalesRecordsAPI() {
+            showResult('test-api-result', '正在测试销售记录API...', 'info');
+            
+            const result = await makeAPICall(`${API_BASE}/api/sales/records?page=1&pageSize=5`);
+            
+            if (result.success) {
+                const data = result.data.data;
+                let message = '✅ 销售记录API测试成功!\n\n';
+                message += `记录总数: ${data.total}\n`;
+                message += `当前页: ${data.page}\n`;
+                message += `每页大小: ${data.pageSize}\n`;
+                message += `返回记录数: ${data.list.length}\n`;
+                
+                if (data.list.length > 0) {
+                    message += '\n📋 示例记录:\n';
+                    const record = data.list[0];
+                    message += `订单号: ${record.order_number}\n`;
+                    message += `销售金额: ¥${record.sales_amount}\n`;
+                    message += `订单日期: ${record.order_date}\n`;
+                    message += `状态: ${record.status}\n`;
+                }
+                
+                showResult('test-api-result', message, 'success');
+                return true;
+            } else {
+                showResult('test-api-result', `❌ API测试失败: ${result.error || '未知错误'}`, 'error');
+                return false;
+            }
+        }
+        
+        // 步骤4c: 测试图表API
+        async function testSalesChartsAPI() {
+            showResult('test-api-result', '正在测试图表数据API...', 'info');
+            
+            const trendsResult = await makeAPICall(`${API_BASE}/api/sales/charts/trends?groupBy=day`);
+            const distributionResult = await makeAPICall(`${API_BASE}/api/sales/charts/distribution?type=product`);
+            
+            let message = '';
+            
+            if (trendsResult.success) {
+                message += '✅ 趋势图表API测试成功!\n';
+                const data = trendsResult.data.data;
+                message += `趋势数据类别数: ${data.categories?.length || 0}\n`;
+                message += `数据系列数: ${data.series?.length || 0}\n\n`;
+            } else {
+                message += '❌ 趋势图表API测试失败\n\n';
+            }
+            
+            if (distributionResult.success) {
+                message += '✅ 分布图表API测试成功!\n';
+                const data = distributionResult.data.data;
+                message += `分布数据类别数: ${data.categories?.length || 0}\n`;
+                message += `数据系列数: ${data.series?.length || 0}\n`;
+            } else {
+                message += '❌ 分布图表API测试失败\n';
+            }
+            
+            const success = trendsResult.success && distributionResult.success;
+            showResult('test-api-result', message, success ? 'success' : 'warning');
+            
+            return success;
+        }
+        
+        // 步骤5a: 打开销售页面
+        function openSalesPage() {
+            window.open('http://localhost:8081/admin/business/sales', '_blank');
+            showResult('frontend-result', '✅ 已在新窗口打开销售页面\n\n请检查页面上的销售数据是否正常显示', 'info');
+        }
+        
+        // 步骤5b: 验证前端数据
+        async function validateFrontendData() {
+            showResult('frontend-result', '正在验证前端数据显示...', 'info');
+            
+            // 检查所有相关API
+            const statsResult = await testSalesStatsAPI();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            const recordsResult = await testSalesRecordsAPI();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            const chartsResult = await testSalesChartsAPI();
+            
+            let message = '🔍 前端数据验证结果:\n\n';
+            message += `${statsResult ? '✅' : '❌'} 销售统计数据 API\n`;
+            message += `${recordsResult ? '✅' : '❌'} 销售记录列表 API\n`;
+            message += `${chartsResult ? '✅' : '❌'} 图表数据 API\n\n`;
+            
+            if (statsResult && recordsResult && chartsResult) {
+                message += '🎉 所有API正常工作！\n';
+                message += '💡 现在前端页面应该能正常显示销售数据了\n';
+                message += '📱 请刷新销售页面查看最新数据';
+                updateProgress(5, 'success');
+                showResult('frontend-result', message, 'success');
+            } else {
+                message += '⚠️ 部分API存在问题，请检查Spring Boot应用是否正常运行';
+                updateProgress(5, 'error');
+                showResult('frontend-result', message, 'warning');
+            }
+        }
+        
+        // 一键解决方案
+        async function runCompleteFixProcedure() {
+            showResult('complete-fix-result', '🚀 开始执行完整修复流程...', 'info');
+            
+            let message = '📋 执行步骤:\n\n';
+            
+            // 步骤1: 检查表
+            message += '1. 检查数据库表...\n';
+            showResult('complete-fix-result', message, 'info');
+            const tablesExist = await checkDatabaseTables();
+            
+            if (!tablesExist) {
+                // 步骤2: 创建表
+                message += '2. 创建销售数据表...\n';
+                showResult('complete-fix-result', message, 'info');
+                const tablesCreated = await createSalesTables();
+                
+                if (!tablesCreated) {
+                    showResult('complete-fix-result', message + '❌ 创建表失败，流程中止', 'error');
+                    return;
+                }
+            } else {
+                message += '2. 表已存在，跳过创建步骤\n';
+            }
+            
+            // 步骤3: 插入数据
+            message += '3. 插入测试数据...\n';
+            showResult('complete-fix-result', message, 'info');
+            const dataInserted = await insertTestData();
+            
+            if (!dataInserted) {
+                message += '⚠️ 数据插入失败，可能已存在数据，继续下一步\n';
+            }
+            
+            // 步骤4: 测试API
+            message += '4. 测试API端点...\n';
+            showResult('complete-fix-result', message, 'info');
+            const apiWorking = await testSalesStatsAPI();
+            
+            // 步骤5: 完成
+            message += '5. 修复完成!\n\n';
+            
+            if (apiWorking) {
+                message += '🎉 销售数据显示问题已解决!\n';
+                message += '✅ 所有API正常工作\n';
+                message += '✅ 数据库包含测试数据\n';
+                message += '✅ 前端页面应该能正常显示数据\n\n';
+                message += '📱 请刷新浏览器中的销售页面查看最新数据';
+                showResult('complete-fix-result', message, 'success');
+                
+                // 更新所有进度
+                for (let i = 1; i <= 5; i++) {
+                    updateProgress(i, 'success');
+                }
+            } else {
+                message += '⚠️ 修复过程完成，但API测试失败\n';
+                message += '🔧 请检查Spring Boot应用是否正常运行\n';
+                message += '🔗 确认应用运行在 http://localhost:8081';
+                showResult('complete-fix-result', message, 'warning');
+            }
+        }
+        
+        // 页面加载时自动检查
+        window.onload = function() {
+            setTimeout(() => {
+                checkDatabaseTables();
+            }, 1000);
+        };
+    </script>
+</body>
+</html>

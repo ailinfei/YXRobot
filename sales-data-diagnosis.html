@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>销售数据问题诊断</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            margin: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+        .check-section {
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 10px;
+            background: #f8f9fa;
+            border-left: 5px solid #007bff;
+        }
+        .check-section.success {
+            border-left-color: #28a745;
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+        }
+        .check-section.error {
+            border-left-color: #dc3545;
+            background: linear-gradient(135deg, #f8d7da 0%, #f1b0b7 100%);
+        }
+        .check-section.warning {
+            border-left-color: #ffc107;
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+        }
+        .check-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 8px;
+            transition: all 0.3s ease;
+        }
+        .check-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        .result-area {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: 'Consolas', monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-success { background: #28a745; }
+        .status-error { background: #dc3545; }
+        .status-warning { background: #ffc107; }
+        .status-checking { background: #6c757d; animation: pulse 1.5s infinite; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 销售数据问题诊断工具</h1>
+        
+        <!-- 应用状态检查 -->
+        <div id="app-status-section" class="check-section">
+            <h3><span id="app-status-indicator" class="status-indicator status-checking"></span>Spring Boot应用状态</h3>
+            <p id="app-status-text">检查中...</p>
+            <button class="check-btn" onclick="checkApplicationStatus()">🔄 重新检查应用</button>
+        </div>
+
+        <!-- 销售API检查 -->
+        <div id="api-status-section" class="check-section">
+            <h3><span id="api-status-indicator" class="status-indicator status-checking"></span>销售API状态</h3>
+            <p id="api-status-text">等待应用检查完成...</p>
+            <button class="check-btn" onclick="checkSalesAPI()">📊 测试销售API</button>
+            <button class="check-btn" onclick="checkAllAPIs()">🔄 测试所有API</button>
+            <div id="api-results" class="result-area" style="display: none;"></div>
+        </div>
+
+        <!-- 数据库检查 -->
+        <div id="db-status-section" class="check-section">
+            <h3><span id="db-status-indicator" class="status-indicator status-checking"></span>数据库数据状态</h3>
+            <p id="db-status-text">等待API检查完成...</p>
+            <button class="check-btn" onclick="checkDatabaseData()">🗃️ 检查数据库</button>
+            <button class="check-btn" onclick="createTestData()">➕ 创建测试数据</button>
+            <div id="db-results" class="result-area" style="display: none;"></div>
+        </div>
+
+        <!-- 解决方案 -->
+        <div class="check-section">
+            <h3>🛠️ 自动修复</h3>
+            <p>一键解决销售数据显示问题</p>
+            <button class="check-btn" onclick="runAutoFix()" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">
+                🚀 一键修复数据问题
+            </button>
+            <button class="check-btn" onclick="openSalesPage()">📱 打开销售页面</button>
+        </div>
+
+        <!-- 实时诊断结果 -->
+        <div id="diagnosis-summary" class="check-section" style="display: none;">
+            <h3>📋 诊断摘要</h3>
+            <div id="summary-content"></div>
+        </div>
+    </div>
+
+    <script>
+        let checkResults = {
+            app: null,
+            api: null,
+            database: null
+        };
+
+        // 更新状态指示器
+        function updateStatusIndicator(elementId, status) {
+            const indicator = document.getElementById(elementId);
+            indicator.className = `status-indicator status-${status}`;
+        }
+
+        // 更新检查区域
+        function updateCheckSection(sectionId, status, text) {
+            const section = document.getElementById(sectionId);
+            const textElement = document.getElementById(sectionId.replace('-section', '-text'));
+            
+            section.className = `check-section ${status}`;
+            textElement.textContent = text;
+            updateStatusIndicator(sectionId.replace('-section', '-indicator'), status);
+        }
+
+        // 检查应用状态
+        async function checkApplicationStatus() {
+            updateCheckSection('app-status-section', 'warning', '检查Spring Boot应用状态...');
+            
+            try {
+                const response = await fetch('http://localhost:8081/', {
+                    method: 'GET',
+                    timeout: 5000
+                });
+                
+                if (response.status === 200 || response.status === 403 || response.status === 404) {
+                    checkResults.app = true;
+                    updateCheckSection('app-status-section', 'success', 
+                        `✅ Spring Boot应用正在运行\n` +
+                        `端口: 8081\n` +
+                        `状态码: ${response.status}\n` +
+                        `${response.status === 403 ? '注意: 存在CORS问题，但应用正常运行' : ''}`);
+                    
+                    // 自动检查API
+                    setTimeout(checkSalesAPI, 1000);
+                    return true;
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                checkResults.app = false;
+                updateCheckSection('app-status-section', 'error', 
+                    `❌ Spring Boot应用未运行\n` +
+                    `错误: ${error.message}\n` +
+                    `请先启动应用再检查销售数据`);
+                return false;
+            }
+        }
+
+        // 检查销售API
+        async function checkSalesAPI() {
+            if (!checkResults.app) {
+                updateCheckSection('api-status-section', 'error', '❌ 请先确保Spring Boot应用正在运行');
+                return;
+            }
+
+            updateCheckSection('api-status-section', 'warning', '检查销售API状态...');
+            
+            const results = [];
+            const apiTests = [
+                { name: '销售统计API', url: '/api/sales/stats?startDate=2025-07-30&endDate=2025-08-29' },
+                { name: '销售记录API', url: '/api/sales/records?page=1&pageSize=5' },
+                { name: '趋势图表API', url: '/api/sales/charts/trends?groupBy=day' },
+                { name: '分布图表API', url: '/api/sales/charts/distribution?type=product' }
+            ];
+
+            let successCount = 0;
+
+            for (const test of apiTests) {
+                try {
+                    const response = await fetch(`http://localhost:8081${test.url}`);
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        results.push(`✅ ${test.name}: 正常 (${response.status})`);
+                        if (data.data) {
+                            if (test.name === '销售统计API') {
+                                results.push(`   总销售额: ¥${data.data.totalSalesAmount || 0}`);
+                                results.push(`   订单总数: ${data.data.totalOrders || 0}`);
+                            } else if (test.name === '销售记录API') {
+                                results.push(`   记录总数: ${data.data.total || 0}`);
+                            }
+                        }
+                        successCount++;
+                    } else {
+                        results.push(`❌ ${test.name}: 失败 (${response.status}) - ${data.message || '未知错误'}`);
+                    }
+                } catch (error) {
+                    results.push(`❌ ${test.name}: 连接失败 - ${error.message}`);
+                }
+            }
+
+            const apiResults = document.getElementById('api-results');
+            apiResults.style.display = 'block';
+            apiResults.textContent = results.join('\n');
+
+            if (successCount === apiTests.length) {
+                checkResults.api = true;
+                updateCheckSection('api-status-section', 'success', 
+                    `✅ 所有销售API正常工作 (${successCount}/${apiTests.length})`);
+                setTimeout(checkDatabaseData, 1000);
+            } else if (successCount > 0) {
+                checkResults.api = 'partial';
+                updateCheckSection('api-status-section', 'warning', 
+                    `⚠️ 部分销售API工作正常 (${successCount}/${apiTests.length})`);
+            } else {
+                checkResults.api = false;
+                updateCheckSection('api-status-section', 'error', 
+                    `❌ 销售API无法正常工作 (${successCount}/${apiTests.length})`);
+            }
+        }
+
+        // 检查所有API
+        async function checkAllAPIs() {
+            await checkSalesAPI();
+        }
+
+        // 检查数据库数据
+        async function checkDatabaseData() {
+            if (!checkResults.api) {
+                updateCheckSection('db-status-section', 'error', '❌ 请先确保销售API正常工作');
+                return;
+            }
+
+            updateCheckSection('db-status-section', 'warning', '检查数据库销售数据...');
+
+            try {
+                // 检查销售表状态
+                const tableCheckResponse = await fetch('http://localhost:8081/api/admin/sales/sql/check-sales-tables');
+                const tableCheckData = await tableCheckResponse.json();
+
+                // 检查销售统计
+                const statsResponse = await fetch('http://localhost:8081/api/admin/sales/sql/sales-stats');
+                const statsData = await statsResponse.json();
+
+                const dbResults = [];
+                
+                if (tableCheckResponse.ok && tableCheckData.success) {
+                    dbResults.push('📊 数据库表状态:');
+                    Object.entries(tableCheckData.tables).forEach(([table, exists]) => {
+                        dbResults.push(`   ${exists ? '✅' : '❌'} ${table}: ${exists ? '存在' : '不存在'}`);
+                    });
+                    
+                    if (statsResponse.ok && statsData.success) {
+                        dbResults.push('\n📈 数据统计:');
+                        Object.entries(statsData.stats).forEach(([table, count]) => {
+                            dbResults.push(`   ${table}: ${count} 条记录`);
+                        });
+                        
+                        const salesRecordsCount = statsData.stats.sales_records || 0;
+                        if (salesRecordsCount > 0) {
+                            checkResults.database = true;
+                            updateCheckSection('db-status-section', 'success', 
+                                `✅ 数据库包含销售数据 (${salesRecordsCount} 条销售记录)`);
+                        } else {
+                            checkResults.database = false;
+                            updateCheckSection('db-status-section', 'warning', 
+                                `⚠️ 数据库表存在但缺少销售数据`);
+                        }
+                    } else {
+                        checkResults.database = false;
+                        updateCheckSection('db-status-section', 'error', '❌ 无法获取销售统计数据');
+                    }
+                } else {
+                    checkResults.database = false;
+                    updateCheckSection('db-status-section', 'error', '❌ 销售数据库表不存在或无法访问');
+                }
+
+                const dbResultsArea = document.getElementById('db-results');
+                dbResultsArea.style.display = 'block';
+                dbResultsArea.textContent = dbResults.join('\n');
+
+                updateDiagnosisSummary();
+
+            } catch (error) {
+                checkResults.database = false;
+                updateCheckSection('db-status-section', 'error', 
+                    `❌ 数据库检查失败: ${error.message}`);
+            }
+        }
+
+        // 创建测试数据
+        async function createTestData() {
+            updateCheckSection('db-status-section', 'warning', '正在创建测试数据...');
+
+            try {
+                // 先创建表结构
+                const createTablesResponse = await fetch('http://localhost:8081/api/admin/sales/sql/create-sales-tables', {
+                    method: 'POST'
+                });
+                const createTablesResult = await createTablesResponse.json();
+
+                // 再插入测试数据
+                const insertDataResponse = await fetch('http://localhost:8081/api/admin/sales/sql/init-sales-data', {
+                    method: 'POST'
+                });
+                const insertDataResult = await insertDataResponse.json();
+
+                if (insertDataResponse.ok && insertDataResult.success) {
+                    updateCheckSection('db-status-section', 'success', 
+                        '✅ 测试数据创建成功！现在可以查看销售页面了');
+                    
+                    // 重新检查数据
+                    setTimeout(checkDatabaseData, 2000);
+                } else {
+                    updateCheckSection('db-status-section', 'error', 
+                        `❌ 创建测试数据失败: ${insertDataResult.message || '未知错误'}`);
+                }
+            } catch (error) {
+                updateCheckSection('db-status-section', 'error', 
+                    `❌ 创建测试数据失败: ${error.message}`);
+            }
+        }
+
+        // 自动修复
+        async function runAutoFix() {
+            updateCheckSection('db-status-section', 'warning', '正在执行自动修复...');
+
+            // 1. 检查应用状态
+            const appOk = await checkApplicationStatus();
+            if (!appOk) return;
+
+            // 2. 检查API状态
+            await checkSalesAPI();
+            
+            // 3. 创建测试数据
+            await createTestData();
+
+            // 4. 最终验证
+            setTimeout(async () => {
+                await checkDatabaseData();
+                showMessage('🎉 自动修复完成！请刷新销售页面查看数据。', 'success');
+            }, 3000);
+        }
+
+        // 打开销售页面
+        function openSalesPage() {
+            window.open('http://localhost:8081/admin/business/sales', '_blank');
+        }
+
+        // 更新诊断摘要
+        function updateDiagnosisSummary() {
+            const summaryDiv = document.getElementById('diagnosis-summary');
+            const summaryContent = document.getElementById('summary-content');
+            
+            let summary = '📋 问题诊断结果:\n\n';
+            
+            summary += `🖥️ Spring Boot应用: ${checkResults.app ? '✅ 正常' : '❌ 异常'}\n`;
+            summary += `🔗 销售API: ${checkResults.api === true ? '✅ 正常' : checkResults.api === 'partial' ? '⚠️ 部分正常' : '❌ 异常'}\n`;
+            summary += `🗃️ 数据库数据: ${checkResults.database ? '✅ 有数据' : '❌ 缺少数据'}\n\n`;
+            
+            if (checkResults.app && checkResults.api && checkResults.database) {
+                summary += '🎉 所有检查都通过！销售页面应该能正常显示数据。\n';
+                summary += '💡 如果页面仍然显示空数据，请刷新浏览器页面。';
+            } else {
+                summary += '🔧 问题识别:\n';
+                if (!checkResults.app) {
+                    summary += '• Spring Boot应用未运行或无法访问\n';
+                }
+                if (!checkResults.api) {
+                    summary += '• 销售API无法正常工作\n';
+                }
+                if (!checkResults.database) {
+                    summary += '• 数据库缺少销售数据\n';
+                }
+                summary += '\n💡 建议: 点击"一键修复数据问题"按钮自动解决。';
+            }
+            
+            summaryContent.textContent = summary;
+            summaryDiv.style.display = 'block';
+        }
+
+        // 显示消息
+        function showMessage(message, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.style.cssText = `
+                position: fixed; top: 20px; right: 20px; z-index: 9999;
+                padding: 15px 20px; border-radius: 8px; color: white;
+                background: ${type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#ffc107'};
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            `;
+            messageDiv.textContent = message;
+            document.body.appendChild(messageDiv);
+            
+            setTimeout(() => messageDiv.remove(), 5000);
+        }
+
+        // 页面加载时自动开始检查
+        window.onload = function() {
+            setTimeout(checkApplicationStatus, 1000);
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,311 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yxrobot.mapper.RentalRecordMapper">
+
+    <!-- 租赁记录结果映射 -->
+    <resultMap id="RentalRecordResultMap" type="com.yxrobot.entity.RentalRecord">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="rental_order_number" property="rentalOrderNumber" jdbcType="VARCHAR"/>
+        <result column="device_id" property="deviceId" jdbcType="BIGINT"/>
+        <result column="customer_id" property="customerId" jdbcType="BIGINT"/>
+        <result column="rental_start_date" property="rentalStartDate" jdbcType="DATE"/>
+        <result column="rental_end_date" property="rentalEndDate" jdbcType="DATE"/>
+        <result column="planned_end_date" property="plannedEndDate" jdbcType="DATE"/>
+        <result column="rental_period" property="rentalPeriod" jdbcType="INTEGER"/>
+        <result column="daily_rental_fee" property="dailyRentalFee" jdbcType="DECIMAL"/>
+        <result column="total_rental_fee" property="totalRentalFee" jdbcType="DECIMAL"/>
+        <result column="deposit_amount" property="depositAmount" jdbcType="DECIMAL"/>
+        <result column="actual_payment" property="actualPayment" jdbcType="DECIMAL"/>
+        <result column="payment_status" property="paymentStatus" jdbcType="VARCHAR"/>
+        <result column="rental_status" property="rentalStatus" jdbcType="VARCHAR"/>
+        <result column="delivery_method" property="deliveryMethod" jdbcType="VARCHAR"/>
+        <result column="delivery_address" property="deliveryAddress" jdbcType="VARCHAR"/>
+        <result column="return_date" property="returnDate" jdbcType="DATE"/>
+        <result column="return_condition" property="returnCondition" jdbcType="VARCHAR"/>
+        <result column="notes" property="notes" jdbcType="VARCHAR"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+        <result column="updated_at" property="updatedAt" jdbcType="TIMESTAMP"/>
+        <result column="is_deleted" property="isDeleted" jdbcType="TINYINT"/>
+    </resultMap>
+
+    <!-- 租赁趋势数据结果映射 -->
+    <resultMap id="RentalTrendResultMap" type="com.yxrobot.dto.RentalTrendDTO">
+        <result column="date" property="date" jdbcType="VARCHAR"/>
+        <result column="revenue" property="revenue" jdbcType="DECIMAL"/>
+        <result column="order_count" property="orderCount" jdbcType="INTEGER"/>
+        <result column="device_count" property="deviceCount" jdbcType="INTEGER"/>
+        <result column="utilization_rate" property="utilizationRate" jdbcType="DECIMAL"/>
+    </resultMap>
+
+    <!-- 基础查询字段 -->
+    <sql id="Base_Column_List">
+        id, rental_order_number, device_id, customer_id, rental_start_date, rental_end_date,
+        planned_end_date, rental_period, daily_rental_fee, total_rental_fee, deposit_amount,
+        actual_payment, payment_status, rental_status, delivery_method, delivery_address,
+        return_date, return_condition, notes, created_at, updated_at, is_deleted
+    </sql>
+
+    <!-- 查询条件 -->
+    <sql id="Where_Clause">
+        <where>
+            is_deleted = 0
+            <if test="params.startDate != null">
+                AND rental_start_date &gt;= #{params.startDate}
+            </if>
+            <if test="params.endDate != null">
+                AND rental_start_date &lt;= #{params.endDate}
+            </if>
+            <if test="params.keyword != null and params.keyword != ''">
+                AND (rental_order_number LIKE CONCAT('%', #{params.keyword}, '%')
+                OR delivery_address LIKE CONCAT('%', #{params.keyword}, '%'))
+            </if>
+            <if test="params.rentalStatus != null and params.rentalStatus != ''">
+                AND rental_status = #{params.rentalStatus}
+            </if>
+            <if test="params.paymentStatus != null and params.paymentStatus != ''">
+                AND payment_status = #{params.paymentStatus}
+            </if>
+            <if test="params.deviceId != null">
+                AND device_id = #{params.deviceId}
+            </if>
+            <if test="params.customerId != null">
+                AND customer_id = #{params.customerId}
+            </if>
+        </where>
+    </sql>
+
+    <!-- 根据ID查询 -->
+    <select id="selectById" resultMap="RentalRecordResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM rental_records
+        WHERE id = #{id} AND is_deleted = 0
+    </select>
+
+    <!-- 根据订单号查询 -->
+    <select id="selectByOrderNumber" resultMap="RentalRecordResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM rental_records
+        WHERE rental_order_number = #{orderNumber} AND is_deleted = 0
+    </select>
+
+    <!-- 分页查询列表 -->
+    <select id="selectList" resultMap="RentalRecordResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM rental_records
+        <include refid="Where_Clause"/>
+        ORDER BY created_at DESC
+        <if test="params.page != null and params.pageSize != null">
+            LIMIT #{params.pageSize} OFFSET #{params.offset}
+        </if>
+    </select>
+
+    <!-- 查询总数 -->
+    <select id="selectCount" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM rental_records
+        <include refid="Where_Clause"/>
+    </select>
+
+    <!-- 插入记录 -->
+    <insert id="insert" parameterType="com.yxrobot.entity.RentalRecord" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO rental_records (
+            rental_order_number, device_id, customer_id, rental_start_date, rental_end_date,
+            planned_end_date, rental_period, daily_rental_fee, total_rental_fee, deposit_amount,
+            actual_payment, payment_status, rental_status, delivery_method, delivery_address,
+            return_date, return_condition, notes, created_at, updated_at, is_deleted
+        ) VALUES (
+            #{rentalOrderNumber}, #{deviceId}, #{customerId}, #{rentalStartDate}, #{rentalEndDate},
+            #{plannedEndDate}, #{rentalPeriod}, #{dailyRentalFee}, #{totalRentalFee}, #{depositAmount},
+            #{actualPayment}, #{paymentStatus}, #{rentalStatus}, #{deliveryMethod}, #{deliveryAddress},
+            #{returnDate}, #{returnCondition}, #{notes}, NOW(), NOW(), 0
+        )
+    </insert>
+
+    <!-- 更新记录 -->
+    <update id="updateById" parameterType="com.yxrobot.entity.RentalRecord">
+        UPDATE rental_records
+        SET rental_order_number = #{rentalOrderNumber},
+            device_id = #{deviceId},
+            customer_id = #{customerId},
+            rental_start_date = #{rentalStartDate},
+            rental_end_date = #{rentalEndDate},
+            planned_end_date = #{plannedEndDate},
+            rental_period = #{rentalPeriod},
+            daily_rental_fee = #{dailyRentalFee},
+            total_rental_fee = #{totalRentalFee},
+            deposit_amount = #{depositAmount},
+            actual_payment = #{actualPayment},
+            payment_status = #{paymentStatus},
+            rental_status = #{rentalStatus},
+            delivery_method = #{deliveryMethod},
+            delivery_address = #{deliveryAddress},
+            return_date = #{returnDate},
+            return_condition = #{returnCondition},
+            notes = #{notes},
+            updated_at = NOW()
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <!-- 软删除 -->
+    <update id="deleteById">
+        UPDATE rental_records
+        SET is_deleted = 1, updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 批量软删除 -->
+    <update id="deleteBatchByIds">
+        UPDATE rental_records
+        SET is_deleted = 1, updated_at = NOW()
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <!-- 查询租赁统计数据 -->
+    <select id="selectRentalStats" resultType="java.util.Map">
+        SELECT 
+            COALESCE(SUM(total_rental_fee), 0) as totalRentalRevenue,
+            COUNT(*) as totalRentalOrders,
+            COUNT(DISTINCT device_id) as totalRentalDevices,
+            COUNT(CASE WHEN rental_status = 'active' THEN 1 END) as activeRentalDevices,
+            COALESCE(AVG(rental_period), 0) as averageRentalPeriod,
+            COALESCE(AVG(total_rental_fee), 0) as averageOrderValue
+        FROM rental_records
+        WHERE is_deleted = 0
+        <if test="startDate != null">
+            AND rental_start_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND rental_start_date &lt;= #{endDate}
+        </if>
+    </select>
+
+    <!-- 查询租赁趋势数据 -->
+    <select id="selectRentalTrends" resultMap="RentalTrendResultMap">
+        SELECT 
+            DATE_FORMAT(rental_start_date, 
+                <choose>
+                    <when test="period == 'daily'">
+                        '%Y-%m-%d'
+                    </when>
+                    <when test="period == 'weekly'">
+                        '%Y-%u'
+                    </when>
+                    <when test="period == 'monthly'">
+                        '%Y-%m'
+                    </when>
+                    <otherwise>
+                        '%Y-%m-%d'
+                    </otherwise>
+                </choose>
+            ) as date,
+            COALESCE(SUM(total_rental_fee), 0) as revenue,
+            COUNT(*) as order_count,
+            COUNT(DISTINCT device_id) as device_count,
+            COALESCE(AVG(
+                CASE 
+                    WHEN rental_status = 'active' THEN 80.0
+                    WHEN rental_status = 'completed' THEN 75.0
+                    ELSE 60.0
+                END
+            ), 0) as utilization_rate
+        FROM rental_records
+        WHERE is_deleted = 0
+        <if test="startDate != null">
+            AND rental_start_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND rental_start_date &lt;= #{endDate}
+        </if>
+        GROUP BY DATE_FORMAT(rental_start_date, 
+            <choose>
+                <when test="period == 'daily'">
+                    '%Y-%m-%d'
+                </when>
+                <when test="period == 'weekly'">
+                    '%Y-%u'
+                </when>
+                <when test="period == 'monthly'">
+                    '%Y-%m'
+                </when>
+                <otherwise>
+                    '%Y-%m-%d'
+                </otherwise>
+            </choose>
+        )
+        ORDER BY date ASC
+    </select>
+
+    <!-- 查询今日统计 -->
+    <select id="selectTodayStats" resultType="java.util.Map">
+        SELECT 
+            COALESCE(SUM(total_rental_fee), 0) as revenue,
+            COUNT(*) as orders,
+            COUNT(DISTINCT device_id) as activeDevices,
+            COALESCE(AVG(
+                CASE 
+                    WHEN rental_status = 'active' THEN 80.0
+                    WHEN rental_status = 'completed' THEN 75.0
+                    ELSE 60.0
+                END
+            ), 0) as avgUtilization
+        FROM rental_records
+        WHERE is_deleted = 0
+        AND DATE(rental_start_date) = #{today}
+    </select>
+
+    <!-- 查询地区分布 -->
+    <select id="selectRegionDistribution" resultType="java.util.Map">
+        SELECT 
+            COALESCE(delivery_address, '未知地区') as region,
+            COALESCE(SUM(total_rental_fee), 0) as revenue,
+            COUNT(*) as orderCount
+        FROM rental_records
+        WHERE is_deleted = 0
+        <if test="startDate != null">
+            AND rental_start_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND rental_start_date &lt;= #{endDate}
+        </if>
+        GROUP BY delivery_address
+        ORDER BY revenue DESC
+        LIMIT 10
+    </select>
+
+    <!-- 查询渠道分析 -->
+    <select id="selectChannelAnalysis" resultType="java.util.Map">
+        SELECT 
+            COALESCE(delivery_method, '未知渠道') as channel,
+            COALESCE(SUM(total_rental_fee), 0) as revenue,
+            COUNT(*) as orderCount
+        FROM rental_records
+        WHERE is_deleted = 0
+        <if test="startDate != null">
+            AND rental_start_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND rental_start_date &lt;= #{endDate}
+        </if>
+        GROUP BY delivery_method
+        ORDER BY revenue DESC
+    </select>
+
+    <!-- 查询收入增长率 -->
+    <select id="selectRevenueGrowthRate" resultType="java.util.Map">
+        SELECT 
+            COALESCE(
+                (SELECT SUM(total_rental_fee) FROM rental_records 
+                 WHERE is_deleted = 0 AND DATE_FORMAT(rental_start_date, '%Y-%m') = DATE_FORMAT(#{currentMonth}, '%Y-%m')), 
+                0
+            ) as currentRevenue,
+            COALESCE(
+                (SELECT SUM(total_rental_fee) FROM rental_records 
+                 WHERE is_deleted = 0 AND DATE_FORMAT(rental_start_date, '%Y-%m') = DATE_FORMAT(#{previousMonth}, '%Y-%m')), 
+                0
+            ) as previousRevenue
+    </select>
+
+</mapper>

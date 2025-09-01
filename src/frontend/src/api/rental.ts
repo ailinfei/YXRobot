@@ -6,90 +6,28 @@
 import apiClient from './config'
 import type { ApiResponse, PageResponse } from './types'
 import { mockRentalAPI } from './mock/rental'
+import type {
+  RentalStats,
+  RentalTrendData,
+  DeviceUtilizationData,
+  RentalRecord,
+  RentalDevice,
+  RentalCustomer,
+  RentalRevenueAnalysis,
+  DeviceStatusStats,
+  TodayStats,
+  DeviceQueryParams,
+  RentalRecordQueryParams,
+  TrendQueryParams,
+  RevenueAnalysisParams,
+  RentalRecordFormData,
+  RentalDeviceFormData,
+  RentalCustomerFormData,
+  ExportParams
+} from '@/types/rental'
 
-// 开发环境使用Mock数据
-const isDevelopment = import.meta.env.DEV
-
-// 租赁业务统计数据接口
-export interface RentalStats {
-  totalRentalRevenue: number          // 总租赁收入
-  totalRentalDevices: number          // 租赁设备总数
-  activeRentalDevices: number         // 活跃租赁设备数
-  deviceUtilizationRate: number       // 设备利用率
-  averageRentalPeriod: number         // 平均租赁周期（天）
-  totalRentalOrders: number           // 租赁订单总数
-  revenueGrowthRate: number           // 收入增长率
-  deviceGrowthRate: number            // 设备增长率
-}
-
-// 租赁趋势数据接口
-export interface RentalTrendData {
-  date: string
-  revenue: number
-  orderCount: number
-  deviceCount: number
-  utilizationRate: number
-}
-
-// 设备利用率数据接口
-export interface DeviceUtilizationData {
-  deviceId: string
-  deviceModel: string
-  utilizationRate: number
-  totalRentalDays: number
-  totalAvailableDays: number
-  currentStatus: 'active' | 'idle' | 'maintenance' | 'renting'
-  lastRentalDate?: string
-  // 新增字段 - 设备增强信息
-  signalStrength?: number              // 信号强度 (0-100)
-  performanceScore?: number            // 性能评分 (0-100)
-  region?: string                      // 所在地区
-  maintenanceStatus?: 'normal' | 'warning' | 'urgent'  // 维护状态
-  predictedFailureRisk?: number        // 预测故障风险 (0-100)
-  networkType?: '4G' | '5G' | 'WiFi' | 'Ethernet'     // 网络类型
-  lastMaintenanceDate?: string         // 最后维护时间
-  nextMaintenanceDate?: string         // 下次维护时间
-}
-
-// 租赁订单接口
-export interface RentalOrder {
-  id: number
-  orderNumber: string
-  customerId: number
-  customerName: string
-  customerPhone: string
-  deviceModel: string
-  deviceId: string
-  rentalPeriod: number                // 租赁天数
-  dailyRate: number                   // 日租金
-  totalAmount: number                 // 总金额
-  platform: string                    // 租赁平台
-  status: 'pending' | 'active' | 'expired' | 'returned' | 'cancelled'
-  startDate: string                   // 租赁开始日期
-  endDate: string                     // 租赁结束日期
-  createdAt: string
-  updatedAt: string
-}
-
-// 租赁收入分析数据接口
-export interface RentalRevenueAnalysis {
-  period: string
-  totalRevenue: number
-  orderCount: number
-  averageOrderValue: number
-  topPerformingDevices: Array<{
-    deviceModel: string
-    revenue: number
-    orderCount: number
-    utilizationRate: number
-  }>
-  regionDistribution: Array<{
-    region: string
-    revenue: number
-    orderCount: number
-    deviceCount: number
-  }>
-}
+// 开发环境使用Mock数据，生产环境使用真实API
+const isDevelopment = import.meta.env.DEV && import.meta.env.VITE_USE_MOCK !== 'false'
 
 // 获取租赁业务统计数据
 export const getRentalStats = (): Promise<ApiResponse<RentalStats>> => {
@@ -100,11 +38,7 @@ export const getRentalStats = (): Promise<ApiResponse<RentalStats>> => {
 }
 
 // 获取租赁趋势数据
-export const getRentalTrendData = (params: {
-  period: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly'
-  startDate?: string
-  endDate?: string
-}): Promise<ApiResponse<RentalTrendData[]>> => {
+export const getRentalTrendData = (params: TrendQueryParams): Promise<ApiResponse<RentalTrendData[]>> => {
   if (isDevelopment) {
     return mockRentalAPI.getRentalTrendData(params)
   }
@@ -112,12 +46,7 @@ export const getRentalTrendData = (params: {
 }
 
 // 获取设备利用率数据
-export const getDeviceUtilizationData = (params?: {
-  deviceModel?: string
-  status?: string
-  sortBy?: 'utilizationRate' | 'totalRentalDays' | 'lastRentalDate'
-  sortOrder?: 'asc' | 'desc'
-}): Promise<ApiResponse<DeviceUtilizationData[]>> => {
+export const getDeviceUtilizationData = (params?: DeviceQueryParams): Promise<ApiResponse<DeviceUtilizationData[]>> => {
   if (isDevelopment) {
     return mockRentalAPI.getDeviceUtilizationData(params)
   }
@@ -125,17 +54,7 @@ export const getDeviceUtilizationData = (params?: {
 }
 
 // 获取租赁订单列表
-export const getRentalOrders = (params: {
-  page?: number
-  pageSize?: number
-  status?: string
-  customerId?: number
-  deviceModel?: string
-  platform?: string
-  startDate?: string
-  endDate?: string
-  keyword?: string
-}): Promise<ApiResponse<PageResponse<RentalOrder>>> => {
+export const getRentalOrders = (params: RentalRecordQueryParams): Promise<ApiResponse<PageResponse<RentalRecord>>> => {
   if (isDevelopment) {
     return mockRentalAPI.getRentalOrders(params)
   }
@@ -143,12 +62,7 @@ export const getRentalOrders = (params: {
 }
 
 // 获取租赁收入分析数据
-export const getRentalRevenueAnalysis = (params: {
-  period: 'monthly' | 'quarterly' | 'yearly'
-  year?: number
-  quarter?: number
-  month?: number
-}): Promise<ApiResponse<RentalRevenueAnalysis>> => {
+export const getRentalRevenueAnalysis = (params: RevenueAnalysisParams): Promise<ApiResponse<RentalRevenueAnalysis>> => {
   if (isDevelopment) {
     return mockRentalAPI.getRentalRevenueAnalysis(params)
   }
@@ -156,13 +70,13 @@ export const getRentalRevenueAnalysis = (params: {
 }
 
 // 获取租赁订单详情
-export const getRentalOrderDetail = (orderId: number): Promise<ApiResponse<RentalOrder>> => {
+export const getRentalOrderDetail = (orderId: number): Promise<ApiResponse<RentalRecord>> => {
   if (isDevelopment) {
     // Mock implementation for development
     return Promise.resolve({
       code: 200,
       message: 'success',
-      data: {} as RentalOrder,
+      data: {} as RentalRecord,
       timestamp: Date.now()
     })
   }
@@ -183,7 +97,7 @@ export const updateRentalOrderStatus = (orderId: number, status: string): Promis
 }
 
 // 创建租赁订单
-export const createRentalOrder = (orderData: Partial<RentalOrder>): Promise<ApiResponse<RentalOrder>> => {
+export const createRentalOrder = (orderData: RentalRecordFormData): Promise<ApiResponse<RentalRecord>> => {
   if (isDevelopment) {
     return mockRentalAPI.createRentalOrder(orderData)
   }
@@ -191,7 +105,7 @@ export const createRentalOrder = (orderData: Partial<RentalOrder>): Promise<ApiR
 }
 
 // 更新租赁订单
-export const updateRentalOrder = (orderId: number, orderData: Partial<RentalOrder>): Promise<ApiResponse<RentalOrder>> => {
+export const updateRentalOrder = (orderId: number, orderData: Partial<RentalRecordFormData>): Promise<ApiResponse<RentalRecord>> => {
   if (isDevelopment) {
     return mockRentalAPI.updateRentalOrder(orderId, orderData)
   }
@@ -206,16 +120,209 @@ export const deleteRentalOrder = (orderId: number): Promise<ApiResponse<void>> =
   return apiClient.delete(`/api/rental/orders/${orderId}`)
 }
 
+// 获取今日统计数据
+export const getTodayStats = (): Promise<ApiResponse<TodayStats>> => {
+  if (isDevelopment) {
+    return Promise.resolve({
+      code: 200,
+      message: 'success',
+      data: {
+        revenue: 45680,
+        orders: 23,
+        activeDevices: 198,
+        avgUtilization: 78.5
+      },
+      timestamp: Date.now()
+    })
+  }
+  return apiClient.get('/api/rental/today-stats')
+}
+
+// 获取设备状态统计
+export const getDeviceStatusStats = (): Promise<ApiResponse<DeviceStatusStats>> => {
+  if (isDevelopment) {
+    return Promise.resolve({
+      code: 200,
+      message: 'success',
+      data: {
+        active: 198,
+        idle: 67,
+        maintenance: 20
+      },
+      timestamp: Date.now()
+    })
+  }
+  return apiClient.get('/api/rental/device-status-stats')
+}
+
+// 获取TOP设备排行
+export const getTopDevices = (limit: number = 5): Promise<ApiResponse<DeviceUtilizationData[]>> => {
+  if (isDevelopment) {
+    return mockRentalAPI.getDeviceUtilizationData({}).then(res => ({
+      ...res,
+      data: res.data.slice(0, limit)
+    }))
+  }
+  return apiClient.get('/api/rental/top-devices', { params: { limit } })
+}
+
 // 导出租赁数据报表
-export const exportRentalReport = (params: {
-  type: 'orders' | 'revenue' | 'utilization'
-  format: 'excel' | 'pdf'
-  startDate?: string
-  endDate?: string
-  filters?: Record<string, any>
-}): Promise<Blob> => {
+export const exportRentalReport = (params: ExportParams): Promise<Blob> => {
   return apiClient.get('/api/rental/export', {
     params,
     responseType: 'blob'
   })
+}
+
+// ==================== 设备管理API ====================
+
+// 获取设备列表
+export const getRentalDevices = (params?: DeviceQueryParams): Promise<ApiResponse<PageResponse<RentalDevice>>> => {
+  if (isDevelopment) {
+    // Mock implementation
+    return Promise.resolve({
+      code: 200,
+      message: 'success',
+      data: {
+        list: [],
+        total: 0,
+        page: params?.page || 1,
+        pageSize: params?.pageSize || 20,
+        totalPages: 0
+      },
+      timestamp: Date.now()
+    })
+  }
+  return apiClient.get('/api/rental/devices', { params })
+}
+
+// 获取设备详情
+export const getRentalDeviceDetail = (deviceId: number): Promise<ApiResponse<RentalDevice>> => {
+  if (isDevelopment) {
+    return Promise.resolve({
+      code: 200,
+      message: 'success',
+      data: {} as RentalDevice,
+      timestamp: Date.now()
+    })
+  }
+  return apiClient.get(`/api/rental/devices/${deviceId}`)
+}
+
+// 创建设备
+export const createRentalDevice = (deviceData: RentalDeviceFormData): Promise<ApiResponse<RentalDevice>> => {
+  if (isDevelopment) {
+    return Promise.resolve({
+      code: 200,
+      message: 'success',
+      data: {} as RentalDevice,
+      timestamp: Date.now()
+    })
+  }
+  return apiClient.post('/api/rental/devices', deviceData)
+}
+
+// 更新设备
+export const updateRentalDevice = (deviceId: number, deviceData: Partial<RentalDeviceFormData>): Promise<ApiResponse<RentalDevice>> => {
+  if (isDevelopment) {
+    return Promise.resolve({
+      code: 200,
+      message: 'success',
+      data: {} as RentalDevice,
+      timestamp: Date.now()
+    })
+  }
+  return apiClient.put(`/api/rental/devices/${deviceId}`, deviceData)
+}
+
+// 删除设备
+export const deleteRentalDevice = (deviceId: number): Promise<ApiResponse<void>> => {
+  if (isDevelopment) {
+    return Promise.resolve({
+      code: 200,
+      message: 'success',
+      data: undefined,
+      timestamp: Date.now()
+    })
+  }
+  return apiClient.delete(`/api/rental/devices/${deviceId}`)
+}
+
+// ==================== 客户管理API ====================
+
+// 获取客户列表
+export const getRentalCustomers = (params?: {
+  page?: number
+  pageSize?: number
+  keyword?: string
+  customerType?: string
+  region?: string
+}): Promise<ApiResponse<PageResponse<RentalCustomer>>> => {
+  if (isDevelopment) {
+    return Promise.resolve({
+      code: 200,
+      message: 'success',
+      data: {
+        list: [],
+        total: 0,
+        page: params?.page || 1,
+        pageSize: params?.pageSize || 20,
+        totalPages: 0
+      },
+      timestamp: Date.now()
+    })
+  }
+  return apiClient.get('/api/rental/customers', { params })
+}
+
+// 获取客户详情
+export const getRentalCustomerDetail = (customerId: number): Promise<ApiResponse<RentalCustomer>> => {
+  if (isDevelopment) {
+    return Promise.resolve({
+      code: 200,
+      message: 'success',
+      data: {} as RentalCustomer,
+      timestamp: Date.now()
+    })
+  }
+  return apiClient.get(`/api/rental/customers/${customerId}`)
+}
+
+// 创建客户
+export const createRentalCustomer = (customerData: RentalCustomerFormData): Promise<ApiResponse<RentalCustomer>> => {
+  if (isDevelopment) {
+    return Promise.resolve({
+      code: 200,
+      message: 'success',
+      data: {} as RentalCustomer,
+      timestamp: Date.now()
+    })
+  }
+  return apiClient.post('/api/rental/customers', customerData)
+}
+
+// 更新客户
+export const updateRentalCustomer = (customerId: number, customerData: Partial<RentalCustomerFormData>): Promise<ApiResponse<RentalCustomer>> => {
+  if (isDevelopment) {
+    return Promise.resolve({
+      code: 200,
+      message: 'success',
+      data: {} as RentalCustomer,
+      timestamp: Date.now()
+    })
+  }
+  return apiClient.put(`/api/rental/customers/${customerId}`, customerData)
+}
+
+// 删除客户
+export const deleteRentalCustomer = (customerId: number): Promise<ApiResponse<void>> => {
+  if (isDevelopment) {
+    return Promise.resolve({
+      code: 200,
+      message: 'success',
+      data: undefined,
+      timestamp: Date.now()
+    })
+  }
+  return apiClient.delete(`/api/rental/customers/${customerId}`)
 }

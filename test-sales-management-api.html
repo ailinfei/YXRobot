@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>销售管理API测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #fafafa;
+        }
+        .test-section h3 {
+            color: #555;
+            margin-top: 0;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status.online {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status.offline {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .input-group {
+            margin: 10px 0;
+        }
+        .input-group label {
+            display: inline-block;
+            width: 100px;
+            font-weight: bold;
+        }
+        .input-group input, .input-group select {
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 销售管理API测试</h1>
+        
+        <!-- 服务状态检查 -->
+        <div class="test-section">
+            <h3>📡 服务状态检查</h3>
+            <button onclick="checkServerStatus()">检查服务状态</button>
+            <div id="serverStatus"></div>
+        </div>
+
+        <!-- 销售统计API测试 -->
+        <div class="test-section">
+            <h3>📊 销售统计API测试</h3>
+            <p>测试接口: <code>GET /api/sales/stats</code></p>
+            <div class="input-group">
+                <label>开始日期:</label>
+                <input type="date" id="statsStartDate" value="2025-01-01">
+            </div>
+            <div class="input-group">
+                <label>结束日期:</label>
+                <input type="date" id="statsEndDate" value="2025-01-28">
+            </div>
+            <button onclick="testSalesStats()">获取销售统计</button>
+            <div id="salesStatsResult"></div>
+        </div>
+
+        <!-- 销售记录API测试 -->
+        <div class="test-section">
+            <h3>📋 销售记录API测试</h3>
+            <p>测试接口: <code>GET /api/sales/records</code></p>
+            <div class="input-group">
+                <label>页码:</label>
+                <input type="number" id="recordsPage" value="1" min="1">
+            </div>
+            <div class="input-group">
+                <label>页面大小:</label>
+                <input type="number" id="recordsPageSize" value="10" min="1" max="100">
+            </div>
+            <div class="input-group">
+                <label>关键词:</label>
+                <input type="text" id="recordsKeyword" placeholder="搜索订单号或客户">
+            </div>
+            <div class="input-group">
+                <label>状态:</label>
+                <select id="recordsStatus">
+                    <option value="">全部状态</option>
+                    <option value="pending">待确认</option>
+                    <option value="confirmed">已确认</option>
+                    <option value="delivered">已交付</option>
+                    <option value="completed">已完成</option>
+                    <option value="cancelled">已取消</option>
+                </select>
+            </div>
+            <button onclick="testSalesRecords()">获取销售记录</button>
+            <button onclick="testDeleteRecord()">测试删除记录(ID:1)</button>
+            <div id="salesRecordsResult"></div>
+        </div>
+
+        <!-- 图表数据API测试 -->
+        <div class="test-section">
+            <h3>📈 图表数据API测试</h3>
+            <p>测试接口: <code>GET /api/sales/charts/*</code></p>
+            <button onclick="testTrendChart()">获取趋势图表数据</button>
+            <button onclick="testProductDistribution()">获取产品分布数据</button>
+            <button onclick="testRegionDistribution()">获取地区分布数据</button>
+            <button onclick="testChannelDistribution()">获取渠道分布数据</button>
+            <div id="chartsResult"></div>
+        </div>
+
+        <!-- 辅助数据API测试 -->
+        <div class="test-section">
+            <h3>🔧 辅助数据API测试</h3>
+            <p>测试接口: <code>GET /api/sales/{customers|products|staff}</code></p>
+            <button onclick="testCustomers()">获取客户列表</button>
+            <button onclick="testProducts()">获取产品列表</button>
+            <button onclick="testStaff()">获取销售人员列表</button>
+            <div id="auxiliaryResult"></div>
+        </div>
+
+        <!-- 批量操作API测试 -->
+        <div class="test-section">
+            <h3>⚡ 批量操作API测试</h3>
+            <p>测试接口: <code>POST /api/sales/batch</code></p>
+            <button onclick="testBatchOperation()">测试批量删除</button>
+            <div id="batchResult"></div>
+        </div>
+
+        <!-- API接口列表 -->
+        <div class="test-section">
+            <h3>📋 销售管理API接口列表</h3>
+            <ul>
+                <li><strong>GET</strong> /api/sales/stats - 获取销售统计数据</li>
+                <li><strong>GET</strong> /api/sales/records - 获取销售记录列表</li>
+                <li><strong>DELETE</strong> /api/sales/records/{id} - 删除销售记录</li>
+                <li><strong>GET</strong> /api/sales/charts/trends - 获取趋势图表数据</li>
+                <li><strong>GET</strong> /api/sales/charts/distribution - 获取分布图表数据</li>
+                <li><strong>GET</strong> /api/sales/customers - 获取客户列表</li>
+                <li><strong>GET</strong> /api/sales/products - 获取产品列表</li>
+                <li><strong>GET</strong> /api/sales/staff - 获取销售人员列表</li>
+                <li><strong>POST</strong> /api/sales/batch - 批量操作</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8081';
+
+        // 检查服务器状态
+        async function checkServerStatus() {
+            const resultDiv = document.getElementById('serverStatus');
+            resultDiv.innerHTML = '<div class="info">正在检查服务状态...</div>';
+            
+            try {
+                const startTime = Date.now();
+                const response = await fetch(`${API_BASE}/api/sales/stats`);
+                const data = await response.json();
+                const responseTime = Date.now() - startTime;
+                
+                if (response.ok && data.code === 200) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <span class="status online">● 在线</span>
+                            销售管理API服务正常 (端口: 8081)
+                            <br>响应时间: ${responseTime}ms
+                            <br>API版本: 正常运行
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <span class="status offline">● 异常</span>
+                            服务器响应异常: ${response.status}
+                            <br>错误信息: ${data.message || '未知错误'}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <span class="status offline">● 离线</span>
+                        无法连接到服务器: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // 测试销售统计API
+        async function testSalesStats() {
+            const resultDiv = document.getElementById('salesStatsResult');
+            const startDate = document.getElementById('statsStartDate').value;
+            const endDate = document.getElementById('statsEndDate').value;
+            
+            resultDiv.innerHTML = '<div class="info">正在获取销售统计数据...</div>';
+
+            try {
+                const params = new URLSearchParams();
+                if (startDate) params.append('startDate', startDate);
+                if (endDate) params.append('endDate', endDate);
+                
+                const response = await fetch(`${API_BASE}/api/sales/stats?${params}`);
+                const data = await response.json();
+
+                if (data.code === 200) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ 销售统计数据获取成功！
+                            <br><br>统计数据:
+                            <br>• 总销售额: ¥${data.data.totalSalesAmount?.toLocaleString() || 0}
+                            <br>• 订单总数: ${data.data.totalOrders || 0}
+                            <br>• 平均订单价值: ¥${data.data.avgOrderAmount?.toLocaleString() || 0}
+                            <br>• 新增客户: ${data.data.newCustomers || 0}
+                            <br>• 增长率: ${data.data.growthRate || 0}%
+                            <br><br>完整响应: ${JSON.stringify(data, null, 2)}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            ❌ 获取失败: ${data.message}
+                            <br>响应: ${JSON.stringify(data, null, 2)}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ 请求失败: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // 测试销售记录API
+        async function testSalesRecords() {
+            const resultDiv = document.getElementById('salesRecordsResult');
+            const page = document.getElementById('recordsPage').value;
+            const pageSize = document.getElementById('recordsPageSize').value;
+            const keyword = document.getElementById('recordsKeyword').value;
+            const status = document.getElementById('recordsStatus').value;
+            
+            resultDiv.innerHTML = '<div class="info">正在获取销售记录...</div>';
+
+            try {
+                const params = new URLSearchParams();
+                params.append('page', page);
+                params.append('pageSize', pageSize);
+                if (keyword) params.append('keyword', keyword);
+                if (status) params.append('status', status);
+                
+                const response = await fetch(`${API_BASE}/api/sales/records?${params}`);
+                const data = await response.json();
+
+                if (data.code === 200) {
+                    const records = data.data.list || [];
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ 销售记录获取成功！
+                            <br><br>分页信息:
+                            <br>• 总记录数: ${data.data.total}
+                            <br>• 当前页: ${data.data.page}/${data.data.totalPages}
+                            <br>• 页面大小: ${data.data.pageSize}
+                            <br>• 当前页记录数: ${records.length}
+                            <br><br>记录示例 (前3条):
+                            ${records.slice(0, 3).map(record => `
+                                <br>• 订单号: ${record.orderNumber}
+                                <br>  客户: ${record.customerName} (${record.customerPhone})
+                                <br>  产品: ${record.productName} x${record.quantity}
+                                <br>  金额: ¥${record.salesAmount?.toLocaleString()}
+                                <br>  状态: ${record.status} / ${record.paymentStatus}
+                            `).join('<br>')}
+                            <br><br>完整响应: ${JSON.stringify(data, null, 2)}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            ❌ 获取失败: ${data.message}
+                            <br>响应: ${JSON.stringify(data, null, 2)}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ 请求失败: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // 测试删除记录
+        async function testDeleteRecord() {
+            const resultDiv = document.getElementById('salesRecordsResult');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/sales/records/1`, {
+                    method: 'DELETE'
+                });
+                const data = await response.json();
+
+                if (data.code === 200) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ 删除测试成功！
+                            <br>删除信息: ${JSON.stringify(data.data, null, 2)}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            ❌ 删除失败: ${data.message}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ 删除请求失败: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // 测试趋势图表
+        async function testTrendChart() {
+            const resultDiv = document.getElementById('chartsResult');
+            resultDiv.innerHTML = '<div class="info">正在获取趋势图表数据...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/sales/charts/trends?groupBy=day`);
+                const data = await response.json();
+
+                if (data.code === 200) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ 趋势图表数据获取成功！
+                            <br>类别数量: ${data.data.categories?.length || 0}
+                            <br>数据系列: ${data.data.series?.length || 0}
+                            <br>完整响应: ${JSON.stringify(data, null, 2)}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            ❌ 获取失败: ${data.message}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ 请求失败: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // 测试产品分布
+        async function testProductDistribution() {
+            await testDistribution('product', '产品分布');
+        }
+
+        // 测试地区分布
+        async function testRegionDistribution() {
+            await testDistribution('region', '地区分布');
+        }
+
+        // 测试渠道分布
+        async function testChannelDistribution() {
+            await testDistribution('channel', '渠道分布');
+        }
+
+        // 通用分布测试方法
+        async function testDistribution(type, name) {
+            const resultDiv = document.getElementById('chartsResult');
+            resultDiv.innerHTML = `<div class="info">正在获取${name}数据...</div>`;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/sales/charts/distribution?type=${type}`);
+                const data = await response.json();
+
+                if (data.code === 200) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ ${name}数据获取成功！
+                            <br>类别数量: ${data.data.categories?.length || 0}
+                            <br>数据系列: ${data.data.series?.length || 0}
+                            <br>完整响应: ${JSON.stringify(data, null, 2)}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            ❌ 获取失败: ${data.message}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ 请求失败: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // 测试客户列表
+        async function testCustomers() {
+            await testAuxiliaryData('customers', '客户');
+        }
+
+        // 测试产品列表
+        async function testProducts() {
+            await testAuxiliaryData('products', '产品');
+        }
+
+        // 测试销售人员列表
+        async function testStaff() {
+            await testAuxiliaryData('staff', '销售人员');
+        }
+
+        // 通用辅助数据测试方法
+        async function testAuxiliaryData(endpoint, name) {
+            const resultDiv = document.getElementById('auxiliaryResult');
+            resultDiv.innerHTML = `<div class="info">正在获取${name}列表...</div>`;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/sales/${endpoint}?page=1&pageSize=5`);
+                const data = await response.json();
+
+                if (data.code === 200) {
+                    const list = data.data.list || [];
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ ${name}列表获取成功！
+                            <br>总数量: ${data.data.total}
+                            <br>当前页数量: ${list.length}
+                            <br>示例数据: ${list.length > 0 ? JSON.stringify(list[0], null, 2) : '无数据'}
+                            <br><br>完整响应: ${JSON.stringify(data, null, 2)}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            ❌ 获取失败: ${data.message}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ 请求失败: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // 测试批量操作
+        async function testBatchOperation() {
+            const resultDiv = document.getElementById('batchResult');
+            resultDiv.innerHTML = '<div class="info">正在测试批量操作...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/sales/batch`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        operation: 'delete',
+                        ids: [1, 2, 3],
+                        entityType: 'salesRecord'
+                    })
+                });
+                const data = await response.json();
+
+                if (data.code === 200) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ 批量操作测试成功！
+                            <br>操作结果: ${JSON.stringify(data.data, null, 2)}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            ❌ 批量操作失败: ${data.message}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ 请求失败: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // 页面加载时自动检查服务状态
+        window.onload = function() {
+            checkServerStatus();
+        };
+    </script>
+</body>
+</html>

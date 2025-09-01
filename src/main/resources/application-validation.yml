@@ -1,0 +1,106 @@
+# 客户数据验证配置
+yxrobot:
+  validation:
+    customer:
+      # 字段长度限制
+      field-limits:
+        min-name-length: 2
+        max-name-length: 50
+        max-company-length: 100
+        max-notes-length: 500
+        max-tags-count: 10
+        max-tag-length: 20
+        max-email-length: 100
+        max-address-length: 200
+        max-keyword-length: 100
+      
+      # 业务规则配置
+      business-rules:
+        vip-threshold: 10000
+        premium-threshold: 50000
+        max-customer-value: 10
+        min-customer-value: 0
+        inactive-threshold-days: 90
+        active-threshold-days: 30
+        max-page-size: 100
+        default-page-size: 20
+      
+      # 验证开关
+      switches:
+        enable-strict-validation: true
+        enable-sensitive-word-check: true
+        enable-phone-carrier-check: true
+        enable-email-provider-check: true
+        enable-temporary-email-check: true
+        enable-data-integrity-check: true
+        enable-business-rule-check: true
+        enable-uniqueness-check: true
+      
+      # 敏感词配置
+      sensitive-words:
+        words:
+          - "测试"
+          - "admin"
+          - "test"
+          - "fuck"
+          - "shit"
+          - "damn"
+        case-sensitive: false
+      
+      # 电话号码配置
+      phone-config:
+        virtual-prefixes:
+          - "170"
+          - "171"
+          - "162"
+          - "165"
+          - "167"
+        test-numbers:
+          - "13800138000"
+          - "13800138001"
+          - "18888888888"
+          - "16666666666"
+          - "19999999999"
+        allow-virtual-numbers: true
+        allow-test-numbers: false
+      
+      # 邮箱配置
+      email-config:
+        temporary-domains:
+          - "10minutemail.com"
+          - "guerrillamail.com"
+          - "tempmail.org"
+          - "mailinator.com"
+          - "yopmail.com"
+          - "temp-mail.org"
+          - "throwaway.email"
+          - "maildrop.cc"
+        trusted-domains:
+          - "gmail.com"
+          - "yahoo.com"
+          - "hotmail.com"
+          - "outlook.com"
+          - "live.com"
+          - "qq.com"
+          - "163.com"
+          - "126.com"
+          - "sina.com"
+          - "sohu.com"
+          - "foxmail.com"
+          - "aliyun.com"
+          - "yeah.net"
+        allow-temporary-emails: false
+        require-trusted-domains: false
+
+# Spring Validation 配置
+spring:
+  validation:
+    # 启用Bean验证
+    enabled: true
+  
+# 日志配置
+logging:
+  level:
+    com.yxrobot.validation: DEBUG
+    com.yxrobot.service.CustomerValidationService: DEBUG
+    com.yxrobot.exception.CustomerExceptionHandler: DEBUG

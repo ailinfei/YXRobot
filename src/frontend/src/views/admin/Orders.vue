@@ -256,7 +256,7 @@ import {
   CircleCheck
 } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { mockOrderAPI } from '@/api/mock/order'
+import { orderApi } from '@/api/order'
 import type { Order, OrderStats } from '@/types/order'
 import { ORDER_STATUS_TEXT, ORDER_TYPE_TEXT, PAYMENT_STATUS_TEXT } from '@/types/order'
 import OrderFormDialog from '@/components/order/OrderFormDialog.vue'
@@ -347,7 +347,7 @@ const handleSelectionChange = (selection: Order[]) => {
 const loadOrderData = async () => {
   tableLoading.value = true
   try {
-    const response = await mockOrderAPI.getOrders({
+    const response = await orderApi.getOrders({
       page: currentPage.value,
       pageSize: pageSize.value,
       keyword: searchKeyword.value,
@@ -356,9 +356,19 @@ const loadOrderData = async () => {
       dateRange: dateRange.value || undefined
     })
     
-    orderList.value = response.data.list
-    total.value = response.data.total
-    orderStats.value = response.data.stats
+    orderList.value = response.data.list || []
+    total.value = response.data.total || 0
+    orderStats.value = response.data.stats || {
+      total: 0,
+      pending: 0,
+      processing: 0,
+      completed: 0,
+      cancelled: 0,
+      totalRevenue: 0,
+      averageOrderValue: 0,
+      salesOrders: 0,
+      rentalOrders: 0
+    }
   } catch (error) {
     console.error('加载订单数据失败:', error)
     ElMessage.error('加载订单数据失败')
@@ -402,15 +412,15 @@ const handleOrderAction = async (command: string, order: Order) => {
   try {
     switch (command) {
       case 'confirm':
-        await mockOrderAPI.updateOrderStatus(order.id, 'confirmed')
+        await orderApi.updateOrderStatus(order.id, 'confirmed')
         ElMessage.success('订单已确认')
         break
       case 'ship':
-        await mockOrderAPI.updateOrderStatus(order.id, 'shipped')
+        await orderApi.updateOrderStatus(order.id, 'shipped')
         ElMessage.success('订单已发货')
         break
       case 'complete':
-        await mockOrderAPI.updateOrderStatus(order.id, 'completed')
+        await orderApi.updateOrderStatus(order.id, 'completed')
         ElMessage.success('订单已完成')
         break
       case 'cancel':
@@ -419,7 +429,7 @@ const handleOrderAction = async (command: string, order: Order) => {
           cancelButtonText: '取消',
           type: 'warning'
         })
-        await mockOrderAPI.updateOrderStatus(order.id, 'cancelled')
+        await orderApi.updateOrderStatus(order.id, 'cancelled')
         ElMessage.success('订单已取消')
         break
       case 'delete':
@@ -428,7 +438,7 @@ const handleOrderAction = async (command: string, order: Order) => {
           cancelButtonText: '取消',
           type: 'warning'
         })
-        await mockOrderAPI.deleteOrder(order.id)
+        await orderApi.deleteOrder(order.id)
         ElMessage.success('订单已删除')
         break
     }
@@ -448,7 +458,7 @@ const handleBatchAction = async (command: string) => {
   try {
     switch (command) {
       case 'confirm':
-        await mockOrderAPI.batchUpdateOrderStatus(orderIds, 'confirmed')
+        await orderApi.batchUpdateOrderStatus(orderIds, 'confirmed')
         ElMessage.success(`已确认 ${orderIds.length} 个订单`)
         break
       case 'cancel':
@@ -457,7 +467,7 @@ const handleBatchAction = async (command: string) => {
           cancelButtonText: '取消',
           type: 'warning'
         })
-        await mockOrderAPI.batchUpdateOrderStatus(orderIds, 'cancelled')
+        await orderApi.batchUpdateOrderStatus(orderIds, 'cancelled')
         ElMessage.success(`已取消 ${orderIds.length} 个订单`)
         break
       case 'delete':
@@ -466,7 +476,7 @@ const handleBatchAction = async (command: string) => {
           cancelButtonText: '取消',
           type: 'warning'
         })
-        await mockOrderAPI.batchDeleteOrders(orderIds)
+        await orderApi.batchDeleteOrders(orderIds)
         ElMessage.success(`已删除 ${orderIds.length} 个订单`)
         break
     }

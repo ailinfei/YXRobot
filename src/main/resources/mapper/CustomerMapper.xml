@@ -1,0 +1,965 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yxrobot.mapper.CustomerMapper">
+
+    <!-- 客户实体结果映射 -->
+    <resultMap id="CustomerResultMap" type="com.yxrobot.entity.Customer">
+        <id column="id" property="id"/>
+        <result column="customer_name" property="customerName"/>
+        <result column="customer_type" property="customerType" typeHandler="com.yxrobot.handler.CustomerTypeTypeHandler"/>
+        <result column="customer_level" property="customerLevel" typeHandler="com.yxrobot.handler.CustomerLevelTypeHandler"/>
+        <result column="customer_status" property="customerStatus" typeHandler="com.yxrobot.handler.CustomerStatusTypeHandler"/>
+        <result column="contact_person" property="contactPerson"/>
+        <result column="phone" property="phone"/>
+        <result column="email" property="email"/>
+        <result column="avatar_url" property="avatarUrl"/>
+        <result column="customer_tags" property="customerTags" typeHandler="com.yxrobot.handler.JsonListTypeHandler"/>
+        <result column="notes" property="notes"/>
+        <result column="address" property="address"/>
+        <result column="region" property="region"/>
+        <result column="industry" property="industry"/>
+        <result column="credit_level" property="creditLevel" typeHandler="com.yxrobot.handler.CreditLevelTypeHandler"/>
+        <result column="total_spent" property="totalSpent"/>
+        <result column="customer_value" property="customerValue"/>
+        <result column="registered_at" property="registeredAt"/>
+        <result column="last_active_at" property="lastActiveAt"/>
+        <result column="is_active" property="isActive"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+        <result column="is_deleted" property="isDeleted"/>
+        <!-- 统计字段 -->
+        <result column="total_orders" property="totalOrders"/>
+        <result column="total_sales_amount" property="totalSalesAmount"/>
+        <result column="last_order_date" property="lastOrderDate"/>
+        <result column="device_count" property="deviceCount"/>
+        <result column="purchased_device_count" property="purchasedDeviceCount"/>
+        <result column="rental_device_count" property="rentalDeviceCount"/>
+    </resultMap>
+
+    <!-- 客户DTO结果映射（适配前端接口） -->
+    <resultMap id="CustomerDTOResultMap" type="com.yxrobot.dto.CustomerDTO">
+        <id column="id" property="id"/>
+        <!-- 基本信息字段映射 - 适配前端字段名 -->
+        <result column="customer_name" property="customerName"/>
+        <result column="customer_level" property="customerLevel"/>
+        <result column="customer_status" property="customerStatus"/>
+        <result column="contact_person" property="contactPerson"/>
+        <result column="phone" property="phone"/>
+        <result column="email" property="email"/>
+        <result column="avatar_url" property="avatarUrl"/>
+        <result column="customer_tags" property="tags" typeHandler="com.yxrobot.handler.JsonListTypeHandler"/>
+        <result column="notes" property="notes"/>
+        <!-- 统计信息字段 -->
+        <result column="total_spent" property="totalSpent"/>
+        <result column="customer_value" property="customerValue"/>
+        <!-- 时间字段 -->
+        <result column="registered_at" property="registeredAt"/>
+        <result column="last_active_at" property="lastActiveAt"/>
+        <!-- 保持现有字段兼容性 -->
+        <result column="customer_type" property="customerType"/>
+        <result column="region" property="region"/>
+        <result column="industry" property="industry"/>
+        <result column="credit_level" property="creditLevel"/>
+        <result column="is_active" property="isActive"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+        <result column="total_orders" property="totalOrders"/>
+        <result column="total_sales_amount" property="totalSalesAmount"/>
+        <result column="last_order_date" property="lastOrderDate"/>
+        <!-- 设备统计字段 -->
+        <result column="device_total" property="deviceCount.total"/>
+        <result column="device_purchased" property="deviceCount.purchased"/>
+        <result column="device_rental" property="deviceCount.rental"/>
+        <!-- 地址信息字段 -->
+        <result column="address_province" property="address.province"/>
+        <result column="address_city" property="address.city"/>
+        <result column="address_detail" property="address.detail"/>
+    </resultMap>
+
+    <!-- 客户统计DTO结果映射 -->
+    <resultMap id="CustomerStatsDTOResultMap" type="com.yxrobot.dto.CustomerStatsDTO">
+        <result column="total" property="total"/>
+        <result column="regular" property="regular"/>
+        <result column="vip" property="vip"/>
+        <result column="premium" property="premium"/>
+        <result column="active_devices" property="activeDevices"/>
+        <result column="total_revenue" property="totalRevenue"/>
+        <result column="new_this_month" property="newThisMonth"/>
+    </resultMap>
+
+    <!-- 基础SQL片段 -->
+    <sql id="customerColumns">
+        c.id, c.customer_name, c.customer_type, c.customer_level, c.customer_status,
+        c.contact_person, c.phone, c.email, c.avatar_url, c.customer_tags, c.notes,
+        c.address, c.region, c.industry, c.credit_level, c.total_spent, c.customer_value,
+        c.registered_at, c.last_active_at, c.is_active, c.created_at, c.updated_at, c.is_deleted
+    </sql>
+
+    <!-- 客户DTO查询SQL片段（包含关联统计） -->
+    <sql id="customerDTOColumns">
+        c.id, c.customer_name, c.customer_level, c.customer_status,
+        c.contact_person, c.phone, c.email, c.avatar_url, c.customer_tags, c.notes,
+        c.total_spent, c.customer_value, c.registered_at, c.last_active_at,
+        c.customer_type, c.region, c.industry, c.credit_level, c.is_active,
+        c.created_at, c.updated_at,
+        <!-- 地址信息解析 -->
+        SUBSTRING_INDEX(c.region, '-', 1) as address_province,
+        SUBSTRING_INDEX(c.region, '-', -1) as address_city,
+        c.address as address_detail,
+        <!-- 设备统计信息 -->
+        COALESCE(ds.device_total, 0) as device_total,
+        COALESCE(ds.device_purchased, 0) as device_purchased,
+        COALESCE(ds.device_rental, 0) as device_rental
+    </sql>
+
+    <!-- 设备统计子查询 -->
+    <sql id="deviceStatsSubquery">
+        LEFT JOIN (
+            SELECT 
+                cdr.customer_id,
+                COUNT(*) as device_total,
+                COUNT(CASE WHEN cdr.relation_type = 'purchased' THEN 1 END) as device_purchased,
+                COUNT(CASE WHEN cdr.relation_type = 'rental' THEN 1 END) as device_rental
+            FROM customer_device_relation cdr
+            INNER JOIN devices d ON cdr.device_id = d.id AND d.is_deleted = 0
+            WHERE cdr.status = 1
+            GROUP BY cdr.customer_id
+        ) ds ON c.id = ds.customer_id
+    </sql>
+
+    <!-- 查询条件SQL片段 -->
+    <sql id="whereConditions">
+        <where>
+            c.is_deleted = 0
+            <if test="query != null">
+                <!-- 关键词搜索 -->
+                <if test="query.keyword != null and query.keyword != ''">
+                    AND (c.customer_name LIKE CONCAT('%', #{query.keyword}, '%')
+                    OR c.phone LIKE CONCAT('%', #{query.keyword}, '%')
+                    OR c.email LIKE CONCAT('%', #{query.keyword}, '%')
+                    OR c.contact_person LIKE CONCAT('%', #{query.keyword}, '%'))
+                </if>
+                
+                <!-- 基础筛选条件 -->
+                <if test="query.customerLevel != null and query.customerLevel != ''">
+                    AND c.customer_level = #{query.customerLevel}
+                </if>
+                <if test="query.customerStatus != null and query.customerStatus != ''">
+                    AND c.customer_status = #{query.customerStatus}
+                </if>
+                <if test="query.region != null and query.region != ''">
+                    AND c.region LIKE CONCAT('%', #{query.region}, '%')
+                </if>
+                <if test="query.industry != null and query.industry != ''">
+                    AND c.industry = #{query.industry}
+                </if>
+                <if test="query.creditLevel != null and query.creditLevel != ''">
+                    AND c.credit_level = #{query.creditLevel}
+                </if>
+                <if test="query.isActive != null">
+                    AND c.is_active = #{query.isActive}
+                </if>
+                
+                <!-- 时间范围筛选 -->
+                <if test="query.startDate != null and query.startDate != ''">
+                    AND c.created_at >= #{query.startDate}
+                </if>
+                <if test="query.endDate != null and query.endDate != ''">
+                    AND c.created_at &lt;= #{query.endDate}
+                </if>
+                <if test="query.registeredStartDate != null and query.registeredStartDate != ''">
+                    AND c.registered_at >= #{query.registeredStartDate}
+                </if>
+                <if test="query.registeredEndDate != null and query.registeredEndDate != ''">
+                    AND c.registered_at &lt;= #{query.registeredEndDate}
+                </if>
+                <if test="query.lastActiveStartDate != null and query.lastActiveStartDate != ''">
+                    AND c.last_active_at >= #{query.lastActiveStartDate}
+                </if>
+                <if test="query.lastActiveEndDate != null and query.lastActiveEndDate != ''">
+                    AND c.last_active_at &lt;= #{query.lastActiveEndDate}
+                </if>
+                
+                <!-- 金额范围筛选 -->
+                <if test="query.minSpent != null and query.minSpent != ''">
+                    AND c.total_spent >= #{query.minSpent}
+                </if>
+                <if test="query.maxSpent != null and query.maxSpent != ''">
+                    AND c.total_spent &lt;= #{query.maxSpent}
+                </if>
+                <if test="query.minCustomerValue != null and query.minCustomerValue != ''">
+                    AND c.customer_value >= #{query.minCustomerValue}
+                </if>
+                <if test="query.maxCustomerValue != null and query.maxCustomerValue != ''">
+                    AND c.customer_value &lt;= #{query.maxCustomerValue}
+                </if>
+                
+                <!-- 标签筛选 -->
+                <if test="query.tags != null and query.tags != ''">
+                    AND JSON_CONTAINS(c.customer_tags, JSON_ARRAY(#{query.tags}))
+                </if>
+                
+                <!-- 设备类型筛选 -->
+                <if test="query.deviceType != null and query.deviceType != ''">
+                    AND EXISTS (
+                        SELECT 1 FROM customer_device_relation cdr
+                        INNER JOIN devices d ON cdr.device_id = d.id
+                        WHERE cdr.customer_id = c.id 
+                        AND d.device_type = #{query.deviceType}
+                        AND d.is_deleted = 0 
+                        AND cdr.status = 1
+                    )
+                </if>
+                
+                <!-- 高级筛选条件 -->
+                <if test="query.hasDevices != null">
+                    <choose>
+                        <when test="query.hasDevices == true">
+                            AND EXISTS (
+                                SELECT 1 FROM customer_device_relation cdr
+                                INNER JOIN devices d ON cdr.device_id = d.id
+                                WHERE cdr.customer_id = c.id 
+                                AND d.is_deleted = 0 
+                                AND cdr.status = 1
+                            )
+                        </when>
+                        <otherwise>
+                            AND NOT EXISTS (
+                                SELECT 1 FROM customer_device_relation cdr
+                                INNER JOIN devices d ON cdr.device_id = d.id
+                                WHERE cdr.customer_id = c.id 
+                                AND d.is_deleted = 0 
+                                AND cdr.status = 1
+                            )
+                        </otherwise>
+                    </choose>
+                </if>
+                
+                <if test="query.hasOrders != null">
+                    <choose>
+                        <when test="query.hasOrders == true">
+                            AND EXISTS (
+                                SELECT 1 FROM customer_order_relation cor
+                                INNER JOIN orders o ON cor.order_id = o.id
+                                WHERE cor.customer_id = c.id 
+                                AND o.is_deleted = 0
+                            )
+                        </when>
+                        <otherwise>
+                            AND NOT EXISTS (
+                                SELECT 1 FROM customer_order_relation cor
+                                INNER JOIN orders o ON cor.order_id = o.id
+                                WHERE cor.customer_id = c.id 
+                                AND o.is_deleted = 0
+                            )
+                        </otherwise>
+                    </choose>
+                </if>
+                
+                <if test="query.hasServiceRecords != null">
+                    <choose>
+                        <when test="query.hasServiceRecords == true">
+                            AND EXISTS (
+                                SELECT 1 FROM customer_service_relation csr
+                                INNER JOIN service_records sr ON csr.service_record_id = sr.id
+                                WHERE csr.customer_id = c.id 
+                                AND sr.is_deleted = 0
+                            )
+                        </when>
+                        <otherwise>
+                            AND NOT EXISTS (
+                                SELECT 1 FROM customer_service_relation csr
+                                INNER JOIN service_records sr ON csr.service_record_id = sr.id
+                                WHERE csr.customer_id = c.id 
+                                AND sr.is_deleted = 0
+                            )
+                        </otherwise>
+                    </choose>
+                </if>
+            </if>
+        </where>
+    </sql>
+
+    <!-- 排序SQL片段 -->
+    <sql id="orderByClause">
+        <choose>
+            <when test="query != null and query.sortBy != null and query.sortBy != ''">
+                ORDER BY 
+                <choose>
+                    <when test="query.sortBy == 'name' or query.sortBy == 'customerName'">c.customer_name</when>
+                    <when test="query.sortBy == 'level' or query.sortBy == 'customerLevel'">c.customer_level</when>
+                    <when test="query.sortBy == 'totalSpent'">c.total_spent</when>
+                    <when test="query.sortBy == 'customerValue'">c.customer_value</when>
+                    <when test="query.sortBy == 'registeredAt'">c.registered_at</when>
+                    <when test="query.sortBy == 'lastActiveAt'">c.last_active_at</when>
+                    <when test="query.sortBy == 'createdAt'">c.created_at</when>
+                    <when test="query.sortBy == 'updatedAt'">c.updated_at</when>
+                    <otherwise>c.created_at</otherwise>
+                </choose>
+                <choose>
+                    <when test="query.sortOrder != null and query.sortOrder.toUpperCase() == 'ASC'">ASC</when>
+                    <otherwise>DESC</otherwise>
+                </choose>
+                <!-- 次要排序字段 -->
+                <if test="query.secondarySortBy != null and query.secondarySortBy != '' and query.secondarySortBy != query.sortBy">
+                    ,
+                    <choose>
+                        <when test="query.secondarySortBy == 'name' or query.secondarySortBy == 'customerName'">c.customer_name</when>
+                        <when test="query.secondarySortBy == 'level' or query.secondarySortBy == 'customerLevel'">c.customer_level</when>
+                        <when test="query.secondarySortBy == 'totalSpent'">c.total_spent</when>
+                        <when test="query.secondarySortBy == 'customerValue'">c.customer_value</when>
+                        <when test="query.secondarySortBy == 'registeredAt'">c.registered_at</when>
+                        <when test="query.secondarySortBy == 'lastActiveAt'">c.last_active_at</when>
+                        <when test="query.secondarySortBy == 'createdAt'">c.created_at</when>
+                        <when test="query.secondarySortBy == 'updatedAt'">c.updated_at</when>
+                        <otherwise>c.created_at</otherwise>
+                    </choose>
+                    <choose>
+                        <when test="query.secondarySortOrder != null and query.secondarySortOrder.toUpperCase() == 'ASC'">ASC</when>
+                        <otherwise>DESC</otherwise>
+                    </choose>
+                </if>
+            </when>
+            <otherwise>ORDER BY c.created_at DESC</otherwise>
+        </choose>
+    </sql>
+
+    <!-- ==================== 基础CRUD操作 ==================== -->
+
+    <!-- 根据ID查询客户 -->
+    <select id="selectById" resultMap="CustomerResultMap">
+        SELECT <include refid="customerColumns"/>
+        FROM customers c
+        WHERE c.id = #{id} AND c.is_deleted = 0
+    </select>
+
+    <!-- 根据ID查询客户DTO -->
+    <select id="selectDTOById" resultMap="CustomerDTOResultMap">
+        SELECT <include refid="customerDTOColumns"/>
+        FROM customers c
+        <include refid="deviceStatsSubquery"/>
+        WHERE c.id = #{id} AND c.is_deleted = 0
+    </select>
+
+    <!-- 分页查询客户列表 -->
+    <select id="selectList" resultMap="CustomerResultMap">
+        SELECT <include refid="customerColumns"/>
+        FROM customers c
+        <include refid="whereConditions"/>
+        <include refid="orderByClause"/>
+        <if test="query != null and query.page != null and query.pageSize != null">
+            LIMIT #{query.pageSize} OFFSET #{query.offset}
+        </if>
+    </select>
+
+    <!-- 分页查询客户DTO列表 -->
+    <select id="selectDTOList" resultMap="CustomerDTOResultMap">
+        SELECT <include refid="customerDTOColumns"/>
+        FROM customers c
+        <include refid="deviceStatsSubquery"/>
+        <include refid="whereConditions"/>
+        <include refid="orderByClause"/>
+        <if test="query != null and query.page != null and query.pageSize != null">
+            LIMIT #{query.pageSize} OFFSET #{query.offset}
+        </if>
+    </select>
+
+    <!-- 查询客户总数 -->
+    <select id="selectCount" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM customers c
+        <include refid="whereConditions"/>
+    </select>
+
+    <!-- 插入客户 -->
+    <insert id="insert" parameterType="com.yxrobot.entity.Customer" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO customers (
+            customer_name, customer_type, customer_level, customer_status,
+            contact_person, phone, email, avatar_url, customer_tags, notes,
+            address, region, industry, credit_level, total_spent, customer_value,
+            registered_at, last_active_at, is_active, created_at, updated_at, is_deleted
+        ) VALUES (
+            #{customerName}, #{customerType}, #{customerLevel}, #{customerStatus},
+            #{contactPerson}, #{phone}, #{email}, #{avatarUrl}, 
+            #{customerTags, typeHandler=com.yxrobot.handler.JsonListTypeHandler}, #{notes},
+            #{address}, #{region}, #{industry}, #{creditLevel}, #{totalSpent}, #{customerValue},
+            #{registeredAt}, #{lastActiveAt}, #{isActive}, NOW(), NOW(), 0
+        )
+    </insert>
+
+    <!-- 更新客户信息 -->
+    <update id="updateById" parameterType="com.yxrobot.entity.Customer">
+        UPDATE customers SET
+            customer_name = #{customerName},
+            customer_type = #{customerType},
+            customer_level = #{customerLevel},
+            customer_status = #{customerStatus},
+            contact_person = #{contactPerson},
+            phone = #{phone},
+            email = #{email},
+            avatar_url = #{avatarUrl},
+            customer_tags = #{customerTags, typeHandler=com.yxrobot.handler.JsonListTypeHandler},
+            notes = #{notes},
+            address = #{address},
+            region = #{region},
+            industry = #{industry},
+            credit_level = #{creditLevel},
+            total_spent = #{totalSpent},
+            customer_value = #{customerValue},
+            last_active_at = #{lastActiveAt},
+            is_active = #{isActive},
+            updated_at = NOW()
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <!-- 根据ID软删除客户 -->
+    <update id="softDeleteById">
+        UPDATE customers SET is_deleted = 1, updated_at = NOW()
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <!-- 批量软删除客户 -->
+    <update id="softDeleteByIds">
+        UPDATE customers SET is_deleted = 1, updated_at = NOW()
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        AND is_deleted = 0
+    </update>
+
+    <!-- ==================== 客户统计功能 ==================== -->
+
+    <!-- 查询客户统计数据 -->
+    <select id="selectCustomerStats" resultMap="CustomerStatsDTOResultMap">
+        SELECT 
+            COUNT(*) as total,
+            COUNT(CASE WHEN customer_level = 'regular' THEN 1 END) as regular,
+            COUNT(CASE WHEN customer_level = 'vip' THEN 1 END) as vip,
+            COUNT(CASE WHEN customer_level = 'premium' THEN 1 END) as premium,
+            (SELECT COUNT(DISTINCT d.id) 
+             FROM devices d 
+             INNER JOIN customer_device_relation cdr ON d.id = cdr.device_id 
+             WHERE d.device_status = 'active' AND d.is_deleted = 0 AND cdr.status = 1) as active_devices,
+            COALESCE(SUM(total_spent), 0) as total_revenue,
+            COUNT(CASE WHEN DATE(registered_at) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) THEN 1 END) as new_this_month
+        FROM customers 
+        WHERE is_deleted = 0
+    </select>
+
+    <!-- 查询客户等级分布统计 -->
+    <select id="selectCustomerLevelStats" resultType="java.util.Map">
+        SELECT 
+            customer_level as level,
+            COUNT(*) as count,
+            ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM customers WHERE is_deleted = 0), 2) as percentage
+        FROM customers 
+        WHERE is_deleted = 0
+        GROUP BY customer_level
+        ORDER BY 
+            CASE customer_level 
+                WHEN 'premium' THEN 1 
+                WHEN 'vip' THEN 2 
+                WHEN 'regular' THEN 3 
+                ELSE 4 
+            END
+    </select>
+
+    <!-- 查询本月新增客户数 -->
+    <select id="selectNewCustomersThisMonth" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM customers 
+        WHERE is_deleted = 0 
+        AND DATE(registered_at) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+    </select>
+
+    <!-- 查询活跃设备总数 -->
+    <select id="selectActiveDeviceCount" resultType="java.lang.Integer">
+        SELECT COUNT(DISTINCT d.id)
+        FROM devices d 
+        INNER JOIN customer_device_relation cdr ON d.id = cdr.device_id 
+        WHERE d.device_status = 'active' AND d.is_deleted = 0 AND cdr.status = 1
+    </select>
+
+    <!-- 查询客户总收入 -->
+    <select id="selectTotalRevenue" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(total_spent), 0)
+        FROM customers 
+        WHERE is_deleted = 0
+    </select>
+
+    <!-- ==================== 搜索和筛选功能 ==================== -->
+
+    <!-- 根据关键词搜索客户 -->
+    <select id="searchCustomers" resultMap="CustomerDTOResultMap">
+        SELECT <include refid="customerDTOColumns"/>
+        FROM customers c
+        <include refid="deviceStatsSubquery"/>
+        WHERE c.is_deleted = 0
+        AND (c.customer_name LIKE CONCAT('%', #{keyword}, '%')
+        OR c.phone LIKE CONCAT('%', #{keyword}, '%')
+        OR c.email LIKE CONCAT('%', #{keyword}, '%'))
+        ORDER BY c.customer_name
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 根据客户等级筛选客户 -->
+    <select id="selectByCustomerLevel" resultMap="CustomerDTOResultMap">
+        SELECT <include refid="customerDTOColumns"/>
+        FROM customers c
+        <include refid="deviceStatsSubquery"/>
+        WHERE c.is_deleted = 0 AND c.customer_level = #{level}
+        <include refid="orderByClause"/>
+        <if test="query != null and query.page != null and query.pageSize != null">
+            LIMIT #{query.pageSize} OFFSET #{query.offset}
+        </if>
+    </select>
+
+    <!-- 根据地区筛选客户 -->
+    <select id="selectByRegion" resultMap="CustomerDTOResultMap">
+        SELECT <include refid="customerDTOColumns"/>
+        FROM customers c
+        <include refid="deviceStatsSubquery"/>
+        WHERE c.is_deleted = 0 AND c.region LIKE CONCAT('%', #{region}, '%')
+        <include refid="orderByClause"/>
+        <if test="query != null and query.page != null and query.pageSize != null">
+            LIMIT #{query.pageSize} OFFSET #{query.offset}
+        </if>
+    </select>
+
+    <!-- 根据设备类型筛选客户 -->
+    <select id="selectByDeviceType" resultMap="CustomerDTOResultMap">
+        SELECT <include refid="customerDTOColumns"/>
+        FROM customers c
+        <include refid="deviceStatsSubquery"/>
+        WHERE c.is_deleted = 0 
+        AND EXISTS (
+            SELECT 1 FROM customer_device_relation cdr
+            INNER JOIN devices d ON cdr.device_id = d.id
+            WHERE cdr.customer_id = c.id 
+            AND d.device_type = #{deviceType}
+            AND d.is_deleted = 0 
+            AND cdr.status = 1
+        )
+        <include refid="orderByClause"/>
+        <if test="query != null and query.page != null and query.pageSize != null">
+            LIMIT #{query.pageSize} OFFSET #{query.offset}
+        </if>
+    </select>
+
+    <!-- 根据注册时间范围筛选客户 -->
+    <select id="selectByRegisteredDateRange" resultMap="CustomerDTOResultMap">
+        SELECT <include refid="customerDTOColumns"/>
+        FROM customers c
+        <include refid="deviceStatsSubquery"/>
+        WHERE c.is_deleted = 0
+        <if test="startDate != null">
+            AND c.registered_at >= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND c.registered_at &lt;= #{endDate}
+        </if>
+        <include refid="orderByClause"/>
+        <if test="query != null and query.page != null and query.pageSize != null">
+            LIMIT #{query.pageSize} OFFSET #{query.offset}
+        </if>
+    </select>
+
+    <!-- 高级搜索 - 多条件组合查询 -->
+    <select id="advancedSearch" resultMap="CustomerDTOResultMap">
+        SELECT <include refid="customerDTOColumns"/>
+        FROM customers c
+        <include refid="deviceStatsSubquery"/>
+        <include refid="whereConditions"/>
+        <include refid="orderByClause"/>
+        <if test="query != null and query.page != null and query.pageSize != null">
+            LIMIT #{query.pageSize} OFFSET #{query.offset}
+        </if>
+    </select>
+
+    <!-- 高级搜索 - 统计总数 -->
+    <select id="advancedSearchCount" resultType="java.lang.Long">
+        SELECT COUNT(DISTINCT c.id)
+        FROM customers c
+        <if test="query != null and (query.deviceType != null or query.hasDevices != null or query.hasOrders != null or query.hasServiceRecords != null)">
+            <if test="query.deviceType != null or query.hasDevices != null">
+                LEFT JOIN customer_device_relation cdr ON c.id = cdr.customer_id AND cdr.status = 1
+                LEFT JOIN devices d ON cdr.device_id = d.id AND d.is_deleted = 0
+            </if>
+            <if test="query.hasOrders != null">
+                LEFT JOIN customer_order_relation cor ON c.id = cor.customer_id
+                LEFT JOIN orders o ON cor.order_id = o.id AND o.is_deleted = 0
+            </if>
+            <if test="query.hasServiceRecords != null">
+                LEFT JOIN customer_service_relation csr ON c.id = csr.customer_id
+                LEFT JOIN service_records sr ON csr.service_record_id = sr.id AND sr.is_deleted = 0
+            </if>
+        </if>
+        <include refid="whereConditions"/>
+    </select>
+
+    <!-- ==================== 数据验证功能 ==================== -->
+
+    <!-- 检查客户姓名是否存在 -->
+    <select id="existsByCustomerName" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM customers 
+        WHERE customer_name = #{customerName} AND is_deleted = 0
+    </select>
+
+    <!-- 检查电话号码是否存在 -->
+    <select id="existsByPhone" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM customers 
+        WHERE phone = #{phone} AND is_deleted = 0
+    </select>
+
+    <!-- 检查邮箱是否存在 -->
+    <select id="existsByEmail" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM customers 
+        WHERE email = #{email} AND is_deleted = 0
+    </select>
+
+    <!-- 检查客户姓名是否存在（排除指定ID） -->
+    <select id="existsByCustomerNameExcludeId" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM customers 
+        WHERE customer_name = #{customerName} AND id != #{id} AND is_deleted = 0
+    </select>
+
+    <!-- 检查电话号码是否存在（排除指定ID） -->
+    <select id="existsByPhoneExcludeId" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM customers 
+        WHERE phone = #{phone} AND id != #{id} AND is_deleted = 0
+    </select>
+
+    <!-- 检查邮箱是否存在（排除指定ID） -->
+    <select id="existsByEmailExcludeId" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM customers 
+        WHERE email = #{email} AND id != #{id} AND is_deleted = 0
+    </select>
+
+    <!-- 根据电话号码查询客户 -->
+    <select id="selectByPhone" resultMap="CustomerResultMap">
+        SELECT <include refid="customerColumns"/>
+        FROM customers c
+        WHERE c.phone = #{phone} AND c.is_deleted = 0
+    </select>
+
+    <!-- 根据邮箱查询客户 -->
+    <select id="selectByEmail" resultMap="CustomerResultMap">
+        SELECT <include refid="customerColumns"/>
+        FROM customers c
+        WHERE c.email = #{email} AND c.is_deleted = 0
+    </select>
+
+    <!-- ==================== 高级查询功能 ==================== -->
+
+    <!-- 查询高价值客户 -->
+    <select id="selectHighValueCustomers" resultMap="CustomerDTOResultMap">
+        SELECT <include refid="customerDTOColumns"/>
+        FROM customers c
+        <include refid="deviceStatsSubquery"/>
+        WHERE c.is_deleted = 0 AND c.customer_value >= #{minValue}
+        ORDER BY c.customer_value DESC, c.total_spent DESC
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 查询活跃客户 -->
+    <select id="selectActiveCustomers" resultMap="CustomerDTOResultMap">
+        SELECT <include refid="customerDTOColumns"/>
+        FROM customers c
+        <include refid="deviceStatsSubquery"/>
+        WHERE c.is_deleted = 0 
+        AND c.is_active = 1
+        AND c.last_active_at >= DATE_SUB(NOW(), INTERVAL #{days} DAY)
+        ORDER BY c.last_active_at DESC
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 查询沉睡客户 -->
+    <select id="selectInactiveCustomers" resultMap="CustomerDTOResultMap">
+        SELECT <include refid="customerDTOColumns"/>
+        FROM customers c
+        <include refid="deviceStatsSubquery"/>
+        WHERE c.is_deleted = 0 
+        AND (c.last_active_at IS NULL OR c.last_active_at &lt; DATE_SUB(NOW(), INTERVAL #{days} DAY))
+        ORDER BY c.last_active_at ASC
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 查询VIP客户列表 -->
+    <select id="selectVipCustomers" resultMap="CustomerDTOResultMap">
+        SELECT <include refid="customerDTOColumns"/>
+        FROM customers c
+        <include refid="deviceStatsSubquery"/>
+        WHERE c.is_deleted = 0 AND c.customer_level IN ('vip', 'premium')
+        <include refid="orderByClause"/>
+        <if test="query != null and query.page != null and query.pageSize != null">
+            LIMIT #{query.pageSize} OFFSET #{query.offset}
+        </if>
+    </select>
+
+    <!-- 查询新注册客户 -->
+    <select id="selectNewCustomers" resultMap="CustomerDTOResultMap">
+        SELECT <include refid="customerDTOColumns"/>
+        FROM customers c
+        <include refid="deviceStatsSubquery"/>
+        WHERE c.is_deleted = 0 
+        AND c.registered_at >= DATE_SUB(NOW(), INTERVAL #{days} DAY)
+        ORDER BY c.registered_at DESC
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- ==================== 筛选选项数据 ==================== -->
+
+    <!-- 获取客户等级筛选选项 -->
+    <select id="getCustomerLevelOptions" resultType="java.util.Map">
+        SELECT 
+            customer_level as value,
+            customer_level as label,
+            COUNT(*) as count
+        FROM customers 
+        WHERE is_deleted = 0
+        GROUP BY customer_level
+        ORDER BY 
+            CASE customer_level 
+                WHEN 'premium' THEN 1 
+                WHEN 'vip' THEN 2 
+                WHEN 'regular' THEN 3 
+                ELSE 4 
+            END
+    </select>
+
+    <!-- 获取地区筛选选项 -->
+    <select id="getRegionOptions" resultType="java.util.Map">
+        SELECT 
+            region as value,
+            region as label,
+            COUNT(*) as count
+        FROM customers 
+        WHERE is_deleted = 0 AND region IS NOT NULL AND region != ''
+        GROUP BY region
+        ORDER BY count DESC, region
+    </select>
+
+    <!-- 获取行业筛选选项 -->
+    <select id="getIndustryOptions" resultType="java.util.Map">
+        SELECT 
+            industry as value,
+            industry as label,
+            COUNT(*) as count
+        FROM customers 
+        WHERE is_deleted = 0 AND industry IS NOT NULL AND industry != ''
+        GROUP BY industry
+        ORDER BY count DESC, industry
+    </select>
+
+    <!-- 获取客户标签筛选选项 -->
+    <select id="getCustomerTagOptions" resultType="java.util.Map">
+        SELECT 
+            tag as value,
+            tag as label,
+            COUNT(*) as count
+        FROM (
+            SELECT JSON_UNQUOTE(JSON_EXTRACT(customer_tags, CONCAT('$[', numbers.n, ']'))) as tag
+            FROM customers
+            CROSS JOIN (
+                SELECT 0 as n UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4
+                UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9
+            ) numbers
+            WHERE is_deleted = 0 
+            AND customer_tags IS NOT NULL 
+            AND JSON_LENGTH(customer_tags) > numbers.n
+        ) tag_list
+        WHERE tag IS NOT NULL AND tag != 'null'
+        GROUP BY tag
+        ORDER BY count DESC, tag
+    </select>
+
+    <!-- ==================== 客户价值和等级管理 ==================== -->
+
+    <!-- 更新客户价值评分 -->
+    <update id="updateCustomerValue">
+        UPDATE customers 
+        SET customer_value = #{customerValue}, updated_at = NOW()
+        WHERE id = #{customerId} AND is_deleted = 0
+    </update>
+
+    <!-- 更新客户等级 -->
+    <update id="updateCustomerLevel">
+        UPDATE customers 
+        SET customer_level = #{customerLevel}, updated_at = NOW()
+        WHERE id = #{customerId} AND is_deleted = 0
+    </update>
+
+    <!-- 更新客户累计消费金额 -->
+    <update id="updateTotalSpent">
+        UPDATE customers 
+        SET total_spent = #{totalSpent}, updated_at = NOW()
+        WHERE id = #{customerId} AND is_deleted = 0
+    </update>
+
+    <!-- 更新客户最后活跃时间 -->
+    <update id="updateLastActiveAt">
+        UPDATE customers 
+        SET last_active_at = #{lastActiveAt}, updated_at = NOW()
+        WHERE id = #{customerId} AND is_deleted = 0
+    </update>
+
+    <!-- 批量更新客户等级 -->
+    <update id="batchUpdateCustomerLevel">
+        UPDATE customers 
+        SET customer_level = #{customerLevel}, updated_at = NOW()
+        WHERE id IN
+        <foreach collection="customerIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        AND is_deleted = 0
+    </update>
+
+    <!-- ==================== 关联查询功能 ==================== -->
+
+    <!-- 查询客户的设备统计信息 -->
+    <select id="selectCustomerDeviceStats" resultType="java.util.Map">
+        SELECT 
+            COUNT(*) as total_devices,
+            COUNT(CASE WHEN cdr.relation_type = 'purchased' THEN 1 END) as purchased_devices,
+            COUNT(CASE WHEN cdr.relation_type = 'rental' THEN 1 END) as rental_devices,
+            COUNT(CASE WHEN d.device_status = 'active' THEN 1 END) as active_devices
+        FROM customer_device_relation cdr
+        INNER JOIN devices d ON cdr.device_id = d.id AND d.is_deleted = 0
+        WHERE cdr.customer_id = #{customerId} AND cdr.status = 1
+    </select>
+
+    <!-- 查询客户的订单统计信息 -->
+    <select id="selectCustomerOrderStats" resultType="java.util.Map">
+        SELECT 
+            COUNT(*) as total_orders,
+            COALESCE(SUM(o.total_amount), 0) as total_amount,
+            COUNT(CASE WHEN o.order_status = 'completed' THEN 1 END) as completed_orders,
+            MAX(o.created_at) as last_order_date
+        FROM customer_order_relation cor
+        INNER JOIN orders o ON cor.order_id = o.id AND o.is_deleted = 0
+        WHERE cor.customer_id = #{customerId}
+    </select>
+
+    <!-- 查询客户的服务记录统计信息 -->
+    <select id="selectCustomerServiceStats" resultType="java.util.Map">
+        SELECT 
+            COUNT(*) as total_services,
+            COUNT(CASE WHEN sr.status = 'completed' THEN 1 END) as completed_services,
+            COUNT(CASE WHEN sr.status = 'pending' THEN 1 END) as pending_services,
+            MAX(sr.created_at) as last_service_date
+        FROM customer_service_relation csr
+        INNER JOIN service_records sr ON csr.service_record_id = sr.id AND sr.is_deleted = 0
+        WHERE csr.customer_id = #{customerId}
+    </select>
+
+    <!-- 查询客户的完整统计信息 -->
+    <select id="selectCustomerFullStats" resultType="java.util.Map">
+        SELECT 
+            c.id,
+            c.customer_name,
+            c.total_spent,
+            c.customer_value,
+            COALESCE(ds.total_devices, 0) as total_devices,
+            COALESCE(ds.active_devices, 0) as active_devices,
+            COALESCE(os.total_orders, 0) as total_orders,
+            COALESCE(os.total_amount, 0) as total_order_amount,
+            COALESCE(ss.total_services, 0) as total_services
+        FROM customers c
+        LEFT JOIN (
+            SELECT 
+                cdr.customer_id,
+                COUNT(*) as total_devices,
+                COUNT(CASE WHEN d.device_status = 'active' THEN 1 END) as active_devices
+            FROM customer_device_relation cdr
+            INNER JOIN devices d ON cdr.device_id = d.id AND d.is_deleted = 0
+            WHERE cdr.status = 1
+            GROUP BY cdr.customer_id
+        ) ds ON c.id = ds.customer_id
+        LEFT JOIN (
+            SELECT 
+                cor.customer_id,
+                COUNT(*) as total_orders,
+                COALESCE(SUM(o.total_amount), 0) as total_amount
+            FROM customer_order_relation cor
+            INNER JOIN orders o ON cor.order_id = o.id AND o.is_deleted = 0
+            GROUP BY cor.customer_id
+        ) os ON c.id = os.customer_id
+        LEFT JOIN (
+            SELECT 
+                csr.customer_id,
+                COUNT(*) as total_services
+            FROM customer_service_relation csr
+            INNER JOIN service_records sr ON csr.service_record_id = sr.id AND sr.is_deleted = 0
+            GROUP BY csr.customer_id
+        ) ss ON c.id = ss.customer_id
+        WHERE c.id = #{customerId} AND c.is_deleted = 0
+    </select>
+
+    <!-- ==================== 性能优化查询 ==================== -->
+
+    <!-- 优化的客户列表查询（带索引提示） -->
+    <select id="selectListOptimized" resultMap="CustomerDTOResultMap">
+        SELECT /*+ USE_INDEX(c, idx_customer_level_status) */ <include refid="customerDTOColumns"/>
+        FROM customers c
+        <include refid="deviceStatsSubquery"/>
+        <include refid="whereConditions"/>
+        <include refid="orderByClause"/>
+        <if test="query != null and query.page != null and query.pageSize != null">
+            LIMIT #{query.pageSize} OFFSET #{query.offset}
+        </if>
+    </select>
+
+    <!-- 优化的客户统计查询 -->
+    <select id="selectCustomerStatsOptimized" resultMap="CustomerStatsDTOResultMap">
+        SELECT /*+ USE_INDEX(customers, idx_customer_level_status) */
+            COUNT(*) as total,
+            COUNT(CASE WHEN customer_level = 'regular' THEN 1 END) as regular,
+            COUNT(CASE WHEN customer_level = 'vip' THEN 1 END) as vip,
+            COUNT(CASE WHEN customer_level = 'premium' THEN 1 END) as premium,
+            (SELECT /*+ USE_INDEX(d, idx_device_status) */ COUNT(DISTINCT d.id) 
+             FROM devices d 
+             INNER JOIN customer_device_relation cdr ON d.id = cdr.device_id 
+             WHERE d.device_status = 'active' AND d.is_deleted = 0 AND cdr.status = 1) as active_devices,
+            COALESCE(SUM(total_spent), 0) as total_revenue,
+            COUNT(CASE WHEN registered_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) THEN 1 END) as new_this_month
+        FROM customers 
+        WHERE is_deleted = 0
+    </select>
+
+    <!-- 缓存友好的客户基本信息查询 -->
+    <select id="selectBasicInfoForCache" resultType="java.util.Map">
+        SELECT 
+            id,
+            customer_name,
+            customer_level,
+            customer_status,
+            phone,
+            email,
+            total_spent,
+            customer_value,
+            last_active_at
+        FROM customers 
+        WHERE is_deleted = 0 
+        AND is_active = 1
+        ORDER BY updated_at DESC
+        LIMIT 1000
+    </select>
+
+</mapper>

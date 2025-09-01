@@ -1,0 +1,708 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yxrobot.mapper.RentalDeviceMapper">
+
+    <!-- 租赁设备结果映射 -->
+    <resultMap id="RentalDeviceResultMap" type="com.yxrobot.entity.RentalDevice">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="device_id" property="deviceId" jdbcType="VARCHAR"/>
+        <result column="device_model" property="deviceModel" jdbcType="VARCHAR"/>
+        <result column="device_name" property="deviceName" jdbcType="VARCHAR"/>
+        <result column="device_category" property="deviceCategory" jdbcType="VARCHAR"/>
+        <result column="serial_number" property="serialNumber" jdbcType="VARCHAR"/>
+        <result column="purchase_date" property="purchaseDate" jdbcType="DATE"/>
+        <result column="purchase_price" property="purchasePrice" jdbcType="DECIMAL"/>
+        <result column="daily_rental_price" property="dailyRentalPrice" jdbcType="DECIMAL"/>
+        <result column="current_status" property="currentStatus" jdbcType="VARCHAR"/>
+        <result column="location" property="location" jdbcType="VARCHAR"/>
+        <result column="region" property="region" jdbcType="VARCHAR"/>
+        <result column="performance_score" property="performanceScore" jdbcType="INTEGER"/>
+        <result column="signal_strength" property="signalStrength" jdbcType="INTEGER"/>
+        <result column="maintenance_status" property="maintenanceStatus" jdbcType="VARCHAR"/>
+        <result column="last_maintenance_date" property="lastMaintenanceDate" jdbcType="DATE"/>
+        <result column="next_maintenance_date" property="nextMaintenanceDate" jdbcType="DATE"/>
+        <result column="total_rental_days" property="totalRentalDays" jdbcType="INTEGER"/>
+        <result column="total_available_days" property="totalAvailableDays" jdbcType="INTEGER"/>
+        <result column="utilization_rate" property="utilizationRate" jdbcType="DECIMAL"/>
+        <result column="last_rental_date" property="lastRentalDate" jdbcType="DATE"/>
+        <result column="is_active" property="isActive" jdbcType="TINYINT"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+        <result column="updated_at" property="updatedAt" jdbcType="TIMESTAMP"/>
+        <result column="is_deleted" property="isDeleted" jdbcType="TINYINT"/>
+    </resultMap>
+
+    <!-- 设备利用率DTO结果映射 -->
+    <resultMap id="DeviceUtilizationResultMap" type="com.yxrobot.dto.DeviceUtilizationDTO">
+        <result column="device_id" property="deviceId" jdbcType="VARCHAR"/>
+        <result column="device_model" property="deviceModel" jdbcType="VARCHAR"/>
+        <result column="utilization_rate" property="utilizationRate" jdbcType="DECIMAL"/>
+        <result column="total_rental_days" property="totalRentalDays" jdbcType="INTEGER"/>
+        <result column="total_available_days" property="totalAvailableDays" jdbcType="INTEGER"/>
+        <result column="current_status" property="currentStatus" jdbcType="VARCHAR"/>
+        <result column="last_rental_date" property="lastRentalDate" jdbcType="VARCHAR"/>
+        <result column="region" property="region" jdbcType="VARCHAR"/>
+        <result column="performance_score" property="performanceScore" jdbcType="INTEGER"/>
+        <result column="signal_strength" property="signalStrength" jdbcType="INTEGER"/>
+        <result column="maintenance_status" property="maintenanceStatus" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <!-- 基础查询字段 -->
+    <sql id="Base_Column_List">
+        id, device_id, device_model, device_name, device_category, serial_number,
+        purchase_date, purchase_price, daily_rental_price, current_status, location,
+        region, performance_score, signal_strength, maintenance_status,
+        last_maintenance_date, next_maintenance_date, total_rental_days,
+        total_available_days, utilization_rate, last_rental_date, is_active,
+        created_at, updated_at, is_deleted
+    </sql>
+
+    <!-- 查询条件 -->
+    <sql id="Where_Clause">
+        <where>
+            is_deleted = 0
+            <if test="params.keyword != null and params.keyword != ''">
+                AND (device_id LIKE CONCAT('%', #{params.keyword}, '%')
+                OR device_model LIKE CONCAT('%', #{params.keyword}, '%')
+                OR device_name LIKE CONCAT('%', #{params.keyword}, '%'))
+            </if>
+            <if test="params.deviceModel != null and params.deviceModel != ''">
+                AND device_model = #{params.deviceModel}
+            </if>
+            <if test="params.currentStatus != null and params.currentStatus != ''">
+                AND current_status = #{params.currentStatus}
+            </if>
+            <if test="params.region != null and params.region != ''">
+                AND region = #{params.region}
+            </if>
+            <if test="params.isActive != null">
+                AND is_active = #{params.isActive}
+            </if>
+        </where>
+    </sql>
+
+    <!-- 高级搜索查询条件 -->
+    <sql id="Advanced_Where_Clause">
+        <where>
+            is_deleted = 0
+            <!-- 关键词搜索 -->
+            <if test="params.keyword != null and params.keyword != ''">
+                AND (device_id LIKE CONCAT('%', #{params.keyword}, '%')
+                OR device_model LIKE CONCAT('%', #{params.keyword}, '%')
+                OR device_name LIKE CONCAT('%', #{params.keyword}, '%')
+                OR location LIKE CONCAT('%', #{params.keyword}, '%'))
+            </if>
+            
+            <!-- 设备型号筛选（支持多选） -->
+            <if test="params.deviceModels != null and params.deviceModels.size() > 0">
+                AND device_model IN
+                <foreach collection="params.deviceModels" item="model" open="(" separator="," close=")">
+                    #{model}
+                </foreach>
+            </if>
+            <if test="params.deviceModel != null and params.deviceModel != ''">
+                AND device_model = #{params.deviceModel}
+            </if>
+            
+            <!-- 设备状态筛选（支持多选） -->
+            <if test="params.statuses != null and params.statuses.size() > 0">
+                AND current_status IN
+                <foreach collection="params.statuses" item="status" open="(" separator="," close=")">
+                    #{status}
+                </foreach>
+            </if>
+            <if test="params.currentStatus != null and params.currentStatus != ''">
+                AND current_status = #{params.currentStatus}
+            </if>
+            
+            <!-- 地区筛选（支持多选） -->
+            <if test="params.regions != null and params.regions.size() > 0">
+                AND region IN
+                <foreach collection="params.regions" item="region" open="(" separator="," close=")">
+                    #{region}
+                </foreach>
+            </if>
+            <if test="params.region != null and params.region != ''">
+                AND region = #{params.region}
+            </if>
+            
+            <!-- 利用率范围筛选 -->
+            <if test="params.minUtilization != null">
+                AND utilization_rate >= #{params.minUtilization}
+            </if>
+            <if test="params.maxUtilization != null">
+                AND utilization_rate &lt;= #{params.maxUtilization}
+            </if>
+            
+            <!-- 租赁天数范围筛选 -->
+            <if test="params.minRentalDays != null">
+                AND total_rental_days >= #{params.minRentalDays}
+            </if>
+            <if test="params.maxRentalDays != null">
+                AND total_rental_days &lt;= #{params.maxRentalDays}
+            </if>
+            
+            <!-- 时间范围筛选 -->
+            <if test="params.startDate != null">
+                AND last_rental_date >= #{params.startDate}
+            </if>
+            <if test="params.endDate != null">
+                AND last_rental_date &lt;= #{params.endDate}
+            </if>
+            
+            <!-- 维护状态筛选 -->
+            <if test="params.maintenanceStatus != null and params.maintenanceStatus != ''">
+                AND maintenance_status = #{params.maintenanceStatus}
+            </if>
+            
+            <!-- 性能评分范围筛选 -->
+            <if test="params.minPerformanceScore != null">
+                AND performance_score >= #{params.minPerformanceScore}
+            </if>
+            <if test="params.maxPerformanceScore != null">
+                AND performance_score &lt;= #{params.maxPerformanceScore}
+            </if>
+            
+            <!-- 信号强度范围筛选 -->
+            <if test="params.minSignalStrength != null">
+                AND signal_strength >= #{params.minSignalStrength}
+            </if>
+            <if test="params.maxSignalStrength != null">
+                AND signal_strength &lt;= #{params.maxSignalStrength}
+            </if>
+            
+            <!-- 是否活跃筛选 -->
+            <if test="params.isActive != null">
+                AND is_active = #{params.isActive}
+            </if>
+        </where>
+    </sql>
+
+    <!-- 根据ID查询 -->
+    <select id="selectById" resultMap="RentalDeviceResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM rental_devices
+        WHERE id = #{id} AND is_deleted = 0
+    </select>
+
+    <!-- 根据设备编号查询 -->
+    <select id="selectByDeviceId" resultMap="RentalDeviceResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM rental_devices
+        WHERE device_id = #{deviceId} AND is_deleted = 0
+    </select>
+
+    <!-- 分页查询列表 -->
+    <select id="selectList" resultMap="RentalDeviceResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM rental_devices
+        <include refid="Where_Clause"/>
+        ORDER BY utilization_rate DESC, created_at DESC
+        <if test="params.page != null and params.pageSize != null">
+            LIMIT #{params.pageSize} OFFSET #{params.offset}
+        </if>
+    </select>
+
+    <!-- 查询总数 -->
+    <select id="selectCount" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM rental_devices
+        <include refid="Where_Clause"/>
+    </select>
+
+    <!-- 查询设备利用率数据（适配前端表格） -->
+    <select id="selectDeviceUtilizationList" resultMap="DeviceUtilizationResultMap">
+        SELECT 
+            device_id,
+            device_model,
+            utilization_rate,
+            total_rental_days,
+            total_available_days,
+            current_status,
+            DATE_FORMAT(last_rental_date, '%Y-%m-%d') as last_rental_date,
+            region,
+            performance_score,
+            signal_strength,
+            maintenance_status
+        FROM rental_devices
+        <include refid="Where_Clause"/>
+        ORDER BY utilization_rate DESC, device_id ASC
+        <if test="params.page != null and params.pageSize != null">
+            LIMIT #{params.pageSize} OFFSET #{params.offset}
+        </if>
+    </select>
+
+    <!-- 查询设备利用率数据总数 -->
+    <select id="selectDeviceUtilizationCount" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM rental_devices
+        <include refid="Where_Clause"/>
+    </select>
+
+    <!-- 插入设备 -->
+    <insert id="insert" parameterType="com.yxrobot.entity.RentalDevice" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO rental_devices (
+            device_id, device_model, device_name, device_category, serial_number,
+            purchase_date, purchase_price, daily_rental_price, current_status, location,
+            region, performance_score, signal_strength, maintenance_status,
+            last_maintenance_date, next_maintenance_date, total_rental_days,
+            total_available_days, utilization_rate, last_rental_date, is_active,
+            created_at, updated_at, is_deleted
+        ) VALUES (
+            #{deviceId}, #{deviceModel}, #{deviceName}, #{deviceCategory}, #{serialNumber},
+            #{purchaseDate}, #{purchasePrice}, #{dailyRentalPrice}, #{currentStatus}, #{location},
+            #{region}, #{performanceScore}, #{signalStrength}, #{maintenanceStatus},
+            #{lastMaintenanceDate}, #{nextMaintenanceDate}, #{totalRentalDays},
+            #{totalAvailableDays}, #{utilizationRate}, #{lastRentalDate}, #{isActive},
+            NOW(), NOW(), 0
+        )
+    </insert>
+
+    <!-- 更新设备 -->
+    <update id="updateById" parameterType="com.yxrobot.entity.RentalDevice">
+        UPDATE rental_devices
+        SET device_id = #{deviceId},
+            device_model = #{deviceModel},
+            device_name = #{deviceName},
+            device_category = #{deviceCategory},
+            serial_number = #{serialNumber},
+            purchase_date = #{purchaseDate},
+            purchase_price = #{purchasePrice},
+            daily_rental_price = #{dailyRentalPrice},
+            current_status = #{currentStatus},
+            location = #{location},
+            region = #{region},
+            performance_score = #{performanceScore},
+            signal_strength = #{signalStrength},
+            maintenance_status = #{maintenanceStatus},
+            last_maintenance_date = #{lastMaintenanceDate},
+            next_maintenance_date = #{nextMaintenanceDate},
+            total_rental_days = #{totalRentalDays},
+            total_available_days = #{totalAvailableDays},
+            utilization_rate = #{utilizationRate},
+            last_rental_date = #{lastRentalDate},
+            is_active = #{isActive},
+            updated_at = NOW()
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <!-- 软删除 -->
+    <update id="deleteById">
+        UPDATE rental_devices
+        SET is_deleted = 1, updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 批量软删除 -->
+    <update id="deleteBatchByIds">
+        UPDATE rental_devices
+        SET is_deleted = 1, updated_at = NOW()
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <!-- 查询设备状态统计 -->
+    <select id="selectDeviceStatusStats" resultType="java.util.Map">
+        SELECT 
+            COUNT(CASE WHEN current_status = 'active' THEN 1 END) as active,
+            COUNT(CASE WHEN current_status = 'idle' THEN 1 END) as idle,
+            COUNT(CASE WHEN current_status = 'maintenance' THEN 1 END) as maintenance
+        FROM rental_devices
+        WHERE is_deleted = 0 AND is_active = 1
+    </select>
+
+    <!-- 查询利用率TOP设备 -->
+    <select id="selectTopDevicesByUtilization" resultMap="DeviceUtilizationResultMap">
+        SELECT 
+            device_id,
+            device_model,
+            utilization_rate,
+            total_rental_days,
+            total_available_days,
+            current_status,
+            DATE_FORMAT(last_rental_date, '%Y-%m-%d') as last_rental_date,
+            region,
+            performance_score,
+            signal_strength,
+            maintenance_status
+        FROM rental_devices
+        WHERE is_deleted = 0 AND is_active = 1
+        ORDER BY utilization_rate DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 查询设备型号分布 -->
+    <select id="selectDeviceModelDistribution" resultType="java.util.Map">
+        SELECT 
+            device_model as name,
+            COUNT(*) as value,
+            COALESCE(AVG(utilization_rate), 0) as avgUtilization
+        FROM rental_devices
+        WHERE is_deleted = 0 AND is_active = 1
+        GROUP BY device_model
+        ORDER BY value DESC
+    </select>
+
+    <!-- 查询设备利用率排行数据 -->
+    <select id="selectUtilizationRanking" resultType="java.util.Map">
+        SELECT 
+            CONCAT(device_id, ' (', device_model, ')') as name,
+            utilization_rate as value
+        FROM rental_devices
+        WHERE is_deleted = 0 AND is_active = 1
+        ORDER BY utilization_rate DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 更新设备利用率 -->
+    <update id="updateUtilizationRate">
+        UPDATE rental_devices
+        SET utilization_rate = #{utilizationRate},
+            total_rental_days = #{totalRentalDays},
+            total_available_days = #{totalAvailableDays},
+            updated_at = NOW()
+        WHERE id = #{deviceId} AND is_deleted = 0
+    </update>
+
+    <!-- 查询所有设备型号 -->
+    <select id="selectAllDeviceModels" resultType="java.lang.String">
+        SELECT DISTINCT device_model
+        FROM rental_devices
+        WHERE is_deleted = 0 AND is_active = 1
+        ORDER BY device_model
+    </select>
+
+    <!-- 查询所有地区 -->
+    <select id="selectAllRegions" resultType="java.lang.String">
+        SELECT DISTINCT region
+        FROM rental_devices
+        WHERE is_deleted = 0 AND is_active = 1 AND region IS NOT NULL
+        ORDER BY region
+    </select>
+
+    <!-- 更新设备状态（根据设备编号） -->
+    <update id="updateDeviceStatus">
+        UPDATE rental_devices
+        SET current_status = #{currentStatus},
+            updated_at = NOW()
+        WHERE device_id = #{deviceId} AND is_deleted = 0
+    </update>
+
+    <!-- 更新设备维护状态（根据设备编号） -->
+    <update id="updateMaintenanceStatus">
+        UPDATE rental_devices
+        SET maintenance_status = #{maintenanceStatus},
+            updated_at = NOW()
+        WHERE device_id = #{deviceId} AND is_deleted = 0
+    </update>
+
+    <!-- 软删除设备（根据设备编号） -->
+    <update id="softDeleteByDeviceId">
+        UPDATE rental_devices
+        SET is_deleted = 1, updated_at = NOW()
+        WHERE device_id = #{deviceId}
+    </update>
+
+    <!-- 批量更新设备状态 -->
+    <update id="batchUpdateDeviceStatus">
+        UPDATE rental_devices
+        SET current_status = #{currentStatus},
+            updated_at = NOW()
+        WHERE device_id IN
+        <foreach collection="deviceIds" item="deviceId" open="(" separator="," close=")">
+            #{deviceId}
+        </foreach>
+        AND is_deleted = 0
+    </update>
+
+    <!-- 批量更新设备维护状态 -->
+    <update id="batchUpdateMaintenanceStatus">
+        UPDATE rental_devices
+        SET maintenance_status = #{maintenanceStatus},
+            updated_at = NOW()
+        WHERE device_id IN
+        <foreach collection="deviceIds" item="deviceId" open="(" separator="," close=")">
+            #{deviceId}
+        </foreach>
+        AND is_deleted = 0
+    </update>
+
+    <!-- 批量软删除设备（根据设备编号） -->
+    <update id="batchSoftDeleteByDeviceIds">
+        UPDATE rental_devices
+        SET is_deleted = 1, updated_at = NOW()
+        WHERE device_id IN
+        <foreach collection="deviceIds" item="deviceId" open="(" separator="," close=")">
+            #{deviceId}
+        </foreach>
+    </update>
+
+    <!-- 高级搜索设备利用率数据 -->
+    <select id="selectDeviceUtilizationWithAdvancedSearch" resultMap="DeviceUtilizationResultMap">
+        SELECT 
+            device_id,
+            device_model,
+            utilization_rate,
+            total_rental_days,
+            total_available_days,
+            current_status,
+            DATE_FORMAT(last_rental_date, '%Y-%m-%d') as last_rental_date,
+            region,
+            performance_score,
+            signal_strength,
+            maintenance_status
+        FROM rental_devices
+        <include refid="Advanced_Where_Clause"/>
+        <choose>
+            <when test="params.sortBy != null and params.sortBy != ''">
+                ORDER BY ${params.sortBy}
+                <if test="params.sortOrder != null and params.sortOrder != ''">
+                    ${params.sortOrder}
+                </if>
+            </when>
+            <otherwise>
+                ORDER BY utilization_rate DESC, device_id ASC
+            </otherwise>
+        </choose>
+        <if test="params.page != null and params.pageSize != null">
+            LIMIT #{params.pageSize} OFFSET #{params.offset}
+        </if>
+    </select>
+
+    <!-- 高级搜索设备利用率数据总数 -->
+    <select id="selectDeviceUtilizationCountWithAdvancedSearch" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM rental_devices
+        <include refid="Advanced_Where_Clause"/>
+    </select>
+
+    <!-- 按时间范围查询设备利用率数据 -->
+    <select id="selectDeviceUtilizationByDateRange" resultMap="DeviceUtilizationResultMap">
+        SELECT 
+            device_id,
+            device_model,
+            utilization_rate,
+            total_rental_days,
+            total_available_days,
+            current_status,
+            DATE_FORMAT(last_rental_date, '%Y-%m-%d') as last_rental_date,
+            region,
+            performance_score,
+            signal_strength,
+            maintenance_status
+        FROM rental_devices
+        WHERE is_deleted = 0
+        <if test="params.startDate != null">
+            AND last_rental_date >= #{params.startDate}
+        </if>
+        <if test="params.endDate != null">
+            AND last_rental_date &lt;= #{params.endDate}
+        </if>
+        <if test="params.keyword != null and params.keyword != ''">
+            AND (device_id LIKE CONCAT('%', #{params.keyword}, '%')
+            OR device_model LIKE CONCAT('%', #{params.keyword}, '%'))
+        </if>
+        ORDER BY last_rental_date DESC, utilization_rate DESC
+        <if test="params.page != null and params.pageSize != null">
+            LIMIT #{params.pageSize} OFFSET #{params.offset}
+        </if>
+    </select>
+
+    <!-- 按多个设备型号查询 -->
+    <select id="selectDeviceUtilizationByModels" resultMap="DeviceUtilizationResultMap">
+        SELECT 
+            device_id,
+            device_model,
+            utilization_rate,
+            total_rental_days,
+            total_available_days,
+            current_status,
+            DATE_FORMAT(last_rental_date, '%Y-%m-%d') as last_rental_date,
+            region,
+            performance_score,
+            signal_strength,
+            maintenance_status
+        FROM rental_devices
+        WHERE is_deleted = 0
+        AND device_model IN
+        <foreach collection="deviceModels" item="model" open="(" separator="," close=")">
+            #{model}
+        </foreach>
+        <if test="params.keyword != null and params.keyword != ''">
+            AND (device_id LIKE CONCAT('%', #{params.keyword}, '%')
+            OR device_name LIKE CONCAT('%', #{params.keyword}, '%'))
+        </if>
+        <if test="params.region != null and params.region != ''">
+            AND region = #{params.region}
+        </if>
+        ORDER BY device_model, utilization_rate DESC
+        <if test="params.page != null and params.pageSize != null">
+            LIMIT #{params.pageSize} OFFSET #{params.offset}
+        </if>
+    </select>
+
+    <!-- 按多个状态查询 -->
+    <select id="selectDeviceUtilizationByStatuses" resultMap="DeviceUtilizationResultMap">
+        SELECT 
+            device_id,
+            device_model,
+            utilization_rate,
+            total_rental_days,
+            total_available_days,
+            current_status,
+            DATE_FORMAT(last_rental_date, '%Y-%m-%d') as last_rental_date,
+            region,
+            performance_score,
+            signal_strength,
+            maintenance_status
+        FROM rental_devices
+        WHERE is_deleted = 0
+        AND current_status IN
+        <foreach collection="statuses" item="status" open="(" separator="," close=")">
+            #{status}
+        </foreach>
+        <if test="params.keyword != null and params.keyword != ''">
+            AND (device_id LIKE CONCAT('%', #{params.keyword}, '%')
+            OR device_model LIKE CONCAT('%', #{params.keyword}, '%'))
+        </if>
+        ORDER BY current_status, utilization_rate DESC
+        <if test="params.page != null and params.pageSize != null">
+            LIMIT #{params.pageSize} OFFSET #{params.offset}
+        </if>
+    </select>
+
+    <!-- 按利用率范围查询 -->
+    <select id="selectDeviceUtilizationByUtilizationRange" resultMap="DeviceUtilizationResultMap">
+        SELECT 
+            device_id,
+            device_model,
+            utilization_rate,
+            total_rental_days,
+            total_available_days,
+            current_status,
+            DATE_FORMAT(last_rental_date, '%Y-%m-%d') as last_rental_date,
+            region,
+            performance_score,
+            signal_strength,
+            maintenance_status
+        FROM rental_devices
+        WHERE is_deleted = 0
+        <if test="minUtilization != null">
+            AND utilization_rate >= #{minUtilization}
+        </if>
+        <if test="maxUtilization != null">
+            AND utilization_rate &lt;= #{maxUtilization}
+        </if>
+        <if test="params.keyword != null and params.keyword != ''">
+            AND (device_id LIKE CONCAT('%', #{params.keyword}, '%')
+            OR device_model LIKE CONCAT('%', #{params.keyword}, '%'))
+        </if>
+        ORDER BY utilization_rate DESC
+        <if test="params.page != null and params.pageSize != null">
+            LIMIT #{params.pageSize} OFFSET #{params.offset}
+        </if>
+    </select>
+
+    <!-- 获取搜索建议（自动完成） -->
+    <select id="selectSearchSuggestions" resultType="java.lang.String">
+        <choose>
+            <when test="type == 'deviceId'">
+                SELECT DISTINCT device_id
+                FROM rental_devices
+                WHERE is_deleted = 0 AND device_id LIKE CONCAT('%', #{keyword}, '%')
+                ORDER BY device_id
+                LIMIT 10
+            </when>
+            <when test="type == 'deviceModel'">
+                SELECT DISTINCT device_model
+                FROM rental_devices
+                WHERE is_deleted = 0 AND device_model LIKE CONCAT('%', #{keyword}, '%')
+                ORDER BY device_model
+                LIMIT 10
+            </when>
+            <when test="type == 'region'">
+                SELECT DISTINCT region
+                FROM rental_devices
+                WHERE is_deleted = 0 AND region LIKE CONCAT('%', #{keyword}, '%')
+                ORDER BY region
+                LIMIT 10
+            </when>
+            <otherwise>
+                SELECT DISTINCT device_id
+                FROM rental_devices
+                WHERE is_deleted = 0 
+                AND (device_id LIKE CONCAT('%', #{keyword}, '%')
+                OR device_model LIKE CONCAT('%', #{keyword}, '%')
+                OR device_name LIKE CONCAT('%', #{keyword}, '%'))
+                ORDER BY device_id
+                LIMIT 10
+            </otherwise>
+        </choose>
+    </select>
+
+    <!-- 获取筛选选项统计 -->
+    <select id="selectFilterOptionsStats" resultType="java.util.Map">
+        SELECT 
+            'deviceModels' as category,
+            JSON_ARRAYAGG(
+                JSON_OBJECT(
+                    'value', device_model,
+                    'label', device_model,
+                    'count', model_count
+                )
+            ) as options
+        FROM (
+            SELECT device_model, COUNT(*) as model_count
+            FROM rental_devices
+            WHERE is_deleted = 0 AND is_active = 1
+            GROUP BY device_model
+            ORDER BY model_count DESC
+        ) model_stats
+        
+        UNION ALL
+        
+        SELECT 
+            'statuses' as category,
+            JSON_ARRAYAGG(
+                JSON_OBJECT(
+                    'value', current_status,
+                    'label', CASE current_status
+                        WHEN 'active' THEN '运行中'
+                        WHEN 'idle' THEN '空闲'
+                        WHEN 'maintenance' THEN '维护中'
+                        WHEN 'retired' THEN '已退役'
+                        ELSE current_status
+                    END,
+                    'count', status_count
+                )
+            ) as options
+        FROM (
+            SELECT current_status, COUNT(*) as status_count
+            FROM rental_devices
+            WHERE is_deleted = 0 AND is_active = 1
+            GROUP BY current_status
+            ORDER BY status_count DESC
+        ) status_stats
+        
+        UNION ALL
+        
+        SELECT 
+            'regions' as category,
+            JSON_ARRAYAGG(
+                JSON_OBJECT(
+                    'value', region,
+                    'label', region,
+                    'count', region_count
+                )
+            ) as options
+        FROM (
+            SELECT region, COUNT(*) as region_count
+            FROM rental_devices
+            WHERE is_deleted = 0 AND is_active = 1 AND region IS NOT NULL
+            GROUP BY region
+            ORDER BY region_count DESC
+        ) region_stats
+    </select>
+
+</mapper>

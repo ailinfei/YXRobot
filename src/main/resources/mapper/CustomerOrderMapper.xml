@@ -1,0 +1,383 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yxrobot.mapper.CustomerOrderMapper">
+
+    <!-- 客户订单关联实体结果映射 -->
+    <resultMap id="CustomerOrderResultMap" type="com.yxrobot.entity.CustomerOrder">
+        <id column="id" property="id"/>
+        <result column="customer_id" property="customerId"/>
+        <result column="order_id" property="orderId"/>
+        <result column="customer_role" property="customerRole" typeHandler="com.yxrobot.handler.CustomerRoleTypeHandler"/>
+        <result column="relation_notes" property="relationNotes"/>
+        <result column="created_time" property="createdTime"/>
+        <result column="updated_time" property="updatedTime"/>
+        <result column="status" property="status"/>
+        <!-- 关联的订单信息 -->
+        <association property="order" javaType="com.yxrobot.entity.Order">
+            <id column="order_id" property="id"/>
+            <result column="order_number" property="orderNumber"/>
+            <result column="order_type" property="orderType" typeHandler="com.yxrobot.handler.OrderTypeTypeHandler"/>
+            <result column="order_status" property="orderStatus" typeHandler="com.yxrobot.handler.OrderStatusTypeHandler"/>
+            <result column="total_amount" property="totalAmount"/>
+            <result column="currency" property="currency"/>
+            <result column="payment_status" property="paymentStatus" typeHandler="com.yxrobot.handler.PaymentStatusTypeHandler"/>
+            <result column="order_date" property="orderDate"/>
+            <result column="delivery_date" property="deliveryDate"/>
+        </association>
+    </resultMap>
+
+    <!-- 客户订单关联DTO结果映射 -->
+    <resultMap id="CustomerOrderDTOResultMap" type="com.yxrobot.dto.CustomerOrderDTO">
+        <id column="id" property="id"/>
+        <result column="order_number" property="orderNumber"/>
+        <result column="order_type" property="orderType"/>
+        <result column="order_status" property="orderStatus"/>
+        <result column="total_amount" property="totalAmount"/>
+        <result column="currency" property="currency"/>
+        <result column="payment_status" property="paymentStatus"/>
+        <result column="payment_method" property="paymentMethod"/>
+        <result column="order_date" property="orderDate"/>
+        <result column="delivery_date" property="deliveryDate"/>
+        <result column="shipping_address" property="shippingAddress"/>
+        <result column="shipping_fee" property="shippingFee"/>
+        <result column="discount_amount" property="discountAmount"/>
+        <result column="order_notes" property="notes"/>
+        <result column="order_created_at" property="createdAt"/>
+        <result column="order_updated_at" property="updatedAt"/>
+        <!-- 订单商品明细（通过collection映射） -->
+        <collection property="items" ofType="com.yxrobot.dto.CustomerOrderDTO$OrderItemInfo">
+            <id column="item_id" property="id"/>
+            <result column="product_id" property="productId"/>
+            <result column="product_name" property="productName"/>
+            <result column="product_model" property="productModel"/>
+            <result column="quantity" property="quantity"/>
+            <result column="unit_price" property="unitPrice"/>
+            <result column="total_price" property="totalPrice"/>
+        </collection>
+    </resultMap>
+
+    <!-- 订单实体结果映射 -->
+    <resultMap id="OrderResultMap" type="com.yxrobot.entity.Order">
+        <id column="id" property="id"/>
+        <result column="order_number" property="orderNumber"/>
+        <result column="order_type" property="orderType" typeHandler="com.yxrobot.handler.OrderTypeTypeHandler"/>
+        <result column="order_status" property="orderStatus" typeHandler="com.yxrobot.handler.OrderStatusTypeHandler"/>
+        <result column="total_amount" property="totalAmount"/>
+        <result column="currency" property="currency"/>
+        <result column="payment_status" property="paymentStatus" typeHandler="com.yxrobot.handler.PaymentStatusTypeHandler"/>
+        <result column="payment_method" property="paymentMethod"/>
+        <result column="order_date" property="orderDate"/>
+        <result column="delivery_date" property="deliveryDate"/>
+        <result column="shipping_address" property="shippingAddress"/>
+        <result column="shipping_fee" property="shippingFee"/>
+        <result column="discount_amount" property="discountAmount"/>
+        <result column="order_notes" property="orderNotes"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+        <result column="is_deleted" property="isDeleted"/>
+    </resultMap>
+
+    <!-- 基础SQL片段 -->
+    <sql id="customerOrderColumns">
+        cor.id, cor.customer_id, cor.order_id, cor.customer_role, cor.relation_notes,
+        cor.created_time, cor.updated_time, cor.status
+    </sql>
+
+    <!-- 客户订单关联DTO查询SQL片段（包含订单信息） -->
+    <sql id="customerOrderDTOColumns">
+        cor.id, cor.customer_role, cor.relation_notes,
+        o.order_number, o.order_type, o.order_status, o.total_amount, o.currency,
+        o.payment_status, o.payment_method, o.order_date, o.delivery_date,
+        o.shipping_address, o.shipping_fee, o.discount_amount, o.order_notes,
+        o.created_at as order_created_at, o.updated_at as order_updated_at
+    </sql>
+
+    <!-- 订单信息SQL片段 -->
+    <sql id="orderColumns">
+        o.id, o.order_number, o.order_type, o.order_status, o.total_amount, o.currency,
+        o.payment_status, o.payment_method, o.order_date, o.delivery_date,
+        o.shipping_address, o.shipping_fee, o.discount_amount, o.order_notes,
+        o.created_at, o.updated_at, o.is_deleted
+    </sql>
+
+    <!-- ==================== 基础CRUD操作 ==================== -->
+
+    <!-- 根据ID查询客户订单关联 -->
+    <select id="selectById" resultMap="CustomerOrderResultMap">
+        SELECT <include refid="customerOrderColumns"/>,
+               <include refid="orderColumns"/>
+        FROM customer_order_relation cor
+        LEFT JOIN orders o ON cor.order_id = o.id AND o.is_deleted = 0
+        WHERE cor.id = #{id} AND cor.status = 1
+    </select>
+
+    <!-- 根据ID查询客户订单关联DTO -->
+    <select id="selectDTOById" resultMap="CustomerOrderDTOResultMap">
+        SELECT <include refid="customerOrderDTOColumns"/>
+        FROM customer_order_relation cor
+        INNER JOIN orders o ON cor.order_id = o.id AND o.is_deleted = 0
+        WHERE cor.id = #{id} AND cor.status = 1
+    </select>
+
+    <!-- 根据客户ID查询订单关联列表 -->
+    <select id="selectByCustomerId" resultMap="CustomerOrderResultMap">
+        SELECT <include refid="customerOrderColumns"/>,
+               <include refid="orderColumns"/>
+        FROM customer_order_relation cor
+        LEFT JOIN orders o ON cor.order_id = o.id AND o.is_deleted = 0
+        WHERE cor.customer_id = #{customerId} AND cor.status = 1
+        ORDER BY cor.created_time DESC
+    </select>
+
+    <!-- 根据客户ID查询订单关联DTO列表 -->
+    <select id="selectDTOByCustomerId" resultMap="CustomerOrderDTOResultMap">
+        SELECT <include refid="customerOrderDTOColumns"/>,
+               oi.id as item_id, oi.product_id, oi.product_name, oi.product_model,
+               oi.quantity, oi.unit_price, oi.total_price
+        FROM customer_order_relation cor
+        INNER JOIN orders o ON cor.order_id = o.id AND o.is_deleted = 0
+        LEFT JOIN order_items oi ON o.id = oi.order_id
+        WHERE cor.customer_id = #{customerId} AND cor.status = 1
+        ORDER BY cor.created_time DESC, oi.id ASC
+    </select>
+
+    <!-- 根据订单ID查询客户关联列表 -->
+    <select id="selectByOrderId" resultMap="CustomerOrderResultMap">
+        SELECT <include refid="customerOrderColumns"/>
+        FROM customer_order_relation cor
+        WHERE cor.order_id = #{orderId} AND cor.status = 1
+        ORDER BY cor.created_time DESC
+    </select>
+
+    <!-- 插入客户订单关联 -->
+    <insert id="insert" parameterType="com.yxrobot.entity.CustomerOrder" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO customer_order_relation (
+            customer_id, order_id, customer_role, relation_notes, created_time, updated_time, status
+        ) VALUES (
+            #{customerId}, #{orderId}, #{customerRole}, #{relationNotes}, NOW(), NOW(), 1
+        )
+    </insert>
+
+    <!-- 更新客户订单关联 -->
+    <update id="updateById" parameterType="com.yxrobot.entity.CustomerOrder">
+        UPDATE customer_order_relation SET
+            customer_role = #{customerRole},
+            relation_notes = #{relationNotes},
+            updated_time = NOW()
+        WHERE id = #{id} AND status = 1
+    </update>
+
+    <!-- 根据ID删除客户订单关联 -->
+    <update id="deleteById">
+        UPDATE customer_order_relation SET status = 0, updated_time = NOW()
+        WHERE id = #{id} AND status = 1
+    </update>
+
+    <!-- 根据客户ID和订单ID删除关联 -->
+    <update id="deleteByCustomerAndOrder">
+        UPDATE customer_order_relation SET status = 0, updated_time = NOW()
+        WHERE customer_id = #{customerId} AND order_id = #{orderId} AND status = 1
+    </update>
+
+    <!-- ==================== 关联查询功能 ==================== -->
+
+    <!-- 查询客户的所有订单 -->
+    <select id="selectOrdersByCustomerId" resultMap="OrderResultMap">
+        SELECT <include refid="orderColumns"/>
+        FROM orders o
+        INNER JOIN customer_order_relation cor ON o.id = cor.order_id
+        WHERE cor.customer_id = #{customerId} AND cor.status = 1 AND o.is_deleted = 0
+        ORDER BY o.order_date DESC
+    </select>
+
+    <!-- 查询客户的购买订单列表 -->
+    <select id="selectPurchaseOrdersByCustomerId" resultMap="CustomerOrderDTOResultMap">
+        SELECT <include refid="customerOrderDTOColumns"/>
+        FROM customer_order_relation cor
+        INNER JOIN orders o ON cor.order_id = o.id AND o.is_deleted = 0
+        WHERE cor.customer_id = #{customerId} AND o.order_type = 'purchase' AND cor.status = 1
+        ORDER BY o.order_date DESC
+    </select>
+
+    <!-- 查询客户的租赁订单列表 -->
+    <select id="selectRentalOrdersByCustomerId" resultMap="CustomerOrderDTOResultMap">
+        SELECT <include refid="customerOrderDTOColumns"/>
+        FROM customer_order_relation cor
+        INNER JOIN orders o ON cor.order_id = o.id AND o.is_deleted = 0
+        WHERE cor.customer_id = #{customerId} AND o.order_type = 'rental' AND cor.status = 1
+        ORDER BY o.order_date DESC
+    </select>
+
+    <!-- 查询客户的已完成订单列表 -->
+    <select id="selectCompletedOrdersByCustomerId" resultMap="CustomerOrderDTOResultMap">
+        SELECT <include refid="customerOrderDTOColumns"/>
+        FROM customer_order_relation cor
+        INNER JOIN orders o ON cor.order_id = o.id AND o.is_deleted = 0
+        WHERE cor.customer_id = #{customerId} AND o.order_status = 'completed' AND cor.status = 1
+        ORDER BY o.order_date DESC
+    </select>
+
+    <!-- ==================== 统计查询功能 ==================== -->
+
+    <!-- 查询客户订单统计信息 -->
+    <select id="selectCustomerOrderStats" resultType="java.util.Map">
+        SELECT 
+            COUNT(*) as total_orders,
+            COUNT(CASE WHEN o.order_type = 'purchase' THEN 1 END) as purchase_orders,
+            COUNT(CASE WHEN o.order_type = 'rental' THEN 1 END) as rental_orders,
+            COUNT(CASE WHEN o.order_status = 'completed' THEN 1 END) as completed_orders,
+            COUNT(CASE WHEN o.order_status = 'pending' THEN 1 END) as pending_orders,
+            COUNT(CASE WHEN o.order_status = 'processing' THEN 1 END) as processing_orders,
+            COUNT(CASE WHEN o.order_status = 'cancelled' THEN 1 END) as cancelled_orders,
+            COALESCE(SUM(o.total_amount), 0) as total_amount,
+            COALESCE(AVG(o.total_amount), 0) as avg_order_value,
+            COALESCE(MAX(o.total_amount), 0) as max_order_value,
+            COALESCE(MIN(o.total_amount), 0) as min_order_value
+        FROM customer_order_relation cor
+        INNER JOIN orders o ON cor.order_id = o.id AND o.is_deleted = 0
+        WHERE cor.customer_id = #{customerId} AND cor.status = 1
+    </select>
+
+    <!-- 查询客户订单数量统计 -->
+    <select id="selectCustomerOrderCount" resultType="java.util.Map">
+        SELECT 
+            COUNT(*) as total,
+            COUNT(CASE WHEN o.order_type = 'purchase' THEN 1 END) as purchase,
+            COUNT(CASE WHEN o.order_type = 'rental' THEN 1 END) as rental
+        FROM customer_order_relation cor
+        INNER JOIN orders o ON cor.order_id = o.id AND o.is_deleted = 0
+        WHERE cor.customer_id = #{customerId} AND cor.status = 1
+    </select>
+
+    <!-- 查询客户订单金额统计 -->
+    <select id="selectCustomerOrderAmountStats" resultType="java.util.Map">
+        SELECT 
+            COALESCE(SUM(o.total_amount), 0) as total_amount,
+            COALESCE(AVG(o.total_amount), 0) as avg_amount,
+            COALESCE(SUM(CASE WHEN o.order_type = 'purchase' THEN o.total_amount ELSE 0 END), 0) as purchase_amount,
+            COALESCE(SUM(CASE WHEN o.order_type = 'rental' THEN o.total_amount ELSE 0 END), 0) as rental_amount,
+            COALESCE(SUM(CASE WHEN o.order_status = 'completed' THEN o.total_amount ELSE 0 END), 0) as completed_amount
+        FROM customer_order_relation cor
+        INNER JOIN orders o ON cor.order_id = o.id AND o.is_deleted = 0
+        WHERE cor.customer_id = #{customerId} AND cor.status = 1
+    </select>
+
+    <!-- 查询订单类型分布统计 -->
+    <select id="selectOrderTypeDistribution" resultType="java.util.Map">
+        SELECT 
+            o.order_type as order_type,
+            COUNT(*) as count,
+            COALESCE(SUM(o.total_amount), 0) as total_amount,
+            ROUND(COUNT(*) * 100.0 / (
+                SELECT COUNT(*) 
+                FROM customer_order_relation cor2 
+                INNER JOIN orders o2 ON cor2.order_id = o2.id AND o2.is_deleted = 0
+                WHERE cor2.customer_id = #{customerId} AND cor2.status = 1
+            ), 2) as percentage
+        FROM customer_order_relation cor
+        INNER JOIN orders o ON cor.order_id = o.id AND o.is_deleted = 0
+        WHERE cor.customer_id = #{customerId} AND cor.status = 1
+        GROUP BY o.order_type
+        ORDER BY count DESC
+    </select>
+
+    <!-- ==================== 数据验证功能 ==================== -->
+
+    <!-- 检查客户订单关联是否存在 -->
+    <select id="existsByCustomerAndOrder" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM customer_order_relation
+        WHERE customer_id = #{customerId} AND order_id = #{orderId} 
+        AND customer_role = #{customerRole} AND status = 1
+    </select>
+
+    <!-- 查询客户订单关联数量 -->
+    <select id="countByCustomerId" resultType="int">
+        SELECT COUNT(*)
+        FROM customer_order_relation
+        WHERE customer_id = #{customerId} AND status = 1
+    </select>
+
+    <!-- 查询订单关联数量 -->
+    <select id="countByOrderId" resultType="int">
+        SELECT COUNT(*)
+        FROM customer_order_relation
+        WHERE order_id = #{orderId} AND status = 1
+    </select>
+
+    <!-- ==================== 订单管理功能 ==================== -->
+
+    <!-- 查询客户最近的订单 -->
+    <select id="selectRecentOrdersByCustomerId" resultMap="CustomerOrderDTOResultMap">
+        SELECT <include refid="customerOrderDTOColumns"/>
+        FROM customer_order_relation cor
+        INNER JOIN orders o ON cor.order_id = o.id AND o.is_deleted = 0
+        WHERE cor.customer_id = #{customerId} AND cor.status = 1
+        ORDER BY o.order_date DESC
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 查询客户的大额订单 -->
+    <select id="selectHighValueOrders" resultMap="CustomerOrderDTOResultMap">
+        SELECT <include refid="customerOrderDTOColumns"/>
+        FROM customer_order_relation cor
+        INNER JOIN orders o ON cor.order_id = o.id AND o.is_deleted = 0
+        WHERE cor.customer_id = #{customerId} AND cor.status = 1
+        AND o.total_amount >= #{minAmount}
+        ORDER BY o.total_amount DESC
+    </select>
+
+    <!-- 查询指定日期范围内的客户订单 -->
+    <select id="selectOrdersByDateRange" resultMap="CustomerOrderDTOResultMap">
+        SELECT <include refid="customerOrderDTOColumns"/>
+        FROM customer_order_relation cor
+        INNER JOIN orders o ON cor.order_id = o.id AND o.is_deleted = 0
+        WHERE cor.customer_id = #{customerId} AND cor.status = 1
+        AND o.order_date BETWEEN #{startDate} AND #{endDate}
+        ORDER BY o.order_date DESC
+    </select>
+
+    <!-- 更新订单关联状态 -->
+    <update id="updateRelationStatus">
+        UPDATE customer_order_relation SET status = #{status}, updated_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 批量更新订单关联状态 -->
+    <update id="batchUpdateRelationStatus">
+        UPDATE customer_order_relation SET status = #{status}, updated_time = NOW()
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <!-- ==================== 高级查询功能 ==================== -->
+
+    <!-- 查询客户的平均订单价值 -->
+    <select id="selectAverageOrderValue" resultType="java.math.BigDecimal">
+        SELECT COALESCE(AVG(o.total_amount), 0)
+        FROM customer_order_relation cor
+        INNER JOIN orders o ON cor.order_id = o.id AND o.is_deleted = 0
+        WHERE cor.customer_id = #{customerId} AND cor.status = 1
+        AND o.order_status = 'completed'
+    </select>
+
+    <!-- 查询客户月度订单统计 -->
+    <select id="selectMonthlyOrderStats" resultType="java.util.Map">
+        SELECT 
+            DATE_FORMAT(o.order_date, '%Y-%m') as month,
+            COUNT(*) as order_count,
+            COALESCE(SUM(o.total_amount), 0) as total_amount,
+            COALESCE(AVG(o.total_amount), 0) as avg_amount
+        FROM customer_order_relation cor
+        INNER JOIN orders o ON cor.order_id = o.id AND o.is_deleted = 0
+        WHERE cor.customer_id = #{customerId} AND cor.status = 1
+        AND o.order_date >= DATE_SUB(CURDATE(), INTERVAL #{months} MONTH)
+        GROUP BY DATE_FORMAT(o.order_date, '%Y-%m')
+        ORDER BY month DESC
+    </select>
+
+</mapper>

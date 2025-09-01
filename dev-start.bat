@@ -4,7 +4,7 @@ echo.
 
 REM 设置环境变量
 set SPRING_PROFILES_ACTIVE=dev
-set MAVEN_OPTS=-Xmx1024m -XX:MaxPermSize=256m
+set MAVEN_OPTS=-Xmx1024m
 
 REM 检查端口是否被占用
 echo 检查端口占用情况...

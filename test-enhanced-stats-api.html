@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Stats API Test</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .test-button {
+            background-color: #409EFF;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        .test-button:hover {
+            background-color: #337ecc;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #409EFF;
+        }
+        .error {
+            border-left-color: #f56c6c;
+            background-color: #fef0f0;
+        }
+        .success {
+            border-left-color: #67c23a;
+            background-color: #f0f9ff;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Enhanced Stats API 测试</h1>
+        <p>点击下面的按钮测试 <code>/api/admin/charity/enhanced-stats</code> API端点：</p>
+        
+        <button class="test-button" onclick="testEnhancedStatsAPI()">测试 Enhanced Stats API</button>
+        <button class="test-button" onclick="testBasicStatsAPI()">测试 Basic Stats API</button>
+        <button class="test-button" onclick="clearResults()">清除结果</button>
+        
+        <div id="result" class="result" style="display: none;">
+            <h3>测试结果：</h3>
+            <pre id="result-content"></pre>
+        </div>
+    </div>
+
+    <script>
+        async function testEnhancedStatsAPI() {
+            showLoading();
+            try {
+                const response = await fetch('http://localhost:8081/api/admin/charity/enhanced-stats', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('成功！Enhanced Stats API 响应：', data, 'success');
+                } else {
+                    showResult('错误！HTTP状态：' + response.status, data, 'error');
+                }
+            } catch (error) {
+                showResult('网络错误：', error.message, 'error');
+            }
+        }
+
+        async function testBasicStatsAPI() {
+            showLoading();
+            try {
+                const response = await fetch('http://localhost:8081/api/admin/charity/stats', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('成功！Basic Stats API 响应：', data, 'success');
+                } else {
+                    showResult('错误！HTTP状态：' + response.status, data, 'error');
+                }
+            } catch (error) {
+                showResult('网络错误：', error.message, 'error');
+            }
+        }
+
+        function showLoading() {
+            const resultDiv = document.getElementById('result');
+            const resultContent = document.getElementById('result-content');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result';
+            resultContent.textContent = '正在请求 API...';
+        }
+
+        function showResult(title, data, type) {
+            const resultDiv = document.getElementById('result');
+            const resultContent = document.getElementById('result-content');
+            
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result ' + type;
+            
+            resultContent.textContent = title + '\n\n' + JSON.stringify(data, null, 2);
+        }
+
+        function clearResults() {
+            document.getElementById('result').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

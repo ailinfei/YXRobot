@@ -67,7 +67,7 @@ const router = createRouter({
           meta: { title: '销售数据' }
         },
         {
-          path: 'business/rental',
+          path: 'business/rental-analytics',
           name: 'BusinessRental',
           component: lazyRoute(() => import('@/views/admin/business/RentalAnalytics.vue')),
           meta: { title: '租赁数据分析' }

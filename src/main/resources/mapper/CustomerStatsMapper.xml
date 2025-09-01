@@ -1,0 +1,429 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yxrobot.mapper.CustomerStatsMapper">
+
+    <!-- 客户统计实体结果映射 -->
+    <resultMap id="CustomerStatsResultMap" type="com.yxrobot.entity.CustomerStats">
+        <id column="id" property="id"/>
+        <result column="stat_date" property="statDate"/>
+        <result column="total_customers" property="totalCustomers"/>
+        <result column="regular_customers" property="regularCustomers"/>
+        <result column="vip_customers" property="vipCustomers"/>
+        <result column="premium_customers" property="premiumCustomers"/>
+        <result column="active_devices" property="activeDevices"/>
+        <result column="total_revenue" property="totalRevenue"/>
+        <result column="new_customers_this_month" property="newCustomersThisMonth"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <!-- 客户统计DTO结果映射 -->
+    <resultMap id="CustomerStatsDTOResultMap" type="com.yxrobot.dto.CustomerStatsDTO">
+        <result column="total" property="total"/>
+        <result column="regular" property="regular"/>
+        <result column="vip" property="vip"/>
+        <result column="premium" property="premium"/>
+        <result column="active_devices" property="activeDevices"/>
+        <result column="total_revenue" property="totalRevenue"/>
+        <result column="new_this_month" property="newThisMonth"/>
+    </resultMap>
+
+    <!-- 基础SQL片段 -->
+    <sql id="customerStatsColumns">
+        cs.id, cs.stat_date, cs.total_customers, cs.regular_customers, cs.vip_customers,
+        cs.premium_customers, cs.active_devices, cs.total_revenue, cs.new_customers_this_month,
+        cs.created_at, cs.updated_at
+    </sql>
+
+    <!-- ==================== 基础CRUD操作 ==================== -->
+
+    <!-- 根据ID查询客户统计 -->
+    <select id="selectById" resultMap="CustomerStatsResultMap">
+        SELECT <include refid="customerStatsColumns"/>
+        FROM customer_stats cs
+        WHERE cs.id = #{id}
+    </select>
+
+    <!-- 根据统计日期查询客户统计 -->
+    <select id="selectByStatDate" resultMap="CustomerStatsResultMap">
+        SELECT <include refid="customerStatsColumns"/>
+        FROM customer_stats cs
+        WHERE cs.stat_date = #{statDate}
+    </select>
+
+    <!-- 查询最新的客户统计数据 -->
+    <select id="selectLatest" resultMap="CustomerStatsResultMap">
+        SELECT <include refid="customerStatsColumns"/>
+        FROM customer_stats cs
+        ORDER BY cs.stat_date DESC
+        LIMIT 1
+    </select>
+
+    <!-- 查询客户统计DTO -->
+    <select id="selectStatsDTO" resultMap="CustomerStatsDTOResultMap">
+        SELECT 
+            total_customers as total,
+            regular_customers as regular,
+            vip_customers as vip,
+            premium_customers as premium,
+            active_devices,
+            total_revenue,
+            new_customers_this_month as new_this_month
+        FROM customer_stats
+        ORDER BY stat_date DESC
+        LIMIT 1
+    </select>
+
+    <!-- 查询指定日期的客户统计DTO -->
+    <select id="selectStatsDTOByDate" resultMap="CustomerStatsDTOResultMap">
+        SELECT 
+            total_customers as total,
+            regular_customers as regular,
+            vip_customers as vip,
+            premium_customers as premium,
+            active_devices,
+            total_revenue,
+            new_customers_this_month as new_this_month
+        FROM customer_stats
+        WHERE stat_date = #{statDate}
+    </select>
+
+    <!-- 查询客户统计列表 -->
+    <select id="selectList" resultMap="CustomerStatsResultMap">
+        SELECT <include refid="customerStatsColumns"/>
+        FROM customer_stats cs
+        WHERE cs.stat_date BETWEEN #{startDate} AND #{endDate}
+        ORDER BY cs.stat_date DESC
+    </select>
+
+    <!-- 插入客户统计 -->
+    <insert id="insert" parameterType="com.yxrobot.entity.CustomerStats" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO customer_stats (
+            stat_date, total_customers, regular_customers, vip_customers, premium_customers,
+            active_devices, total_revenue, new_customers_this_month, created_at, updated_at
+        ) VALUES (
+            #{statDate}, #{totalCustomers}, #{regularCustomers}, #{vipCustomers}, #{premiumCustomers},
+            #{activeDevices}, #{totalRevenue}, #{newCustomersThisMonth}, NOW(), NOW()
+        )
+    </insert>
+
+    <!-- 更新客户统计 -->
+    <update id="updateById" parameterType="com.yxrobot.entity.CustomerStats">
+        UPDATE customer_stats SET
+            stat_date = #{statDate},
+            total_customers = #{totalCustomers},
+            regular_customers = #{regularCustomers},
+            vip_customers = #{vipCustomers},
+            premium_customers = #{premiumCustomers},
+            active_devices = #{activeDevices},
+            total_revenue = #{totalRevenue},
+            new_customers_this_month = #{newCustomersThisMonth},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据统计日期更新客户统计 -->
+    <update id="updateByStatDate" parameterType="com.yxrobot.entity.CustomerStats">
+        UPDATE customer_stats SET
+            total_customers = #{totalCustomers},
+            regular_customers = #{regularCustomers},
+            vip_customers = #{vipCustomers},
+            premium_customers = #{premiumCustomers},
+            active_devices = #{activeDevices},
+            total_revenue = #{totalRevenue},
+            new_customers_this_month = #{newCustomersThisMonth},
+            updated_at = NOW()
+        WHERE stat_date = #{statDate}
+    </update>
+
+    <!-- 删除客户统计 -->
+    <delete id="deleteById">
+        DELETE FROM customer_stats WHERE id = #{id}
+    </delete>
+
+    <!-- 根据统计日期删除客户统计 -->
+    <delete id="deleteByStatDate">
+        DELETE FROM customer_stats WHERE stat_date = #{statDate}
+    </delete>
+
+    <!-- ==================== 实时统计计算 ==================== -->
+
+    <!-- 计算并返回实时客户统计数据 -->
+    <select id="calculateRealTimeStats" resultMap="CustomerStatsDTOResultMap">
+        SELECT 
+            COUNT(*) as total,
+            COUNT(CASE WHEN customer_level = 'regular' THEN 1 END) as regular,
+            COUNT(CASE WHEN customer_level = 'vip' THEN 1 END) as vip,
+            COUNT(CASE WHEN customer_level = 'premium' THEN 1 END) as premium,
+            (SELECT COUNT(DISTINCT d.id) 
+             FROM devices d 
+             INNER JOIN customer_device_relation cdr ON d.id = cdr.device_id 
+             WHERE d.device_status = 'active' AND d.is_deleted = 0 AND cdr.status = 1) as active_devices,
+            COALESCE(SUM(total_spent), 0) as total_revenue,
+            COUNT(CASE WHEN DATE(registered_at) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) THEN 1 END) as new_this_month
+        FROM customers 
+        WHERE is_deleted = 0
+    </select>
+
+    <!-- 计算总客户数 -->
+    <select id="calculateTotalCustomers" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM customers 
+        WHERE is_deleted = 0
+    </select>
+
+    <!-- 计算各等级客户数量 -->
+    <select id="calculateCustomerLevelCounts" resultType="java.util.Map">
+        SELECT 
+            'regular' as level, COUNT(CASE WHEN customer_level = 'regular' THEN 1 END) as count
+        FROM customers WHERE is_deleted = 0
+        UNION ALL
+        SELECT 
+            'vip' as level, COUNT(CASE WHEN customer_level = 'vip' THEN 1 END) as count
+        FROM customers WHERE is_deleted = 0
+        UNION ALL
+        SELECT 
+            'premium' as level, COUNT(CASE WHEN customer_level = 'premium' THEN 1 END) as count
+        FROM customers WHERE is_deleted = 0
+    </select>
+
+    <!-- 计算活跃设备数 -->
+    <select id="calculateActiveDeviceCount" resultType="java.lang.Integer">
+        SELECT COUNT(DISTINCT d.id)
+        FROM devices d 
+        INNER JOIN customer_device_relation cdr ON d.id = cdr.device_id 
+        WHERE d.device_status = 'active' AND d.is_deleted = 0 AND cdr.status = 1
+    </select>
+
+    <!-- 计算总收入 -->
+    <select id="calculateTotalRevenue" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(total_spent), 0)
+        FROM customers 
+        WHERE is_deleted = 0
+    </select>
+
+    <!-- 计算本月新增客户数 -->
+    <select id="calculateNewCustomersThisMonth" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM customers 
+        WHERE is_deleted = 0 
+        AND DATE(registered_at) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+    </select>
+
+    <!-- 计算指定月份新增客户数 -->
+    <select id="calculateNewCustomersByMonth" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM customers 
+        WHERE is_deleted = 0 
+        AND YEAR(registered_at) = #{year}
+        AND MONTH(registered_at) = #{month}
+    </select>
+
+    <!-- ==================== 统计数据生成 ==================== -->
+
+    <!-- 生成指定日期的客户统计数据 -->
+    <insert id="generateStatsForDate">
+        INSERT INTO customer_stats (
+            stat_date, total_customers, regular_customers, vip_customers, premium_customers,
+            active_devices, total_revenue, new_customers_this_month, created_at, updated_at
+        )
+        SELECT 
+            #{statDate} as stat_date,
+            COUNT(*) as total_customers,
+            COUNT(CASE WHEN customer_level = 'regular' THEN 1 END) as regular_customers,
+            COUNT(CASE WHEN customer_level = 'vip' THEN 1 END) as vip_customers,
+            COUNT(CASE WHEN customer_level = 'premium' THEN 1 END) as premium_customers,
+            (SELECT COUNT(DISTINCT d.id) 
+             FROM devices d 
+             INNER JOIN customer_device_relation cdr ON d.id = cdr.device_id 
+             WHERE d.device_status = 'active' AND d.is_deleted = 0 AND cdr.status = 1) as active_devices,
+            COALESCE(SUM(total_spent), 0) as total_revenue,
+            COUNT(CASE WHEN DATE(registered_at) >= DATE_SUB(#{statDate}, INTERVAL 30 DAY) THEN 1 END) as new_customers_this_month,
+            NOW() as created_at,
+            NOW() as updated_at
+        FROM customers 
+        WHERE is_deleted = 0
+        AND created_at <= DATE_ADD(#{statDate}, INTERVAL 1 DAY)
+    </insert>
+
+    <!-- 生成今日客户统计数据 -->
+    <insert id="generateTodayStats">
+        INSERT INTO customer_stats (
+            stat_date, total_customers, regular_customers, vip_customers, premium_customers,
+            active_devices, total_revenue, new_customers_this_month, created_at, updated_at
+        )
+        SELECT 
+            CURDATE() as stat_date,
+            COUNT(*) as total_customers,
+            COUNT(CASE WHEN customer_level = 'regular' THEN 1 END) as regular_customers,
+            COUNT(CASE WHEN customer_level = 'vip' THEN 1 END) as vip_customers,
+            COUNT(CASE WHEN customer_level = 'premium' THEN 1 END) as premium_customers,
+            (SELECT COUNT(DISTINCT d.id) 
+             FROM devices d 
+             INNER JOIN customer_device_relation cdr ON d.id = cdr.device_id 
+             WHERE d.device_status = 'active' AND d.is_deleted = 0 AND cdr.status = 1) as active_devices,
+            COALESCE(SUM(total_spent), 0) as total_revenue,
+            COUNT(CASE WHEN DATE(registered_at) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) THEN 1 END) as new_customers_this_month,
+            NOW() as created_at,
+            NOW() as updated_at
+        FROM customers 
+        WHERE is_deleted = 0
+        ON DUPLICATE KEY UPDATE
+            total_customers = VALUES(total_customers),
+            regular_customers = VALUES(regular_customers),
+            vip_customers = VALUES(vip_customers),
+            premium_customers = VALUES(premium_customers),
+            active_devices = VALUES(active_devices),
+            total_revenue = VALUES(total_revenue),
+            new_customers_this_month = VALUES(new_customers_this_month),
+            updated_at = NOW()
+    </insert>
+
+    <!-- 更新或插入客户统计数据 -->
+    <insert id="upsertStats" parameterType="com.yxrobot.entity.CustomerStats">
+        INSERT INTO customer_stats (
+            stat_date, total_customers, regular_customers, vip_customers, premium_customers,
+            active_devices, total_revenue, new_customers_this_month, created_at, updated_at
+        ) VALUES (
+            #{statDate}, #{totalCustomers}, #{regularCustomers}, #{vipCustomers}, #{premiumCustomers},
+            #{activeDevices}, #{totalRevenue}, #{newCustomersThisMonth}, NOW(), NOW()
+        )
+        ON DUPLICATE KEY UPDATE
+            total_customers = VALUES(total_customers),
+            regular_customers = VALUES(regular_customers),
+            vip_customers = VALUES(vip_customers),
+            premium_customers = VALUES(premium_customers),
+            active_devices = VALUES(active_devices),
+            total_revenue = VALUES(total_revenue),
+            new_customers_this_month = VALUES(new_customers_this_month),
+            updated_at = NOW()
+    </insert>
+
+    <!-- ==================== 趋势分析查询 ==================== -->
+
+    <!-- 查询客户数量趋势（按日） -->
+    <select id="selectCustomerTrendByDay" resultType="java.util.Map">
+        SELECT 
+            stat_date as date,
+            total_customers as total,
+            regular_customers as regular,
+            vip_customers as vip,
+            premium_customers as premium
+        FROM customer_stats
+        WHERE stat_date >= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
+        ORDER BY stat_date ASC
+    </select>
+
+    <!-- 查询客户数量趋势（按月） -->
+    <select id="selectCustomerTrendByMonth" resultType="java.util.Map">
+        SELECT 
+            DATE_FORMAT(stat_date, '%Y-%m') as month,
+            AVG(total_customers) as avg_total,
+            AVG(regular_customers) as avg_regular,
+            AVG(vip_customers) as avg_vip,
+            AVG(premium_customers) as avg_premium,
+            MAX(total_customers) as max_total,
+            MIN(total_customers) as min_total
+        FROM customer_stats
+        WHERE stat_date >= DATE_SUB(CURDATE(), INTERVAL #{months} MONTH)
+        GROUP BY DATE_FORMAT(stat_date, '%Y-%m')
+        ORDER BY month ASC
+    </select>
+
+    <!-- 查询收入趋势 -->
+    <select id="selectRevenueTrend" resultType="java.util.Map">
+        SELECT 
+            DATE_FORMAT(stat_date, '%Y-%m') as month,
+            AVG(total_revenue) as avg_revenue,
+            MAX(total_revenue) as max_revenue,
+            MIN(total_revenue) as min_revenue
+        FROM customer_stats
+        WHERE stat_date >= DATE_SUB(CURDATE(), INTERVAL #{months} MONTH)
+        GROUP BY DATE_FORMAT(stat_date, '%Y-%m')
+        ORDER BY month ASC
+    </select>
+
+    <!-- 查询新增客户趋势 -->
+    <select id="selectNewCustomerTrend" resultType="java.util.Map">
+        SELECT 
+            DATE_FORMAT(stat_date, '%Y-%m') as month,
+            AVG(new_customers_this_month) as avg_new_customers,
+            MAX(new_customers_this_month) as max_new_customers,
+            MIN(new_customers_this_month) as min_new_customers
+        FROM customer_stats
+        WHERE stat_date >= DATE_SUB(CURDATE(), INTERVAL #{months} MONTH)
+        GROUP BY DATE_FORMAT(stat_date, '%Y-%m')
+        ORDER BY month ASC
+    </select>
+
+    <!-- ==================== 数据验证和维护 ==================== -->
+
+    <!-- 检查指定日期的统计数据是否存在 -->
+    <select id="existsByStatDate" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM customer_stats
+        WHERE stat_date = #{statDate}
+    </select>
+
+    <!-- 查询统计数据的日期范围 -->
+    <select id="selectDateRange" resultType="java.util.Map">
+        SELECT 
+            MIN(stat_date) as min_date,
+            MAX(stat_date) as max_date,
+            COUNT(*) as total_records
+        FROM customer_stats
+    </select>
+
+    <!-- 清理过期的统计数据 -->
+    <delete id="cleanupOldStats">
+        DELETE FROM customer_stats 
+        WHERE stat_date &lt; DATE_SUB(CURDATE(), INTERVAL #{keepDays} DAY)
+    </delete>
+
+    <!-- ==================== 缓存支持查询 ==================== -->
+
+    <!-- 查询用于缓存的基础统计数据 -->
+    <select id="selectBasicStatsForCache" resultType="java.util.Map">
+        SELECT 
+            total_customers,
+            regular_customers,
+            vip_customers,
+            premium_customers,
+            active_devices,
+            total_revenue,
+            new_customers_this_month,
+            stat_date
+        FROM customer_stats
+        ORDER BY stat_date DESC
+        LIMIT 1
+    </select>
+
+    <!-- 查询用于缓存的趋势数据 -->
+    <select id="selectTrendDataForCache" resultType="java.util.Map">
+        SELECT 
+            stat_date as date,
+            total_customers as total,
+            regular_customers as regular,
+            vip_customers as vip,
+            premium_customers as premium,
+            total_revenue as revenue
+        FROM customer_stats
+        WHERE stat_date >= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
+        ORDER BY stat_date ASC
+    </select>
+
+    <!-- 查询用于缓存的分布数据 -->
+    <select id="selectDistributionDataForCache" resultType="java.util.Map">
+        SELECT 
+            'level_distribution' as type,
+            JSON_OBJECT(
+                'regular', regular_customers,
+                'vip', vip_customers,
+                'premium', premium_customers
+            ) as data
+        FROM customer_stats
+        ORDER BY stat_date DESC
+        LIMIT 1
+    </select>
+
+</mapper>

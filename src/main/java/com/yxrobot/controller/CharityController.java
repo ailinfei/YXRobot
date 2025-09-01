@@ -22,7 +22,7 @@ import java.util.ArrayList;
  */
 @RestController
 @RequestMapping("/api/admin/charity")
-@CrossOrigin(origins = "*", maxAge = 3600)
+@CrossOrigin(originPatterns = "*", maxAge = 3600)
 public class CharityController {
     
     private static final Logger logger = LoggerFactory.getLogger(CharityController.class);

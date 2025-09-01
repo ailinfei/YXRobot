@@ -15,7 +15,7 @@ import type {
 // 分页参数接口
 interface PaginationParams {
   page?: number
-  pageSize?: number
+  size?: number
   keyword?: string
   status?: string
   type?: string
@@ -26,7 +26,7 @@ interface PaginatedResponse<T> {
   list: T[]
   total: number
   page: number
-  pageSize: number
+  size: number
   totalPages: number
 }
 

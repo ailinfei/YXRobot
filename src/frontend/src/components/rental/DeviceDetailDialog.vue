@@ -47,6 +47,26 @@
             <span class="label">所在地区:</span>
             <span class="value">{{ deviceData.region || '未知' }}</span>
           </div>
+          <div v-if="deviceData.networkType" class="info-item">
+            <span class="label">网络类型:</span>
+            <el-tag :type="getNetworkTagType(deviceData.networkType)" size="small">
+              {{ deviceData.networkType }}
+            </el-tag>
+          </div>
+          <div v-if="deviceData.lastMaintenanceDate" class="info-item">
+            <span class="label">最后维护:</span>
+            <span class="value">{{ deviceData.lastMaintenanceDate }}</span>
+          </div>
+          <div v-if="deviceData.nextMaintenanceDate" class="info-item">
+            <span class="label">下次维护:</span>
+            <span class="value">{{ deviceData.nextMaintenanceDate }}</span>
+          </div>
+          <div v-if="deviceData.predictedFailureRisk !== undefined" class="info-item">
+            <span class="label">故障风险:</span>
+            <span class="value" :class="getRiskClass(deviceData.predictedFailureRisk)">
+              {{ deviceData.predictedFailureRisk }}%
+            </span>
+          </div>
         </div>
       </div>
 
@@ -128,7 +148,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onUnmounted } from 'vue'
 import * as echarts from 'echarts'
-import type { DeviceUtilizationData } from '@/api/rental'
+import type { DeviceUtilizationData, NetworkType } from '@/types/rental'
 
 interface Props {
   modelValue: boolean
@@ -242,6 +262,22 @@ const getSignalColor = (strength: number) => {
   if (strength >= 60) return '#e6a23c'
   if (strength >= 40) return '#f56c6c'
   return '#909399'
+}
+
+const getNetworkTagType = (networkType: string) => {
+  const types: Record<string, any> = {
+    '5G': 'danger',
+    '4G': 'primary',
+    'WiFi': 'success',
+    'Ethernet': 'warning'
+  }
+  return types[networkType] || 'info'
+}
+
+const getRiskClass = (risk: number) => {
+  if (risk >= 80) return 'risk-high'
+  if (risk >= 50) return 'risk-medium'
+  return 'risk-low'
 }
 
 // 初始化利用率趋势图
@@ -394,6 +430,18 @@ onUnmounted(() => {
       .value {
         color: #303133;
         font-weight: 500;
+
+        &.risk-low {
+          color: #67c23a;
+        }
+
+        &.risk-medium {
+          color: #e6a23c;
+        }
+
+        &.risk-high {
+          color: #f56c6c;
+        }
       }
     }
   }

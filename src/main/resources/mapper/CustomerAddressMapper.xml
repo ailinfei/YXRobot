@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yxrobot.mapper.CustomerAddressMapper">
+
+    <!-- 客户地址实体结果映射 -->
+    <resultMap id="CustomerAddressResultMap" type="com.yxrobot.entity.CustomerAddress">
+        <id column="id" property="id"/>
+        <result column="customer_id" property="customerId"/>
+        <result column="country" property="country"/>
+        <result column="province" property="province"/>
+        <result column="city" property="city"/>
+        <result column="district" property="district"/>
+        <result column="detail_address" property="detailAddress"/>
+        <result column="zip_code" property="zipCode"/>
+        <result column="is_default" property="isDefault"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+        <result column="is_deleted" property="isDeleted"/>
+    </resultMap>
+
+    <!-- 客户地址DTO结果映射 -->
+    <resultMap id="CustomerAddressDTOResultMap" type="com.yxrobot.dto.CustomerAddressDTO">
+        <id column="id" property="id"/>
+        <result column="customer_id" property="customerId"/>
+        <result column="country" property="country"/>
+        <result column="province" property="province"/>
+        <result column="city" property="city"/>
+        <result column="district" property="district"/>
+        <result column="detail_address" property="detailAddress"/>
+        <result column="zip_code" property="zipCode"/>
+        <result column="is_default" property="isDefault"/>
+    </resultMap>
+
+    <!-- 基础SQL片段 -->
+    <sql id="customerAddressColumns">
+        ca.id, ca.customer_id, ca.country, ca.province, ca.city, ca.district,
+        ca.detail_address, ca.zip_code, ca.is_default, ca.created_at, ca.updated_at, ca.is_deleted
+    </sql>
+
+    <!-- 客户地址DTO查询SQL片段 -->
+    <sql id="customerAddressDTOColumns">
+        ca.id, ca.customer_id, ca.country, ca.province, ca.city, ca.district,
+        ca.detail_address, ca.zip_code, ca.is_default
+    </sql>
+
+    <!-- ==================== 基础CRUD操作 ==================== -->
+
+    <!-- 根据ID查询客户地址 -->
+    <select id="selectById" resultMap="CustomerAddressResultMap">
+        SELECT <include refid="customerAddressColumns"/>
+        FROM customer_addresses ca
+        WHERE ca.id = #{id} AND ca.is_deleted = 0
+    </select>
+
+    <!-- 根据ID查询客户地址DTO -->
+    <select id="selectDTOById" resultMap="CustomerAddressDTOResultMap">
+        SELECT <include refid="customerAddressDTOColumns"/>
+        FROM customer_addresses ca
+        WHERE ca.id = #{id} AND ca.is_deleted = 0
+    </select>
+
+    <!-- 根据客户ID查询地址列表 -->
+    <select id="selectByCustomerId" resultMap="CustomerAddressResultMap">
+        SELECT <include refid="customerAddressColumns"/>
+        FROM customer_addresses ca
+        WHERE ca.customer_id = #{customerId} AND ca.is_deleted = 0
+        ORDER BY ca.is_default DESC, ca.created_at DESC
+    </select>
+
+    <!-- 根据客户ID查询地址DTO列表 -->
+    <select id="selectDTOByCustomerId" resultMap="CustomerAddressDTOResultMap">
+        SELECT <include refid="customerAddressDTOColumns"/>
+        FROM customer_addresses ca
+        WHERE ca.customer_id = #{customerId} AND ca.is_deleted = 0
+        ORDER BY ca.is_default DESC, ca.created_at DESC
+    </select>
+
+    <!-- 查询客户的默认地址 -->
+    <select id="selectDefaultByCustomerId" resultMap="CustomerAddressResultMap">
+        SELECT <include refid="customerAddressColumns"/>
+        FROM customer_addresses ca
+        WHERE ca.customer_id = #{customerId} AND ca.is_default = 1 AND ca.is_deleted = 0
+        LIMIT 1
+    </select>
+
+    <!-- 查询客户的默认地址DTO -->
+    <select id="selectDefaultDTOByCustomerId" resultMap="CustomerAddressDTOResultMap">
+        SELECT <include refid="customerAddressDTOColumns"/>
+        FROM customer_addresses ca
+        WHERE ca.customer_id = #{customerId} AND ca.is_default = 1 AND ca.is_deleted = 0
+        LIMIT 1
+    </select>
+
+    <!-- 插入客户地址 -->
+    <insert id="insert" parameterType="com.yxrobot.entity.CustomerAddress" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO customer_addresses (
+            customer_id, country, province, city, district, detail_address, zip_code, is_default,
+            created_at, updated_at, is_deleted
+        ) VALUES (
+            #{customerId}, #{country}, #{province}, #{city}, #{district}, #{detailAddress}, #{zipCode}, #{isDefault},
+            NOW(), NOW(), 0
+        )
+    </insert>
+
+    <!-- 更新客户地址 -->
+    <update id="updateById" parameterType="com.yxrobot.entity.CustomerAddress">
+        UPDATE customer_addresses SET
+            country = #{country},
+            province = #{province},
+            city = #{city},
+            district = #{district},
+            detail_address = #{detailAddress},
+            zip_code = #{zipCode},
+            is_default = #{isDefault},
+            updated_at = NOW()
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <!-- 根据ID软删除客户地址 -->
+    <update id="softDeleteById">
+        UPDATE customer_addresses SET is_deleted = 1, updated_at = NOW()
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <!-- 根据客户ID软删除所有地址 -->
+    <update id="softDeleteByCustomerId">
+        UPDATE customer_addresses SET is_deleted = 1, updated_at = NOW()
+        WHERE customer_id = #{customerId} AND is_deleted = 0
+    </update>
+
+    <!-- ==================== 地址管理功能 ==================== -->
+
+    <!-- 设置默认地址 -->
+    <update id="setDefaultAddress">
+        <!-- 先清除该客户的所有默认地址标记 -->
+        UPDATE customer_addresses SET is_default = 0, updated_at = NOW()
+        WHERE customer_id = #{customerId} AND is_deleted = 0;
+        
+        <!-- 再设置新的默认地址 -->
+        UPDATE customer_addresses SET is_default = 1, updated_at = NOW()
+        WHERE id = #{addressId} AND customer_id = #{customerId} AND is_deleted = 0;
+    </update>
+
+    <!-- 清除客户的所有默认地址标记 -->
+    <update id="clearDefaultAddress">
+        UPDATE customer_addresses SET is_default = 0, updated_at = NOW()
+        WHERE customer_id = #{customerId} AND is_deleted = 0
+    </update>
+
+    <!-- 查询客户地址数量 -->
+    <select id="countByCustomerId" resultType="int">
+        SELECT COUNT(*)
+        FROM customer_addresses
+        WHERE customer_id = #{customerId} AND is_deleted = 0
+    </select>
+
+    <!-- ==================== 地区统计功能 ==================== -->
+
+    <!-- 查询省份分布统计 -->
+    <select id="selectProvinceDistribution" resultType="java.util.Map">
+        SELECT 
+            province,
+            COUNT(DISTINCT customer_id) as customer_count,
+            COUNT(*) as address_count
+        FROM customer_addresses 
+        WHERE is_deleted = 0
+        GROUP BY province
+        ORDER BY customer_count DESC
+    </select>
+
+    <!-- 查询城市分布统计 -->
+    <select id="selectCityDistribution" resultType="java.util.Map">
+        SELECT 
+            city,
+            COUNT(DISTINCT customer_id) as customer_count,
+            COUNT(*) as address_count
+        FROM customer_addresses 
+        WHERE is_deleted = 0
+        <if test="province != null and province != ''">
+            AND province = #{province}
+        </if>
+        GROUP BY city
+        ORDER BY customer_count DESC
+    </select>
+
+    <!-- 查询地区客户数量统计 -->
+    <select id="selectRegionCustomerCount" resultType="java.util.Map">
+        SELECT 
+            CONCAT(province, '-', city) as region,
+            province,
+            city,
+            COUNT(DISTINCT customer_id) as customer_count
+        FROM customer_addresses 
+        WHERE is_deleted = 0
+        GROUP BY province, city
+        ORDER BY customer_count DESC
+    </select>
+
+    <!-- ==================== 数据验证功能 ==================== -->
+
+    <!-- 检查客户是否已有默认地址 -->
+    <select id="hasDefaultAddress" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM customer_addresses
+        WHERE customer_id = #{customerId} AND is_default = 1 AND is_deleted = 0
+    </select>
+
+    <!-- 检查地址是否属于指定客户 -->
+    <select id="belongsToCustomer" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM customer_addresses
+        WHERE id = #{addressId} AND customer_id = #{customerId} AND is_deleted = 0
+    </select>
+
+</mapper>

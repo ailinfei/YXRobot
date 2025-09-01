@@ -244,7 +244,7 @@
             :list-type="currentMediaType === 'image' ? 'picture-card' : 'text'"
             :max-size="currentMediaType === 'image' ? 10 : 100"
             :upload-text="`选择${currentMediaType === 'image' ? '图片' : '视频'}`"
-            action="/api/v1/upload/product/media"
+            action="/api/v1/upload/product"
             :data="{ mediaType: currentMediaType }"
             :auto-upload="true"
             @success="handleMediaUploadSuccess"

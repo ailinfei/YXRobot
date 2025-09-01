@@ -60,7 +60,7 @@ class PermissionService {
     
     // 业务管理
     { path: '/admin/business/sales', permissions: ['business:sales:manage', 'business:manage', 'admin:all'] },
-    { path: '/admin/business/rental', permissions: ['business:rental:manage', 'business:manage', 'admin:all'] },
+    { path: '/admin/business/rental-analytics', permissions: ['business:rental:manage', 'business:manage', 'admin:all'] },
     { path: '/admin/business/customers', permissions: ['business:customer:manage', 'business:manage', 'admin:all'] },
     
     // 系统管理

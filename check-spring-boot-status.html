@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spring Boot应用状态检查</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status-card {
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+            border-left: 4px solid #ddd;
+        }
+        .status-running {
+            background: #f0f9ff;
+            border-left-color: #67c23a;
+        }
+        .status-stopped {
+            background: #fef0f0;
+            border-left-color: #f56c6c;
+        }
+        .status-checking {
+            background: #fdf6ec;
+            border-left-color: #e6a23c;
+        }
+        .action-button {
+            background-color: #409EFF;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 10px 10px 0;
+        }
+        .action-button:hover {
+            background-color: #337ecc;
+        }
+        .success-button {
+            background-color: #67c23a;
+        }
+        .warning-button {
+            background-color: #e6a23c;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Spring Boot应用状态检查</h1>
+        
+        <div id="app-status" class="status-card status-checking">
+            <h3>应用状态: <span id="status-text">检查中...</span></h3>
+            <p id="status-details">正在检查Spring Boot应用是否运行在端口8081...</p>
+        </div>
+
+        <div class="status-card">
+            <h3>🚀 应用管理操作</h3>
+            <button class="action-button" onclick="checkApplicationStatus()">检查应用状态</button>
+            <button class="action-button success-button" onclick="startApplication()">启动应用</button>
+            <button class="action-button warning-button" onclick="testSalesAPI()">测试销售API</button>
+        </div>
+
+        <div id="api-test-results" class="status-card" style="display: none;">
+            <h3>📊 API测试结果</h3>
+            <pre id="api-results"></pre>
+        </div>
+
+        <div class="status-card">
+            <h3>📝 启动应用指令</h3>
+            <p>如果应用未运行，请在命令行中执行以下命令：</p>
+            <pre>cd "E:\YXRobot\workspace\projects\YXRobot"
+mvn -f "E:\YXRobot\workspace\projects\YXRobot\pom.xml" spring-boot:run "-Dspring-boot.run.profiles=dev"</pre>
+            <p><strong>或者使用项目启动脚本：</strong></p>
+            <pre>cd "E:\YXRobot\workspace\projects\YXRobot"
+dev-start.bat</pre>
+        </div>
+
+        <div class="status-card">
+            <h3>🔗 相关链接</h3>
+            <p>
+                <a href="http://localhost:8081" target="_blank">应用首页</a> |
+                <a href="http://localhost:8081/admin/business/sales" target="_blank">销售数据页面</a> |
+                <a href="file:///e:/YXRobot/workspace/projects/YXRobot/fix-sales-data-problem.html" target="_blank">数据修复工具</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        let statusCheckInterval;
+
+        // 检查应用状态
+        async function checkApplicationStatus() {
+            updateStatus('checking', '检查中...', '正在检查Spring Boot应用状态...');
+            
+            try {
+                // 尝试访问应用根路径
+                const response = await fetch('http://localhost:8081/', {
+                    method: 'GET',
+                    timeout: 5000,
+                    headers: {
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+                    }
+                });
+                
+                if (response.status === 200 || response.status === 404) {
+                    // 200表示正常，404表示应用运行但路径不存在（也是正常的）
+                    updateStatus('running', '运行中 ✅', 
+                        `Spring Boot应用正在端口8081上运行\n` +
+                        `响应状态: ${response.status}\n` +
+                        `应用地址: http://localhost:8081\n` +
+                        `销售页面: http://localhost:8081/admin/business/sales`);
+                    
+                    // 自动测试销售API
+                    setTimeout(testSalesAPI, 1000);
+                    
+                    return true;
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                updateStatus('stopped', '未运行 ❌', 
+                    `Spring Boot应用未运行或无法访问\n` +
+                    `错误信息: ${error.message}\n` +
+                    `请使用下方的启动命令启动应用`);
+                return false;
+            }
+        }
+
+        // 启动应用（提示用户）
+        function startApplication() {
+            updateStatus('checking', '准备启动...', 
+                '请在命令行中执行启动命令\n' +
+                '启动完成后点击"检查应用状态"按钮验证');
+            
+            // 30秒后自动检查
+            setTimeout(() => {
+                checkApplicationStatus();
+            }, 30000);
+        }
+
+        // 测试销售API
+        async function testSalesAPI() {
+            const resultsDiv = document.getElementById('api-test-results');
+            const resultsContent = document.getElementById('api-results');
+            
+            resultsDiv.style.display = 'block';
+            resultsContent.textContent = '正在测试销售API...';
+            
+            let results = '📊 销售API测试结果:\n\n';
+            
+            // 测试销售统计API
+            try {
+                const statsResponse = await fetch('http://localhost:8081/api/sales/stats?startDate=2025-07-30&endDate=2025-08-29');
+                const statsData = await statsResponse.json();
+                
+                if (statsResponse.ok) {
+                    results += '✅ 销售统计API: 正常\n';
+                    results += `   总销售额: ¥${statsData.data.totalSalesAmount}\n`;
+                    results += `   订单总数: ${statsData.data.totalOrders}\n`;
+                } else {
+                    results += '❌ 销售统计API: 失败\n';
+                    results += `   错误: ${statsData.message || '未知错误'}\n`;
+                }
+            } catch (error) {
+                results += '❌ 销售统计API: 连接失败\n';
+                results += `   错误: ${error.message}\n`;
+            }
+            
+            results += '\n';
+            
+            // 测试销售记录API
+            try {
+                const recordsResponse = await fetch('http://localhost:8081/api/sales/records?page=1&pageSize=5');
+                const recordsData = await recordsResponse.json();
+                
+                if (recordsResponse.ok) {
+                    results += '✅ 销售记录API: 正常\n';
+                    results += `   记录总数: ${recordsData.data.total}\n`;
+                } else {
+                    results += '❌ 销售记录API: 失败\n';
+                    results += `   错误: ${recordsData.message || '未知错误'}\n`;
+                }
+            } catch (error) {
+                results += '❌ 销售记录API: 连接失败\n';
+                results += `   错误: ${error.message}\n`;
+            }
+            
+            results += '\n';
+            
+            // 测试图表API
+            try {
+                const chartsResponse = await fetch('http://localhost:8081/api/sales/charts/trends?groupBy=day');
+                const chartsData = await chartsResponse.json();
+                
+                if (chartsResponse.ok) {
+                    results += '✅ 图表数据API: 正常\n';
+                    results += `   数据类别数: ${chartsData.data.categories?.length || 0}\n`;
+                } else {
+                    results += '❌ 图表数据API: 失败\n';
+                    results += `   错误: ${chartsData.message || '未知错误'}\n`;
+                }
+            } catch (error) {
+                results += '❌ 图表数据API: 连接失败\n';
+                results += `   错误: ${error.message}\n`;
+            }
+            
+            results += '\n💡 如果API测试失败，请检查数据库是否包含销售数据\n';
+            results += '🔧 可以使用数据修复工具创建测试数据';
+            
+            resultsContent.textContent = results;
+        }
+
+        // 更新状态显示
+        function updateStatus(status, statusText, details) {
+            const statusCard = document.getElementById('app-status');
+            const statusTextElement = document.getElementById('status-text');
+            const statusDetailsElement = document.getElementById('status-details');
+            
+            // 移除所有状态类
+            statusCard.classList.remove('status-running', 'status-stopped', 'status-checking');
+            
+            // 添加当前状态类
+            statusCard.classList.add(`status-${status}`);
+            
+            statusTextElement.textContent = statusText;
+            statusDetailsElement.textContent = details;
+        }
+
+        // 页面加载时自动检查
+        window.onload = function() {
+            setTimeout(checkApplicationStatus, 1000);
+            
+            // 每30秒自动检查一次
+            statusCheckInterval = setInterval(checkApplicationStatus, 30000);
+        };
+
+        // 页面关闭时清理定时器
+        window.onbeforeunload = function() {
+            if (statusCheckInterval) {
+                clearInterval(statusCheckInterval);
+            }
+        };
+    </script>
+</body>
+</html>

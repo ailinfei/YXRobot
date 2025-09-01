@@ -110,8 +110,8 @@ export const mainNavigationConfig = [
                 permissions: ['sales:view']
             },
             {
-                path: '/admin/business/rental',
-                title: '租赁数据',
+                path: '/admin/business/rental-analytics',
+                title: '租赁数据分析',
                 icon: Monitor,
                 permissions: ['rental:view']
             },
@@ -300,6 +300,32 @@ export const breadcrumbConfig: {
             { title: '官网管理', path: '/admin/content' },
             { title: '新闻管理', path: '/admin/content/news' },
             { title: '统计分析', path: '/admin/content/news/stats' }
+        ],
+        '/admin/business/rental-analytics': [
+            { title: '控制台', path: '/admin/dashboard' },
+            { title: '业务管理', path: '/admin/business' },
+            { title: '租赁数据分析', path: '/admin/business/rental-analytics' }
+        ],
+        '/admin/business/customers': [
+            { title: '控制台', path: '/admin/dashboard' },
+            { title: '业务管理', path: '/admin/business' },
+            { title: '客户管理', path: '/admin/business/customers' }
+        ],
+        '/admin/business/customers/:id': [
+            { title: '控制台', path: '/admin/dashboard' },
+            { title: '业务管理', path: '/admin/business' },
+            { title: '客户管理', path: '/admin/business/customers' },
+            { title: '客户详情', path: '' }
+        ],
+        '/admin/business/sales': [
+            { title: '控制台', path: '/admin/dashboard' },
+            { title: '业务管理', path: '/admin/business' },
+            { title: '销售数据', path: '/admin/business/sales' }
+        ],
+        '/admin/business/orders': [
+            { title: '控制台', path: '/admin/dashboard' },
+            { title: '业务管理', path: '/admin/business' },
+            { title: '订单管理', path: '/admin/business/orders' }
         ]
     },
 

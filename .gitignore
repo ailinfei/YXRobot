@@ -120,3 +120,67 @@ pids
 test-results/
 playwright-report/
 playwright/.cache/
+
+# Java
+*.class
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+target/
+.classpath
+.project
+.settings/
+*.iml
+*.ipr
+*.iws
+
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# Spring Boot
+spring-boot-*.jar
+
+# 排除工具文件夹（这些不应该在项目代码中）
+# 如果您的项目根目录包含这些，请移动到项目外部
+/jdk*/
+/tomcat*/
+/mysql*/
+/ant/
+
+# 数据库
+*.db
+*.sqlite
+*.sqlite3
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 临时文件
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# 上传文件
+uploads/
+!uploads/.gitkeep

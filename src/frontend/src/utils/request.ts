@@ -90,7 +90,7 @@ const createAxiosInstance = (): AxiosInstance => {
         return Promise.reject(error)
       }
 
-      return data
+      return response
     },
     (error: AxiosError) => {
       // 处理HTTP错误
@@ -210,7 +210,7 @@ export function clearCache(pattern?: string) {
  */
 async function makeRequest<T = any>(
   config: RequestConfig
-): Promise<ApiResponse<T>> {
+): Promise<T> {
   const {
     showLoading = false,
     showError = true,

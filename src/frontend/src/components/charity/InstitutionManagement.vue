@@ -372,12 +372,10 @@ const loadInstitutions = async () => {
   try {
     const params = {
       page: pagination.page,
-      pageSize: pagination.pageSize,
+      size: pagination.pageSize,
       keyword: searchForm.keyword,
       type: searchForm.type,
-      status: searchForm.status,
-      sortBy: sortData.prop,
-      sortOrder: sortData.order
+      status: searchForm.status
     }
 
     const response = await CharityAPI.getCharityInstitutions(params)

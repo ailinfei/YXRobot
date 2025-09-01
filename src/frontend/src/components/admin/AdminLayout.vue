@@ -13,7 +13,7 @@
       
       <div class="sidebar-menu">
         <template v-for="item in menuItems" :key="item.path">
-          <!-- 有子菜单的项目 1111-->
+          <!-- 有子菜单的项目-->
           <div v-if="item.children" class="menu-group">
             <div 
               class="menu-item parent-item"
@@ -217,7 +217,7 @@ const originalMenuItems = [
     category: 'main',
     children: [
       { path: '/admin/business/sales', title: '销售数据', icon: DataAnalysis },
-      { path: '/admin/business/rental', title: '租赁数据', icon: Monitor },
+      { path: '/admin/business/rental-analytics', title: '租赁数据分析', icon: Monitor },
       { path: '/admin/business/customers', title: '客户管理', icon: User },
       { path: '/admin/business/orders', title: '订单管理', icon: Document }
     ]
