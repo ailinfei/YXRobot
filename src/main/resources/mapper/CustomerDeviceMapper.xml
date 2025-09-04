@@ -49,7 +49,7 @@
         <result column="daily_rental_fee" property="dailyRentalFee"/>
         <result column="purchase_price" property="purchasePrice"/>
         <!-- 使用统计信息（可以通过额外查询填充） -->
-        <association property="usageStats" javaType="com.yxrobot.dto.CustomerDeviceDTO$UsageStatsInfo">
+        <association property="usageStats" javaType="com.yxrobot.dto.CustomerDeviceDTO$DeviceUsageStatsDTO">
             <result column="total_usage_hours" property="totalUsageHours"/>
             <result column="daily_average_usage" property="dailyAverageUsage"/>
             <result column="last_used_at" property="lastUsedAt"/>

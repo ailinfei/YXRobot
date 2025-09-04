@@ -5,436 +5,397 @@ import org.springframework.context.annotation.Configuration;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 验证配置类
- * 管理客户数据验证的各种配置参数
+ * 用于配置订单数据验证的各种规则和参数
  */
 @Configuration
-@ConfigurationProperties(prefix = "yxrobot.validation.customer")
+@ConfigurationProperties(prefix = "order.validation")
 public class ValidationConfig {
     
-    // 字段长度限制
-    private FieldLimits fieldLimits = new FieldLimits();
+    /**
+     * 订单号验证配置
+     */
+    private OrderNumberConfig orderNumber = new OrderNumberConfig();
     
-    // 业务规则配置
-    private BusinessRules businessRules = new BusinessRules();
+    /**
+     * 金额验证配置
+     */
+    private AmountConfig amount = new AmountConfig();
     
-    // 验证开关
-    private ValidationSwitches switches = new ValidationSwitches();
+    /**
+     * 客户信息验证配置
+     */
+    private CustomerConfig customer = new CustomerConfig();
     
-    // 敏感词配置
-    private SensitiveWords sensitiveWords = new SensitiveWords();
+    /**
+     * 产品信息验证配置
+     */
+    private ProductConfig product = new ProductConfig();
     
-    // 电话号码配置
-    private PhoneConfig phoneConfig = new PhoneConfig();
+    /**
+     * 租赁订单验证配置
+     */
+    private RentalConfig rental = new RentalConfig();
     
-    // 邮箱配置
-    private EmailConfig emailConfig = new EmailConfig();
+    /**
+     * 业务规则验证配置
+     */
+    private BusinessRuleConfig businessRule = new BusinessRuleConfig();
     
-    public FieldLimits getFieldLimits() {
-        return fieldLimits;
+    // Getter和Setter方法
+    public OrderNumberConfig getOrderNumber() {
+        return orderNumber;
     }
     
-    public void setFieldLimits(FieldLimits fieldLimits) {
-        this.fieldLimits = fieldLimits;
+    public void setOrderNumber(OrderNumberConfig orderNumber) {
+        this.orderNumber = orderNumber;
     }
     
-    public BusinessRules getBusinessRules() {
-        return businessRules;
+    public AmountConfig getAmount() {
+        return amount;
     }
     
-    public void setBusinessRules(BusinessRules businessRules) {
-        this.businessRules = businessRules;
+    public void setAmount(AmountConfig amount) {
+        this.amount = amount;
     }
     
-    public ValidationSwitches getSwitches() {
-        return switches;
+    public CustomerConfig getCustomer() {
+        return customer;
     }
     
-    public void setSwitches(ValidationSwitches switches) {
-        this.switches = switches;
+    public void setCustomer(CustomerConfig customer) {
+        this.customer = customer;
     }
     
-    public SensitiveWords getSensitiveWords() {
-        return sensitiveWords;
+    public ProductConfig getProduct() {
+        return product;
     }
     
-    public void setSensitiveWords(SensitiveWords sensitiveWords) {
-        this.sensitiveWords = sensitiveWords;
+    public void setProduct(ProductConfig product) {
+        this.product = product;
     }
     
-    public PhoneConfig getPhoneConfig() {
-        return phoneConfig;
+    public RentalConfig getRental() {
+        return rental;
     }
     
-    public void setPhoneConfig(PhoneConfig phoneConfig) {
-        this.phoneConfig = phoneConfig;
+    public void setRental(RentalConfig rental) {
+        this.rental = rental;
     }
     
-    public EmailConfig getEmailConfig() {
-        return emailConfig;
+    public BusinessRuleConfig getBusinessRule() {
+        return businessRule;
     }
     
-    public void setEmailConfig(EmailConfig emailConfig) {
-        this.emailConfig = emailConfig;
+    public void setBusinessRule(BusinessRuleConfig businessRule) {
+        this.businessRule = businessRule;
     }
     
     /**
-     * 字段长度限制配置
+     * 订单号验证配置
      */
-    public static class FieldLimits {
-        private int minNameLength = 2;
-        private int maxNameLength = 50;
-        private int maxCompanyLength = 100;
-        private int maxNotesLength = 500;
-        private int maxTagsCount = 10;
-        private int maxTagLength = 20;
-        private int maxEmailLength = 100;
-        private int maxAddressLength = 200;
-        private int maxKeywordLength = 100;
+    public static class OrderNumberConfig {
+        private String pattern = "^[A-Z]{3}\\d{10}$";
+        private int minLength = 13;
+        private int maxLength = 20;
+        private List<String> allowedPrefixes = List.of("ORD", "SAL", "REN");
         
-        // Getters and Setters
-        public int getMinNameLength() {
-            return minNameLength;
+        public String getPattern() {
+            return pattern;
         }
         
-        public void setMinNameLength(int minNameLength) {
-            this.minNameLength = minNameLength;
+        public void setPattern(String pattern) {
+            this.pattern = pattern;
         }
         
-        public int getMaxNameLength() {
-            return maxNameLength;
+        public int getMinLength() {
+            return minLength;
         }
         
-        public void setMaxNameLength(int maxNameLength) {
-            this.maxNameLength = maxNameLength;
+        public void setMinLength(int minLength) {
+            this.minLength = minLength;
         }
         
-        public int getMaxCompanyLength() {
-            return maxCompanyLength;
+        public int getMaxLength() {
+            return maxLength;
         }
         
-        public void setMaxCompanyLength(int maxCompanyLength) {
-            this.maxCompanyLength = maxCompanyLength;
+        public void setMaxLength(int maxLength) {
+            this.maxLength = maxLength;
         }
         
-        public int getMaxNotesLength() {
-            return maxNotesLength;
+        public List<String> getAllowedPrefixes() {
+            return allowedPrefixes;
         }
         
-        public void setMaxNotesLength(int maxNotesLength) {
-            this.maxNotesLength = maxNotesLength;
-        }
-        
-        public int getMaxTagsCount() {
-            return maxTagsCount;
-        }
-        
-        public void setMaxTagsCount(int maxTagsCount) {
-            this.maxTagsCount = maxTagsCount;
-        }
-        
-        public int getMaxTagLength() {
-            return maxTagLength;
-        }
-        
-        public void setMaxTagLength(int maxTagLength) {
-            this.maxTagLength = maxTagLength;
-        }
-        
-        public int getMaxEmailLength() {
-            return maxEmailLength;
-        }
-        
-        public void setMaxEmailLength(int maxEmailLength) {
-            this.maxEmailLength = maxEmailLength;
-        }
-        
-        public int getMaxAddressLength() {
-            return maxAddressLength;
-        }
-        
-        public void setMaxAddressLength(int maxAddressLength) {
-            this.maxAddressLength = maxAddressLength;
-        }
-        
-        public int getMaxKeywordLength() {
-            return maxKeywordLength;
-        }
-        
-        public void setMaxKeywordLength(int maxKeywordLength) {
-            this.maxKeywordLength = maxKeywordLength;
+        public void setAllowedPrefixes(List<String> allowedPrefixes) {
+            this.allowedPrefixes = allowedPrefixes;
         }
     }
     
     /**
-     * 业务规则配置
+     * 金额验证配置
      */
-    public static class BusinessRules {
-        private BigDecimal vipThreshold = new BigDecimal("10000");
-        private BigDecimal premiumThreshold = new BigDecimal("50000");
-        private BigDecimal maxCustomerValue = new BigDecimal("10");
-        private BigDecimal minCustomerValue = new BigDecimal("0");
-        private int inactiveThresholdDays = 90;
-        private int activeThresholdDays = 30;
-        private int maxPageSize = 100;
-        private int defaultPageSize = 20;
+    public static class AmountConfig {
+        private BigDecimal minAmount = new BigDecimal("0.01");
+        private BigDecimal maxAmount = new BigDecimal("999999.99");
+        private int decimalPlaces = 2;
+        private boolean allowZero = false;
+        private boolean allowNegative = false;
         
-        // Getters and Setters
-        public BigDecimal getVipThreshold() {
-            return vipThreshold;
+        public BigDecimal getMinAmount() {
+            return minAmount;
         }
         
-        public void setVipThreshold(BigDecimal vipThreshold) {
-            this.vipThreshold = vipThreshold;
+        public void setMinAmount(BigDecimal minAmount) {
+            this.minAmount = minAmount;
         }
         
-        public BigDecimal getPremiumThreshold() {
-            return premiumThreshold;
+        public BigDecimal getMaxAmount() {
+            return maxAmount;
         }
         
-        public void setPremiumThreshold(BigDecimal premiumThreshold) {
-            this.premiumThreshold = premiumThreshold;
+        public void setMaxAmount(BigDecimal maxAmount) {
+            this.maxAmount = maxAmount;
         }
         
-        public BigDecimal getMaxCustomerValue() {
-            return maxCustomerValue;
+        public int getDecimalPlaces() {
+            return decimalPlaces;
         }
         
-        public void setMaxCustomerValue(BigDecimal maxCustomerValue) {
-            this.maxCustomerValue = maxCustomerValue;
+        public void setDecimalPlaces(int decimalPlaces) {
+            this.decimalPlaces = decimalPlaces;
         }
         
-        public BigDecimal getMinCustomerValue() {
-            return minCustomerValue;
+        public boolean isAllowZero() {
+            return allowZero;
         }
         
-        public void setMinCustomerValue(BigDecimal minCustomerValue) {
-            this.minCustomerValue = minCustomerValue;
+        public void setAllowZero(boolean allowZero) {
+            this.allowZero = allowZero;
         }
         
-        public int getInactiveThresholdDays() {
-            return inactiveThresholdDays;
+        public boolean isAllowNegative() {
+            return allowNegative;
         }
         
-        public void setInactiveThresholdDays(int inactiveThresholdDays) {
-            this.inactiveThresholdDays = inactiveThresholdDays;
-        }
-        
-        public int getActiveThresholdDays() {
-            return activeThresholdDays;
-        }
-        
-        public void setActiveThresholdDays(int activeThresholdDays) {
-            this.activeThresholdDays = activeThresholdDays;
-        }
-        
-        public int getMaxPageSize() {
-            return maxPageSize;
-        }
-        
-        public void setMaxPageSize(int maxPageSize) {
-            this.maxPageSize = maxPageSize;
-        }
-        
-        public int getDefaultPageSize() {
-            return defaultPageSize;
-        }
-        
-        public void setDefaultPageSize(int defaultPageSize) {
-            this.defaultPageSize = defaultPageSize;
+        public void setAllowNegative(boolean allowNegative) {
+            this.allowNegative = allowNegative;
         }
     }
     
     /**
-     * 验证开关配置
+     * 客户信息验证配置
      */
-    public static class ValidationSwitches {
-        private boolean enableStrictValidation = true;
-        private boolean enableSensitiveWordCheck = true;
-        private boolean enablePhoneCarrierCheck = true;
-        private boolean enableEmailProviderCheck = true;
-        private boolean enableTemporaryEmailCheck = true;
-        private boolean enableDataIntegrityCheck = true;
-        private boolean enableBusinessRuleCheck = true;
-        private boolean enableUniquenessCheck = true;
+    public static class CustomerConfig {
+        private String phonePattern = "^1[3-9]\\d{9}$";
+        private String emailPattern = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
+        private int nameMinLength = 2;
+        private int nameMaxLength = 50;
+        private int addressMaxLength = 200;
         
-        // Getters and Setters
-        public boolean isEnableStrictValidation() {
-            return enableStrictValidation;
+        public String getPhonePattern() {
+            return phonePattern;
         }
         
-        public void setEnableStrictValidation(boolean enableStrictValidation) {
-            this.enableStrictValidation = enableStrictValidation;
+        public void setPhonePattern(String phonePattern) {
+            this.phonePattern = phonePattern;
         }
         
-        public boolean isEnableSensitiveWordCheck() {
-            return enableSensitiveWordCheck;
+        public String getEmailPattern() {
+            return emailPattern;
         }
         
-        public void setEnableSensitiveWordCheck(boolean enableSensitiveWordCheck) {
-            this.enableSensitiveWordCheck = enableSensitiveWordCheck;
+        public void setEmailPattern(String emailPattern) {
+            this.emailPattern = emailPattern;
         }
         
-        public boolean isEnablePhoneCarrierCheck() {
-            return enablePhoneCarrierCheck;
+        public int getNameMinLength() {
+            return nameMinLength;
         }
         
-        public void setEnablePhoneCarrierCheck(boolean enablePhoneCarrierCheck) {
-            this.enablePhoneCarrierCheck = enablePhoneCarrierCheck;
+        public void setNameMinLength(int nameMinLength) {
+            this.nameMinLength = nameMinLength;
         }
         
-        public boolean isEnableEmailProviderCheck() {
-            return enableEmailProviderCheck;
+        public int getNameMaxLength() {
+            return nameMaxLength;
         }
         
-        public void setEnableEmailProviderCheck(boolean enableEmailProviderCheck) {
-            this.enableEmailProviderCheck = enableEmailProviderCheck;
+        public void setNameMaxLength(int nameMaxLength) {
+            this.nameMaxLength = nameMaxLength;
         }
         
-        public boolean isEnableTemporaryEmailCheck() {
-            return enableTemporaryEmailCheck;
+        public int getAddressMaxLength() {
+            return addressMaxLength;
         }
         
-        public void setEnableTemporaryEmailCheck(boolean enableTemporaryEmailCheck) {
-            this.enableTemporaryEmailCheck = enableTemporaryEmailCheck;
-        }
-        
-        public boolean isEnableDataIntegrityCheck() {
-            return enableDataIntegrityCheck;
-        }
-        
-        public void setEnableDataIntegrityCheck(boolean enableDataIntegrityCheck) {
-            this.enableDataIntegrityCheck = enableDataIntegrityCheck;
-        }
-        
-        public boolean isEnableBusinessRuleCheck() {
-            return enableBusinessRuleCheck;
-        }
-        
-        public void setEnableBusinessRuleCheck(boolean enableBusinessRuleCheck) {
-            this.enableBusinessRuleCheck = enableBusinessRuleCheck;
-        }
-        
-        public boolean isEnableUniquenessCheck() {
-            return enableUniquenessCheck;
-        }
-        
-        public void setEnableUniquenessCheck(boolean enableUniquenessCheck) {
-            this.enableUniquenessCheck = enableUniquenessCheck;
+        public void setAddressMaxLength(int addressMaxLength) {
+            this.addressMaxLength = addressMaxLength;
         }
     }
     
     /**
-     * 敏感词配置
+     * 产品信息验证配置
      */
-    public static class SensitiveWords {
-        private List<String> words = List.of("测试", "admin", "test", "fuck", "shit");
-        private boolean caseSensitive = false;
+    public static class ProductConfig {
+        private int nameMaxLength = 100;
+        private int maxQuantity = 9999;
+        private int minQuantity = 1;
+        private boolean checkStock = true;
+        private boolean checkProductStatus = true;
         
-        public List<String> getWords() {
-            return words;
+        public int getNameMaxLength() {
+            return nameMaxLength;
         }
         
-        public void setWords(List<String> words) {
-            this.words = words;
+        public void setNameMaxLength(int nameMaxLength) {
+            this.nameMaxLength = nameMaxLength;
         }
         
-        public boolean isCaseSensitive() {
-            return caseSensitive;
+        public int getMaxQuantity() {
+            return maxQuantity;
         }
         
-        public void setCaseSensitive(boolean caseSensitive) {
-            this.caseSensitive = caseSensitive;
+        public void setMaxQuantity(int maxQuantity) {
+            this.maxQuantity = maxQuantity;
+        }
+        
+        public int getMinQuantity() {
+            return minQuantity;
+        }
+        
+        public void setMinQuantity(int minQuantity) {
+            this.minQuantity = minQuantity;
+        }
+        
+        public boolean isCheckStock() {
+            return checkStock;
+        }
+        
+        public void setCheckStock(boolean checkStock) {
+            this.checkStock = checkStock;
+        }
+        
+        public boolean isCheckProductStatus() {
+            return checkProductStatus;
+        }
+        
+        public void setCheckProductStatus(boolean checkProductStatus) {
+            this.checkProductStatus = checkProductStatus;
         }
     }
     
     /**
-     * 电话号码配置
+     * 租赁订单验证配置
      */
-    public static class PhoneConfig {
-        private List<String> virtualPrefixes = List.of("170", "171", "162", "165", "167");
-        private List<String> testNumbers = List.of("13800138000", "13800138001", "18888888888");
-        private boolean allowVirtualNumbers = true;
-        private boolean allowTestNumbers = false;
+    public static class RentalConfig {
+        private int minRentalDays = 1;
+        private int maxRentalDays = 365;
+        private int advanceBookingDays = 30;
+        private boolean requireDeposit = true;
+        private BigDecimal minDepositRate = new BigDecimal("0.1");
+        private BigDecimal maxDepositRate = new BigDecimal("0.5");
         
-        public List<String> getVirtualPrefixes() {
-            return virtualPrefixes;
+        public int getMinRentalDays() {
+            return minRentalDays;
         }
         
-        public void setVirtualPrefixes(List<String> virtualPrefixes) {
-            this.virtualPrefixes = virtualPrefixes;
+        public void setMinRentalDays(int minRentalDays) {
+            this.minRentalDays = minRentalDays;
         }
         
-        public List<String> getTestNumbers() {
-            return testNumbers;
+        public int getMaxRentalDays() {
+            return maxRentalDays;
         }
         
-        public void setTestNumbers(List<String> testNumbers) {
-            this.testNumbers = testNumbers;
+        public void setMaxRentalDays(int maxRentalDays) {
+            this.maxRentalDays = maxRentalDays;
         }
         
-        public boolean isAllowVirtualNumbers() {
-            return allowVirtualNumbers;
+        public int getAdvanceBookingDays() {
+            return advanceBookingDays;
         }
         
-        public void setAllowVirtualNumbers(boolean allowVirtualNumbers) {
-            this.allowVirtualNumbers = allowVirtualNumbers;
+        public void setAdvanceBookingDays(int advanceBookingDays) {
+            this.advanceBookingDays = advanceBookingDays;
         }
         
-        public boolean isAllowTestNumbers() {
-            return allowTestNumbers;
+        public boolean isRequireDeposit() {
+            return requireDeposit;
         }
         
-        public void setAllowTestNumbers(boolean allowTestNumbers) {
-            this.allowTestNumbers = allowTestNumbers;
+        public void setRequireDeposit(boolean requireDeposit) {
+            this.requireDeposit = requireDeposit;
+        }
+        
+        public BigDecimal getMinDepositRate() {
+            return minDepositRate;
+        }
+        
+        public void setMinDepositRate(BigDecimal minDepositRate) {
+            this.minDepositRate = minDepositRate;
+        }
+        
+        public BigDecimal getMaxDepositRate() {
+            return maxDepositRate;
+        }
+        
+        public void setMaxDepositRate(BigDecimal maxDepositRate) {
+            this.maxDepositRate = maxDepositRate;
         }
     }
     
     /**
-     * 邮箱配置
+     * 业务规则验证配置
      */
-    public static class EmailConfig {
-        private List<String> temporaryDomains = List.of(
-            "10minutemail.com", "guerrillamail.com", "tempmail.org", "mailinator.com"
+    public static class BusinessRuleConfig {
+        private List<String> allowedOrderTypes = List.of("sales", "rental");
+        private List<String> allowedOrderStatuses = List.of("pending", "confirmed", "processing", "shipped", "delivered", "completed", "cancelled");
+        private List<String> allowedPaymentMethods = List.of("cash", "card", "online", "transfer");
+        private Map<String, List<String>> statusTransitions = Map.of(
+            "pending", List.of("confirmed", "cancelled"),
+            "confirmed", List.of("processing", "cancelled"),
+            "processing", List.of("shipped", "cancelled"),
+            "shipped", List.of("delivered", "cancelled"),
+            "delivered", List.of("completed"),
+            "completed", List.of(),
+            "cancelled", List.of()
         );
-        private List<String> trustedDomains = List.of(
-            "gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "qq.com", "163.com"
-        );
-        private boolean allowTemporaryEmails = false;
-        private boolean requireTrustedDomains = false;
         
-        public List<String> getTemporaryDomains() {
-            return temporaryDomains;
+        public List<String> getAllowedOrderTypes() {
+            return allowedOrderTypes;
         }
         
-        public void setTemporaryDomains(List<String> temporaryDomains) {
-            this.temporaryDomains = temporaryDomains;
+        public void setAllowedOrderTypes(List<String> allowedOrderTypes) {
+            this.allowedOrderTypes = allowedOrderTypes;
         }
         
-        public List<String> getTrustedDomains() {
-            return trustedDomains;
+        public List<String> getAllowedOrderStatuses() {
+            return allowedOrderStatuses;
         }
         
-        public void setTrustedDomains(List<String> trustedDomains) {
-            this.trustedDomains = trustedDomains;
+        public void setAllowedOrderStatuses(List<String> allowedOrderStatuses) {
+            this.allowedOrderStatuses = allowedOrderStatuses;
         }
         
-        public boolean isAllowTemporaryEmails() {
-            return allowTemporaryEmails;
+        public List<String> getAllowedPaymentMethods() {
+            return allowedPaymentMethods;
         }
         
-        public void setAllowTemporaryEmails(boolean allowTemporaryEmails) {
-            this.allowTemporaryEmails = allowTemporaryEmails;
+        public void setAllowedPaymentMethods(List<String> allowedPaymentMethods) {
+            this.allowedPaymentMethods = allowedPaymentMethods;
         }
         
-        public boolean isRequireTrustedDomains() {
-            return requireTrustedDomains;
+        public Map<String, List<String>> getStatusTransitions() {
+            return statusTransitions;
         }
         
-        public void setRequireTrustedDomains(boolean requireTrustedDomains) {
-            this.requireTrustedDomains = requireTrustedDomains;
+        public void setStatusTransitions(Map<String, List<String>> statusTransitions) {
+            this.statusTransitions = statusTransitions;
         }
     }
 }

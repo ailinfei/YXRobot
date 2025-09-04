@@ -307,6 +307,7 @@ import {
 } from '@element-plus/icons-vue'
 import DeviceStatusMonitor from './DeviceStatusMonitor.vue'
 import ServiceRecordDialog from './ServiceRecordDialog.vue'
+import { customerApi, customerRelationApi } from '@/api/customer'
 import type { Customer, CustomerDevice, ServiceRecord } from '@/types/customer'
 import { formatDate } from '@/utils/dateTime'
 
@@ -553,8 +554,19 @@ const handleServiceAction = async (command: string, record: ServiceRecord) => {
       })
     }
     
-    // 模拟API操作
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    // 根据命令执行相应的API调用
+    if (command === 'complete' && props.customer) {
+      // 完成服务记录的API调用（这里需要根据实际API调整）
+      await customerRelationApi.createServiceRecord(props.customer.id, {
+        type: record.type,
+        subject: record.title,
+        description: record.description,
+        status: 'completed'
+      })
+    } else if (command === 'delete' && props.customer) {
+      // 删除服务记录的API调用（这里需要根据实际API调整）
+      // 注意：后端可能需要提供删除服务记录的API
+    }
     
     ElMessage.success(successMessage)
     emit('refresh')
@@ -615,8 +627,14 @@ const handleDeviceRefresh = () => {
 const saveNotes = async () => {
   try {
     savingNotes.value = true
-    // 模拟保存过程
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    // 保存备注的API调用
+    if (props.customer) {
+      await customerApi.updateCustomer(props.customer.id, {
+        notes: customerNotes.value
+      })
+    }
+    
     ElMessage.success('备注保存成功')
     emit('refresh')
   } catch (error) {

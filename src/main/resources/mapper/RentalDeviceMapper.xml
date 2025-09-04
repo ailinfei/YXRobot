@@ -84,7 +84,7 @@
     <sql id="Advanced_Where_Clause">
         <where>
             is_deleted = 0
-            <!-- 关键词搜索 -->
+            <!-- 关键词搜射?-->
             <if test="params.keyword != null and params.keyword != ''">
                 AND (device_id LIKE CONCAT('%', #{params.keyword}, '%')
                 OR device_model LIKE CONCAT('%', #{params.keyword}, '%')
@@ -125,7 +125,7 @@
                 AND region = #{params.region}
             </if>
             
-            <!-- 利用率范围筛选 -->
+            <!-- 利用率范围筛射?-->
             <if test="params.minUtilization != null">
                 AND utilization_rate >= #{params.minUtilization}
             </if>
@@ -133,7 +133,7 @@
                 AND utilization_rate &lt;= #{params.maxUtilization}
             </if>
             
-            <!-- 租赁天数范围筛选 -->
+            <!-- 租赁天数范围筛射?-->
             <if test="params.minRentalDays != null">
                 AND total_rental_days >= #{params.minRentalDays}
             </if>
@@ -141,7 +141,7 @@
                 AND total_rental_days &lt;= #{params.maxRentalDays}
             </if>
             
-            <!-- 时间范围筛选 -->
+            <!-- 时间范围筛射?-->
             <if test="params.startDate != null">
                 AND last_rental_date >= #{params.startDate}
             </if>
@@ -149,12 +149,12 @@
                 AND last_rental_date &lt;= #{params.endDate}
             </if>
             
-            <!-- 维护状态筛选 -->
+            <!-- 维护状态筛射?-->
             <if test="params.maintenanceStatus != null and params.maintenanceStatus != ''">
                 AND maintenance_status = #{params.maintenanceStatus}
             </if>
             
-            <!-- 性能评分范围筛选 -->
+            <!-- 性能评分范围筛射?-->
             <if test="params.minPerformanceScore != null">
                 AND performance_score >= #{params.minPerformanceScore}
             </if>
@@ -162,7 +162,7 @@
                 AND performance_score &lt;= #{params.maxPerformanceScore}
             </if>
             
-            <!-- 信号强度范围筛选 -->
+            <!-- 信号强度范围筛射?-->
             <if test="params.minSignalStrength != null">
                 AND signal_strength >= #{params.minSignalStrength}
             </if>
@@ -170,7 +170,7 @@
                 AND signal_strength &lt;= #{params.maxSignalStrength}
             </if>
             
-            <!-- 是否活跃筛选 -->
+            <!-- 是否活跃筛射?-->
             <if test="params.isActive != null">
                 AND is_active = #{params.isActive}
             </if>
@@ -209,7 +209,7 @@
         <include refid="Where_Clause"/>
     </select>
 
-    <!-- 查询设备利用率数据（适配前端表格） -->
+    <!-- 查询设备利用率数据（适配前端表格射?-->
     <select id="selectDeviceUtilizationList" resultMap="DeviceUtilizationResultMap">
         SELECT 
             device_id,
@@ -285,14 +285,14 @@
         WHERE id = #{id} AND is_deleted = 0
     </update>
 
-    <!-- 软删除 -->
+    <!-- 软删射?-->
     <update id="deleteById">
         UPDATE rental_devices
         SET is_deleted = 1, updated_at = NOW()
         WHERE id = #{id}
     </update>
 
-    <!-- 批量软删除 -->
+    <!-- 批量软删射?-->
     <update id="deleteBatchByIds">
         UPDATE rental_devices
         SET is_deleted = 1, updated_at = NOW()
@@ -302,7 +302,7 @@
         </foreach>
     </update>
 
-    <!-- 查询设备状态统计 -->
+    <!-- 查询设备状态统射?-->
     <select id="selectDeviceStatusStats" resultType="java.util.Map">
         SELECT 
             COUNT(CASE WHEN current_status = 'active' THEN 1 END) as active,
@@ -344,7 +344,7 @@
         ORDER BY value DESC
     </select>
 
-    <!-- 查询设备利用率排行数据 -->
+    <!-- 查询设备利用率排行数射?-->
     <select id="selectUtilizationRanking" resultType="java.util.Map">
         SELECT 
             CONCAT(device_id, ' (', device_model, ')') as name,
@@ -355,7 +355,7 @@
         LIMIT #{limit}
     </select>
 
-    <!-- 更新设备利用率 -->
+    <!-- 更新设备利用射?-->
     <update id="updateUtilizationRate">
         UPDATE rental_devices
         SET utilization_rate = #{utilizationRate},
@@ -365,7 +365,7 @@
         WHERE id = #{deviceId} AND is_deleted = 0
     </update>
 
-    <!-- 查询所有设备型号 -->
+    <!-- 查询所有设备型射?-->
     <select id="selectAllDeviceModels" resultType="java.lang.String">
         SELECT DISTINCT device_model
         FROM rental_devices
@@ -373,7 +373,7 @@
         ORDER BY device_model
     </select>
 
-    <!-- 查询所有地区 -->
+    <!-- 查询所有地射?-->
     <select id="selectAllRegions" resultType="java.lang.String">
         SELECT DISTINCT region
         FROM rental_devices
@@ -381,7 +381,7 @@
         ORDER BY region
     </select>
 
-    <!-- 更新设备状态（根据设备编号） -->
+    <!-- 更新设备状态（根据设备编号射?-->
     <update id="updateDeviceStatus">
         UPDATE rental_devices
         SET current_status = #{currentStatus},
@@ -389,7 +389,7 @@
         WHERE device_id = #{deviceId} AND is_deleted = 0
     </update>
 
-    <!-- 更新设备维护状态（根据设备编号） -->
+    <!-- 更新设备维护状态（根据设备编号射?-->
     <update id="updateMaintenanceStatus">
         UPDATE rental_devices
         SET maintenance_status = #{maintenanceStatus},
@@ -397,14 +397,14 @@
         WHERE device_id = #{deviceId} AND is_deleted = 0
     </update>
 
-    <!-- 软删除设备（根据设备编号） -->
+    <!-- 软删除设备（根据设备编号射?-->
     <update id="softDeleteByDeviceId">
         UPDATE rental_devices
         SET is_deleted = 1, updated_at = NOW()
         WHERE device_id = #{deviceId}
     </update>
 
-    <!-- 批量更新设备状态 -->
+    <!-- 批量更新设备状射?-->
     <update id="batchUpdateDeviceStatus">
         UPDATE rental_devices
         SET current_status = #{currentStatus},
@@ -416,7 +416,7 @@
         AND is_deleted = 0
     </update>
 
-    <!-- 批量更新设备维护状态 -->
+    <!-- 批量更新设备维护状射?-->
     <update id="batchUpdateMaintenanceStatus">
         UPDATE rental_devices
         SET maintenance_status = #{maintenanceStatus},
@@ -428,7 +428,7 @@
         AND is_deleted = 0
     </update>
 
-    <!-- 批量软删除设备（根据设备编号） -->
+    <!-- 批量软删除设备（根据设备编号射?-->
     <update id="batchSoftDeleteByDeviceIds">
         UPDATE rental_devices
         SET is_deleted = 1, updated_at = NOW()
@@ -438,7 +438,7 @@
         </foreach>
     </update>
 
-    <!-- 高级搜索设备利用率数据 -->
+    <!-- 高级搜索设备利用率数射?-->
     <select id="selectDeviceUtilizationWithAdvancedSearch" resultMap="DeviceUtilizationResultMap">
         SELECT 
             device_id,
@@ -509,7 +509,7 @@
         </if>
     </select>
 
-    <!-- 按多个设备型号查询 -->
+    <!-- 按多个设备型号查射?-->
     <select id="selectDeviceUtilizationByModels" resultMap="DeviceUtilizationResultMap">
         SELECT 
             device_id,
@@ -542,7 +542,7 @@
         </if>
     </select>
 
-    <!-- 按多个状态查询 -->
+    <!-- 按多个状态查射?-->
     <select id="selectDeviceUtilizationByStatuses" resultMap="DeviceUtilizationResultMap">
         SELECT 
             device_id,
@@ -668,10 +668,10 @@
                 JSON_OBJECT(
                     'value', current_status,
                     'label', CASE current_status
-                        WHEN 'active' THEN '运行中'
+                        WHEN 'active' THEN '运行射?
                         WHEN 'idle' THEN '空闲'
-                        WHEN 'maintenance' THEN '维护中'
-                        WHEN 'retired' THEN '已退役'
+                        WHEN 'maintenance' THEN '维护射?
+                        WHEN 'retired' THEN '已退射?
                         ELSE current_status
                     END,
                     'count', status_count

@@ -129,4 +129,130 @@ public class CharityStatsLog {
      */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createTime;
+    
+    // 手动添加setter方法，确保Lombok正常工作
+    public void setStatsId(Long statsId) {
+        this.statsId = statsId;
+    }
+    
+    public void setOperationType(String operationType) {
+        this.operationType = operationType;
+    }
+    
+    public void setUpdatedFields(String updatedFields) {
+        this.updatedFields = updatedFields;
+    }
+    
+    public void setBeforeData(String beforeData) {
+        this.beforeData = beforeData;
+    }
+    
+    public void setAfterData(String afterData) {
+        this.afterData = afterData;
+    }
+    
+    public void setUpdateReason(String updateReason) {
+        this.updateReason = updateReason;
+    }
+    
+    public void setOperatorId(Long operatorId) {
+        this.operatorId = operatorId;
+    }
+    
+    public void setOperatorName(String operatorName) {
+        this.operatorName = operatorName;
+    }
+    
+    public void setOperatorIp(String operatorIp) {
+        this.operatorIp = operatorIp;
+    }
+    
+    public void setOperationTime(LocalDateTime operationTime) {
+        this.operationTime = operationTime;
+    }
+    
+    public void setDataVersion(Integer dataVersion) {
+        this.dataVersion = dataVersion;
+    }
+    
+    public void setOperationResult(String operationResult) {
+        this.operationResult = operationResult;
+    }
+    
+    public void setErrorMessage(String errorMessage) {
+        this.errorMessage = errorMessage;
+    }
+    
+    public void setNotes(String notes) {
+        this.notes = notes;
+    }
+    
+    public void setCreateTime(LocalDateTime createTime) {
+        this.createTime = createTime;
+    }
+    
+    // 手动添加getter方法，确保Lombok正常工作
+    public Long getId() {
+        return id;
+    }
+    
+    public Long getStatsId() {
+        return statsId;
+    }
+    
+    public String getOperationType() {
+        return operationType;
+    }
+    
+    public String getUpdatedFields() {
+        return updatedFields;
+    }
+    
+    public String getBeforeData() {
+        return beforeData;
+    }
+    
+    public String getAfterData() {
+        return afterData;
+    }
+    
+    public String getUpdateReason() {
+        return updateReason;
+    }
+    
+    public Long getOperatorId() {
+        return operatorId;
+    }
+    
+    public String getOperatorName() {
+        return operatorName;
+    }
+    
+    public String getOperatorIp() {
+        return operatorIp;
+    }
+    
+    public LocalDateTime getOperationTime() {
+        return operationTime;
+    }
+    
+    public Integer getDataVersion() {
+        return dataVersion;
+    }
+    
+    public String getOperationResult() {
+        return operationResult;
+    }
+    
+    public String getErrorMessage() {
+        return errorMessage;
+    }
+    
+    public String getNotes() {
+        return notes;
+    }
+    
+    public LocalDateTime getCreateTime() {
+        return createTime;
+    }
 }

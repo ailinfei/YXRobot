@@ -2,11 +2,11 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.yxrobot.mapper.SalesStatsMapper">
 
-    <!-- 销售统计结果映射 -->
+    <!-- 销售统计结果映射-->
     <resultMap id="SalesStatsResultMap" type="com.yxrobot.entity.SalesStats">
         <id column="id" property="id"/>
         <result column="stat_date" property="statDate"/>
-        <result column="stat_type" property="statType" typeHandler="com.yxrobot.handler.StatTypeTypeHandler"/>
+        <result column="stat_type" property="statType"/>
         <result column="total_sales_amount" property="totalSalesAmount"/>
         <result column="total_orders" property="totalOrders"/>
         <result column="total_quantity" property="totalQuantity"/>
@@ -42,28 +42,28 @@
         </where>
     </sql>
 
-    <!-- 根据ID查询销售统计 -->
+    <!-- 根据ID查询销售统射?-->
     <select id="selectById" resultMap="SalesStatsResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM sales_stats
         WHERE id = #{id}
     </select>
 
-    <!-- 根据日期和类型查询销售统计 -->
+    <!-- 根据日期和类型查询销售统射?-->
     <select id="selectByDateAndType" resultMap="SalesStatsResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM sales_stats
         WHERE stat_date = #{statDate} AND stat_type = #{statType}
     </select>
 
-    <!-- 查询所有销售统计列表 -->
+    <!-- 查询所有销售统计列射?-->
     <select id="selectAll" resultMap="SalesStatsResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM sales_stats
         ORDER BY stat_date DESC, stat_type
     </select>
 
-    <!-- 分页查询销售统计列表 -->
+    <!-- 分页查询销售统计列射?-->
     <select id="selectList" resultMap="SalesStatsResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM sales_stats
@@ -99,7 +99,7 @@
         </if>
     </select>
 
-    <!-- 插入销售统计 -->
+    <!-- 插入销售统射?-->
     <insert id="insert" parameterType="com.yxrobot.entity.SalesStats" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO sales_stats (
             stat_date, stat_type, total_sales_amount, total_orders, total_quantity, 
@@ -112,7 +112,7 @@
         )
     </insert>
 
-    <!-- 更新销售统计 -->
+    <!-- 更新销售统射?-->
     <update id="updateById" parameterType="com.yxrobot.entity.SalesStats">
         UPDATE sales_stats SET
             stat_date = #{statDate},
@@ -129,17 +129,17 @@
         WHERE id = #{id}
     </update>
 
-    <!-- 根据ID删除销售统计 -->
+    <!-- 根据ID删除销售统射?-->
     <delete id="deleteById">
         DELETE FROM sales_stats WHERE id = #{id}
     </delete>
 
-    <!-- 根据日期和类型删除销售统计 -->
+    <!-- 根据日期和类型删除销售统射?-->
     <delete id="deleteByDateAndType">
         DELETE FROM sales_stats WHERE stat_date = #{statDate} AND stat_type = #{statType}
     </delete>
 
-    <!-- 查询最新的销售统计 -->
+    <!-- 查询最新的销售统射?-->
     <select id="selectLatestByType" resultMap="SalesStatsResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM sales_stats
@@ -148,7 +148,7 @@
         LIMIT 1
     </select>
 
-    <!-- 查询日统计数据 -->
+    <!-- 查询日统计数射?-->
     <select id="selectDailyStats" resultMap="SalesStatsResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM sales_stats
@@ -156,7 +156,7 @@
         ORDER BY stat_date
     </select>
 
-    <!-- 查询销售趋势数据 -->
+    <!-- 查询销售趋势数射?-->
     <select id="selectSalesTrends" resultType="java.util.Map">
         SELECT 
             stat_date,
@@ -170,7 +170,7 @@
         ORDER BY stat_date
     </select>
 
-    <!-- 查询关键指标汇总 - 直接从销售记录表计算 -->
+    <!-- 查询关键指标汇射?- 直接从销售记录表计算 -->
     <select id="selectKeyMetricsSummary" resultType="java.util.Map">
         SELECT 
             COALESCE(SUM(sr.sales_amount), 0) as total_sales_amount,
@@ -257,7 +257,7 @@
         WHERE YEAR(order_date) = YEAR(CURDATE()) AND is_deleted = 0
     </select>
 
-    <!-- 生成日统计数据 -->
+    <!-- 生成日统计数射?-->
     <insert id="generateDailyStats">
         INSERT INTO sales_stats (
             stat_date, stat_type, total_sales_amount, total_orders, total_quantity, 
@@ -287,7 +287,7 @@
             updated_at = NOW()
     </insert>
 
-    <!-- 检查统计数据是否存在 -->
+    <!-- 检查统计数据是否存射?-->
     <select id="existsByDateAndType" resultType="boolean">
         SELECT COUNT(*) > 0 FROM sales_stats WHERE stat_date = #{statDate} AND stat_type = #{statType}
     </select>

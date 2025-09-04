@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yxrobot.mapper.DeviceMonitoringStatsMapper">
+
+    <!-- 基础结果映射 -->
+    <resultMap id="BaseResultMap" type="com.yxrobot.entity.DeviceMonitoringStats">
+        <id column="id" property="id"/>
+        <result column="online_count" property="onlineCount"/>
+        <result column="offline_count" property="offlineCount"/>
+        <result column="error_count" property="errorCount"/>
+        <result column="maintenance_count" property="maintenanceCount"/>
+        <result column="total_count" property="totalCount"/>
+        <result column="avg_performance" property="avgPerformance"/>
+        <result column="online_trend" property="onlineTrend"/>
+        <result column="offline_trend" property="offlineTrend"/>
+        <result column="error_trend" property="errorTrend"/>
+        <result column="performance_trend" property="performanceTrend"/>
+        <result column="stats_date" property="statsDate"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <!-- 基础列定义 -->
+    <sql id="Base_Column_List">
+        id, online_count, offline_count, error_count, maintenance_count, total_count,
+        avg_performance, online_trend, offline_trend, error_trend, performance_trend,
+        stats_date, created_at, updated_at
+    </sql>
+
+    <!-- 插入监控统计记录 -->
+    <insert id="insert" parameterType="com.yxrobot.entity.DeviceMonitoringStats" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO device_monitoring_stats (
+            online_count, offline_count, error_count, maintenance_count, total_count,
+            avg_performance, online_trend, offline_trend, error_trend, performance_trend,
+            stats_date, created_at, updated_at
+        ) VALUES (
+            #{onlineCount}, #{offlineCount}, #{errorCount}, #{maintenanceCount}, #{totalCount},
+            #{avgPerformance}, #{onlineTrend}, #{offlineTrend}, #{errorTrend}, #{performanceTrend},
+            #{statsDate}, NOW(), NOW()
+        )
+    </insert>
+
+    <!-- 根据ID查询监控统计 -->
+    <select id="selectById" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_monitoring_stats
+        WHERE id = #{id}
+    </select>
+
+    <!-- 根据统计日期查询监控统计 -->
+    <select id="selectByStatsDate" parameterType="java.time.LocalDate" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_monitoring_stats
+        WHERE stats_date = #{statsDate}
+        ORDER BY created_at DESC
+        LIMIT 1
+    </select>
+
+    <!-- 查询最新的监控统计 -->
+    <select id="selectLatest" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_monitoring_stats
+        ORDER BY stats_date DESC, created_at DESC
+        LIMIT 1
+    </select>
+
+    <!-- 查询指定日期范围内的监控统计列表 -->
+    <select id="selectByDateRange" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_monitoring_stats
+        WHERE stats_date BETWEEN #{startDate} AND #{endDate}
+        ORDER BY stats_date ASC
+    </select>
+
+    <!-- 更新监控统计 -->
+    <update id="updateById" parameterType="com.yxrobot.entity.DeviceMonitoringStats">
+        UPDATE device_monitoring_stats
+        SET online_count = #{onlineCount},
+            offline_count = #{offlineCount},
+            error_count = #{errorCount},
+            maintenance_count = #{maintenanceCount},
+            total_count = #{totalCount},
+            avg_performance = #{avgPerformance},
+            online_trend = #{onlineTrend},
+            offline_trend = #{offlineTrend},
+            error_trend = #{errorTrend},
+            performance_trend = #{performanceTrend},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 删除监控统计 -->
+    <delete id="deleteById" parameterType="java.lang.Long">
+        DELETE FROM device_monitoring_stats WHERE id = #{id}
+    </delete>
+
+    <!-- 计算实时监控统计数据 -->
+    <select id="calculateRealTimeStats" resultMap="BaseResultMap">
+        SELECT 
+            NULL as id,
+            SUM(CASE WHEN md.status = 'ONLINE' THEN 1 ELSE 0 END) as online_count,
+            SUM(CASE WHEN md.status = 'OFFLINE' THEN 1 ELSE 0 END) as offline_count,
+            SUM(CASE WHEN md.status = 'ERROR' THEN 1 ELSE 0 END) as error_count,
+            SUM(CASE WHEN md.status = 'MAINTENANCE' THEN 1 ELSE 0 END) as maintenance_count,
+            COUNT(*) as total_count,
+            COALESCE(AVG(
+                CASE WHEN pm.cpu_usage IS NOT NULL AND pm.memory_usage IS NOT NULL 
+                THEN (100 - (pm.cpu_usage + pm.memory_usage) / 2) 
+                ELSE NULL END
+            ), 0) as avg_performance,
+            0 as online_trend,
+            0 as offline_trend,
+            0 as error_trend,
+            0 as performance_trend,
+            CURDATE() as stats_date,
+            NOW() as created_at,
+            NOW() as updated_at
+        FROM managed_devices md
+        LEFT JOIN device_performance_metrics pm ON md.id = pm.device_id 
+            AND pm.metric_timestamp = (
+                SELECT MAX(metric_timestamp) 
+                FROM device_performance_metrics pm2 
+                WHERE pm2.device_id = md.id
+            )
+        WHERE md.is_deleted = 0
+    </select>
+
+    <!-- 批量插入监控统计记录 -->
+    <insert id="batchInsert" parameterType="java.util.List">
+        INSERT INTO device_monitoring_stats (
+            online_count, offline_count, error_count, maintenance_count, total_count,
+            avg_performance, online_trend, offline_trend, error_trend, performance_trend,
+            stats_date, created_at, updated_at
+        ) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.onlineCount}, #{item.offlineCount}, #{item.errorCount}, #{item.maintenanceCount}, #{item.totalCount},
+             #{item.avgPerformance}, #{item.onlineTrend}, #{item.offlineTrend}, #{item.errorTrend}, #{item.performanceTrend},
+             #{item.statsDate}, NOW(), NOW())
+        </foreach>
+    </insert>
+
+    <!-- 查询历史趋势数据 -->
+    <select id="selectHistoryForTrend" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_monitoring_stats
+        WHERE stats_date = DATE_SUB(#{currentDate}, INTERVAL #{daysBefore} DAY)
+        ORDER BY created_at DESC
+        LIMIT 1
+    </select>
+
+    <!-- 清理过期的统计数据 -->
+    <delete id="deleteExpiredStats">
+        DELETE FROM device_monitoring_stats 
+        WHERE stats_date &lt; #{beforeDate}
+    </delete>
+
+</mapper>

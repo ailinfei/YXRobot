@@ -183,7 +183,7 @@
             END
     </select>
 
-    <!-- 获取操作人统计 -->
+    <!-- 获取操作人统射-->
     <select id="getOperatorStatistics" resultType="java.util.Map">
         SELECT 
             operator_id,
@@ -210,7 +210,7 @@
             COUNT(CASE WHEN operation_type = 'update' THEN 1 END) as update_operations,
             COUNT(CASE WHEN operation_type = 'delete' THEN 1 END) as delete_operations
         FROM charity_stats_logs
-        WHERE operation_time >= DATE_SUB(NOW(), INTERVAL #{days} DAY)
+        WHERE operation_time &gt;= DATE_SUB(NOW(), INTERVAL #{days} DAY)
         GROUP BY DATE(operation_time)
         ORDER BY operation_date DESC
     </select>

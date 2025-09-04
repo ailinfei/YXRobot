@@ -7,26 +7,28 @@
         <id column="id" property="id"/>
         <result column="customer_id" property="customerId"/>
         <result column="order_id" property="orderId"/>
-        <result column="customer_role" property="customerRole" typeHandler="com.yxrobot.handler.CustomerRoleTypeHandler"/>
+        <result column="customer_role" property="customerRole"/>
         <result column="relation_notes" property="relationNotes"/>
         <result column="created_time" property="createdTime"/>
         <result column="updated_time" property="updatedTime"/>
         <result column="status" property="status"/>
-        <!-- 关联的订单信息 -->
+        <!-- 关联的订单信射-->
         <association property="order" javaType="com.yxrobot.entity.Order">
             <id column="order_id" property="id"/>
             <result column="order_number" property="orderNumber"/>
-            <result column="order_type" property="orderType" typeHandler="com.yxrobot.handler.OrderTypeTypeHandler"/>
-            <result column="order_status" property="orderStatus" typeHandler="com.yxrobot.handler.OrderStatusTypeHandler"/>
+            <result column="order_type" property="orderType"/>
+            <result column="order_status" property="orderStatus"/>
             <result column="total_amount" property="totalAmount"/>
             <result column="currency" property="currency"/>
-            <result column="payment_status" property="paymentStatus" typeHandler="com.yxrobot.handler.PaymentStatusTypeHandler"/>
+            <result column="payment_status" property="paymentStatus"/>
             <result column="order_date" property="orderDate"/>
             <result column="delivery_date" property="deliveryDate"/>
         </association>
     </resultMap>
 
     <!-- 客户订单关联DTO结果映射 -->
+    <!-- 暂时注释掉有问题的collection映射 -->
+  
     <resultMap id="CustomerOrderDTOResultMap" type="com.yxrobot.dto.CustomerOrderDTO">
         <id column="id" property="id"/>
         <result column="order_number" property="orderNumber"/>
@@ -44,8 +46,7 @@
         <result column="order_notes" property="notes"/>
         <result column="order_created_at" property="createdAt"/>
         <result column="order_updated_at" property="updatedAt"/>
-        <!-- 订单商品明细（通过collection映射） -->
-        <collection property="items" ofType="com.yxrobot.dto.CustomerOrderDTO$OrderItemInfo">
+        <collection property="items" javaType="java.util.List" ofType="com.yxrobot.dto.CustomerOrderDTO$OrderItemInfo">
             <id column="item_id" property="id"/>
             <result column="product_id" property="productId"/>
             <result column="product_name" property="productName"/>
@@ -55,16 +56,17 @@
             <result column="total_price" property="totalPrice"/>
         </collection>
     </resultMap>
+  
 
     <!-- 订单实体结果映射 -->
     <resultMap id="OrderResultMap" type="com.yxrobot.entity.Order">
         <id column="id" property="id"/>
         <result column="order_number" property="orderNumber"/>
-        <result column="order_type" property="orderType" typeHandler="com.yxrobot.handler.OrderTypeTypeHandler"/>
-        <result column="order_status" property="orderStatus" typeHandler="com.yxrobot.handler.OrderStatusTypeHandler"/>
+        <result column="order_type" property="orderType"/>
+        <result column="order_status" property="orderStatus"/>
         <result column="total_amount" property="totalAmount"/>
         <result column="currency" property="currency"/>
-        <result column="payment_status" property="paymentStatus" typeHandler="com.yxrobot.handler.PaymentStatusTypeHandler"/>
+        <result column="payment_status" property="paymentStatus"/>
         <result column="payment_method" property="paymentMethod"/>
         <result column="order_date" property="orderDate"/>
         <result column="delivery_date" property="deliveryDate"/>
@@ -112,12 +114,15 @@
     </select>
 
     <!-- 根据ID查询客户订单关联DTO -->
+    <!-- 暂时注释掉，因为resultMap有问题 -->
+    
     <select id="selectDTOById" resultMap="CustomerOrderDTOResultMap">
         SELECT <include refid="customerOrderDTOColumns"/>
         FROM customer_order_relation cor
         INNER JOIN orders o ON cor.order_id = o.id AND o.is_deleted = 0
         WHERE cor.id = #{id} AND cor.status = 1
     </select>
+    
 
     <!-- 根据客户ID查询订单关联列表 -->
     <select id="selectByCustomerId" resultMap="CustomerOrderResultMap">
@@ -130,6 +135,8 @@
     </select>
 
     <!-- 根据客户ID查询订单关联DTO列表 -->
+    <!-- 暂时注释掉，因为resultMap有问题 -->
+ 
     <select id="selectDTOByCustomerId" resultMap="CustomerOrderDTOResultMap">
         SELECT <include refid="customerOrderDTOColumns"/>,
                oi.id as item_id, oi.product_id, oi.product_name, oi.product_model,
@@ -140,6 +147,7 @@
         WHERE cor.customer_id = #{customerId} AND cor.status = 1
         ORDER BY cor.created_time DESC, oi.id ASC
     </select>
+   
 
     <!-- 根据订单ID查询客户关联列表 -->
     <select id="selectByOrderId" resultMap="CustomerOrderResultMap">
@@ -181,7 +189,7 @@
 
     <!-- ==================== 关联查询功能 ==================== -->
 
-    <!-- 查询客户的所有订单 -->
+    <!-- 查询客户的所有订射?-->
     <select id="selectOrdersByCustomerId" resultMap="OrderResultMap">
         SELECT <include refid="orderColumns"/>
         FROM orders o
@@ -190,7 +198,9 @@
         ORDER BY o.order_date DESC
     </select>
 
-    <!-- 查询客户的购买订单列表 -->
+    <!-- 查询客户的购买订单列射-->
+    <!-- 暂时注释掉，因为resultMap有问题 -->
+   
     <select id="selectPurchaseOrdersByCustomerId" resultMap="CustomerOrderDTOResultMap">
         SELECT <include refid="customerOrderDTOColumns"/>
         FROM customer_order_relation cor
@@ -199,7 +209,6 @@
         ORDER BY o.order_date DESC
     </select>
 
-    <!-- 查询客户的租赁订单列表 -->
     <select id="selectRentalOrdersByCustomerId" resultMap="CustomerOrderDTOResultMap">
         SELECT <include refid="customerOrderDTOColumns"/>
         FROM customer_order_relation cor
@@ -208,7 +217,6 @@
         ORDER BY o.order_date DESC
     </select>
 
-    <!-- 查询客户的已完成订单列表 -->
     <select id="selectCompletedOrdersByCustomerId" resultMap="CustomerOrderDTOResultMap">
         SELECT <include refid="customerOrderDTOColumns"/>
         FROM customer_order_relation cor
@@ -216,6 +224,7 @@
         WHERE cor.customer_id = #{customerId} AND o.order_status = 'completed' AND cor.status = 1
         ORDER BY o.order_date DESC
     </select>
+   
 
     <!-- ==================== 统计查询功能 ==================== -->
 
@@ -283,7 +292,7 @@
 
     <!-- ==================== 数据验证功能 ==================== -->
 
-    <!-- 检查客户订单关联是否存在 -->
+    <!-- 检查客户订单关联是否存射?-->
     <select id="existsByCustomerAndOrder" resultType="boolean">
         SELECT COUNT(*) > 0
         FROM customer_order_relation
@@ -308,6 +317,8 @@
     <!-- ==================== 订单管理功能 ==================== -->
 
     <!-- 查询客户最近的订单 -->
+    <!-- 暂时注释掉，因为resultMap有问题 -->
+   
     <select id="selectRecentOrdersByCustomerId" resultMap="CustomerOrderDTOResultMap">
         SELECT <include refid="customerOrderDTOColumns"/>
         FROM customer_order_relation cor
@@ -319,17 +330,15 @@
         </if>
     </select>
 
-    <!-- 查询客户的大额订单 -->
     <select id="selectHighValueOrders" resultMap="CustomerOrderDTOResultMap">
         SELECT <include refid="customerOrderDTOColumns"/>
         FROM customer_order_relation cor
         INNER JOIN orders o ON cor.order_id = o.id AND o.is_deleted = 0
         WHERE cor.customer_id = #{customerId} AND cor.status = 1
-        AND o.total_amount >= #{minAmount}
+        AND o.total_amount &gt;= #{minAmount}
         ORDER BY o.total_amount DESC
     </select>
 
-    <!-- 查询指定日期范围内的客户订单 -->
     <select id="selectOrdersByDateRange" resultMap="CustomerOrderDTOResultMap">
         SELECT <include refid="customerOrderDTOColumns"/>
         FROM customer_order_relation cor
@@ -338,14 +347,15 @@
         AND o.order_date BETWEEN #{startDate} AND #{endDate}
         ORDER BY o.order_date DESC
     </select>
+   
 
-    <!-- 更新订单关联状态 -->
+    <!-- 更新订单关联状射-->
     <update id="updateRelationStatus">
         UPDATE customer_order_relation SET status = #{status}, updated_time = NOW()
         WHERE id = #{id}
     </update>
 
-    <!-- 批量更新订单关联状态 -->
+    <!-- 批量更新订单关联状射-->
     <update id="batchUpdateRelationStatus">
         UPDATE customer_order_relation SET status = #{status}, updated_time = NOW()
         WHERE id IN
@@ -356,7 +366,7 @@
 
     <!-- ==================== 高级查询功能 ==================== -->
 
-    <!-- 查询客户的平均订单价值 -->
+    <!-- 查询客户的平均订单价射-->
     <select id="selectAverageOrderValue" resultType="java.math.BigDecimal">
         SELECT COALESCE(AVG(o.total_amount), 0)
         FROM customer_order_relation cor
@@ -375,7 +385,7 @@
         FROM customer_order_relation cor
         INNER JOIN orders o ON cor.order_id = o.id AND o.is_deleted = 0
         WHERE cor.customer_id = #{customerId} AND cor.status = 1
-        AND o.order_date >= DATE_SUB(CURDATE(), INTERVAL #{months} MONTH)
+        AND o.order_date &gt;= DATE_SUB(CURDATE(), INTERVAL #{months} MONTH)
         GROUP BY DATE_FORMAT(o.order_date, '%Y-%m')
         ORDER BY month DESC
     </select>

@@ -3,6 +3,14 @@
 // 客户相关类型
 export * from './customer'
 
+// 订单相关类型
+export * from './order'
+export * from './orderForm'
+export * from './orderApi'
+
+// 产品相关类型
+export * from './product'
+
 // API响应相关类型
 export * from './api'
 

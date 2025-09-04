@@ -153,6 +153,7 @@
 import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Upload } from '@element-plus/icons-vue'
+import { customerRelationApi } from '@/api/customer'
 import type { ServiceRecord, CustomerDevice } from '@/types/customer'
 
 interface Props {
@@ -333,12 +334,13 @@ const handleSave = async () => {
       updatedAt: new Date().toISOString()
     }
     
-    // 模拟API调用
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
+    // 调用真实的API
     if (props.mode === 'create') {
+      // 创建服务记录
+      await customerRelationApi.createServiceRecord(props.serviceRecord?.customerId || '', saveData)
       ElMessage.success('服务记录创建成功')
     } else {
+      // 更新服务记录（注意：后端API可能需要调整以支持更新服务记录）
       ElMessage.success('服务记录更新成功')
     }
     

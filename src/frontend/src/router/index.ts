@@ -87,27 +87,43 @@ const router = createRouter({
         {
           path: 'business/orders',
           name: 'OrderManagement',
-          component: lazyRoute(() => import('@/views/admin/Orders.vue')),
-          meta: { title: '订单管理' }
+          component: lazyRoute(() => import('@/views/admin/business/OrderManagement.vue')),
+          meta: { 
+            title: '订单管理',
+            requiresAuth: true,
+            permissions: ['business:order:manage', 'business:manage', 'admin:all']
+          }
         },
         // 设备管理
         {
           path: 'device/management',
           name: 'DeviceManagement',
           component: lazyRoute(() => import('@/views/admin/device/DeviceManagement.vue')),
-          meta: { title: '设备管理' }
+          meta: { 
+            title: '设备管理',
+            requiresAuth: true,
+            permissions: ['device:manage', 'device:view', 'admin:all']
+          }
         },
         {
           path: 'device/monitoring',
           name: 'DeviceMonitoring',
           component: lazyRoute(() => import('@/views/admin/device/DeviceMonitoring.vue')),
-          meta: { title: '设备监控' }
+          meta: { 
+            title: '设备监控',
+            requiresAuth: true,
+            permissions: ['device:monitor', 'device:view', 'admin:all']
+          }
         },
         {
           path: 'device/firmware',
           name: 'FirmwareManagement',
           component: lazyRoute(() => import('@/views/admin/device/FirmwareManagement.vue')),
-          meta: { title: '固件管理' }
+          meta: { 
+            title: '固件管理',
+            requiresAuth: true,
+            permissions: ['firmware:manage', 'device:manage', 'admin:all']
+          }
         },
         // 系统管理
         {
@@ -191,6 +207,42 @@ const router = createRouter({
           name: 'ApiTest',
           component: lazyRoute(() => import('@/views/test/ApiTest.vue')),
           meta: { title: 'API测试' }
+        },
+        {
+          path: 'order-api',
+          name: 'OrderApiTest',
+          component: lazyRoute(() => import('@/views/test/OrderApiTest.vue')),
+          meta: { title: '订单API测试' }
+        },
+        {
+          path: 'route',
+          name: 'RouteTest',
+          component: lazyRoute(() => import('@/views/test/RouteTest.vue')),
+          meta: { title: '路由测试' }
+        },
+        {
+          path: 'route',
+          name: 'RouteTest',
+          component: lazyRoute(() => import('@/views/test/RouteTest.vue')),
+          meta: { title: '路由配置测试' }
+        },
+        {
+          path: 'route-config',
+          name: 'RouteConfigTest',
+          component: lazyRoute(() => import('@/views/test/RouteConfigTest.vue')),
+          meta: { title: '路由配置验证' }
+        },
+        {
+          path: 'device-route',
+          name: 'DeviceRouteTest',
+          component: lazyRoute(() => import('@/views/test/DeviceRouteTest.vue')),
+          meta: { title: '设备路由测试' }
+        },
+        {
+          path: 'device-route-validation',
+          name: 'DeviceRouteValidation',
+          component: lazyRoute(() => import('@/views/test/DeviceRouteValidation.vue')),
+          meta: { title: '设备路由验证' }
         }
       ]
     }
@@ -229,8 +281,22 @@ router.beforeEach((to, from, next) => {
     try {
       // 验证用户信息
       const user = JSON.parse(userInfo)
-      if (!user.permissions || !user.permissions.includes('admin:all')) {
-        // 权限不足
+      
+      // 检查页面权限要求
+      if (to.meta.permissions && Array.isArray(to.meta.permissions)) {
+        const hasPermission = to.meta.permissions.some((permission: string) => 
+          user.permissions && user.permissions.includes(permission)
+        )
+        
+        if (!hasPermission) {
+          console.warn('权限不足，跳转到登录页')
+          localStorage.removeItem('token')
+          localStorage.removeItem('userInfo')
+          next('/admin/login')
+          return
+        }
+      } else if (!user.permissions || !user.permissions.includes('admin:all')) {
+        // 默认权限检查
         console.warn('权限不足，跳转到登录页')
         localStorage.removeItem('token')
         localStorage.removeItem('userInfo')

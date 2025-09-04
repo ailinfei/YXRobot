@@ -326,6 +326,21 @@ export const breadcrumbConfig: {
             { title: '控制台', path: '/admin/dashboard' },
             { title: '业务管理', path: '/admin/business' },
             { title: '订单管理', path: '/admin/business/orders' }
+        ],
+        '/admin/device/management': [
+            { title: '控制台', path: '/admin/dashboard' },
+            { title: '设备管理', path: '/admin/device' },
+            { title: '设备管理', path: '/admin/device/management' }
+        ],
+        '/admin/device/monitoring': [
+            { title: '控制台', path: '/admin/dashboard' },
+            { title: '设备管理', path: '/admin/device' },
+            { title: '设备监控', path: '/admin/device/monitoring' }
+        ],
+        '/admin/device/firmware': [
+            { title: '控制台', path: '/admin/dashboard' },
+            { title: '设备管理', path: '/admin/device' },
+            { title: '固件管理', path: '/admin/device/firmware' }
         ]
     },
 

@@ -157,4 +157,157 @@ public class CharityStats {
      * 记录最后更新数据的操作人员
      */
     private String updatedBy;
+    
+    // 手动添加getter和setter方法，确保Lombok正常工作
+    public Long getId() {
+        return id;
+    }
+    
+    public void setId(Long id) {
+        this.id = id;
+    }
+    
+    public Integer getTotalBeneficiaries() {
+        return totalBeneficiaries;
+    }
+    
+    public void setTotalBeneficiaries(Integer totalBeneficiaries) {
+        this.totalBeneficiaries = totalBeneficiaries;
+    }
+    
+    public Integer getTotalInstitutions() {
+        return totalInstitutions;
+    }
+    
+    public void setTotalInstitutions(Integer totalInstitutions) {
+        this.totalInstitutions = totalInstitutions;
+    }
+    
+    public Integer getCooperatingInstitutions() {
+        return cooperatingInstitutions;
+    }
+    
+    public void setCooperatingInstitutions(Integer cooperatingInstitutions) {
+        this.cooperatingInstitutions = cooperatingInstitutions;
+    }
+    
+    public Integer getTotalVolunteers() {
+        return totalVolunteers;
+    }
+    
+    public void setTotalVolunteers(Integer totalVolunteers) {
+        this.totalVolunteers = totalVolunteers;
+    }
+    
+    public Integer getActiveVolunteers() {
+        return activeVolunteers;
+    }
+    
+    public void setActiveVolunteers(Integer activeVolunteers) {
+        this.activeVolunteers = activeVolunteers;
+    }
+    
+    public BigDecimal getTotalRaised() {
+        return totalRaised;
+    }
+    
+    public void setTotalRaised(BigDecimal totalRaised) {
+        this.totalRaised = totalRaised;
+    }
+    
+    public BigDecimal getTotalDonated() {
+        return totalDonated;
+    }
+    
+    public void setTotalDonated(BigDecimal totalDonated) {
+        this.totalDonated = totalDonated;
+    }
+    
+    public Integer getTotalProjects() {
+        return totalProjects;
+    }
+    
+    public void setTotalProjects(Integer totalProjects) {
+        this.totalProjects = totalProjects;
+    }
+    
+    public Integer getActiveProjects() {
+        return activeProjects;
+    }
+    
+    public void setActiveProjects(Integer activeProjects) {
+        this.activeProjects = activeProjects;
+    }
+    
+    public Integer getCompletedProjects() {
+        return completedProjects;
+    }
+    
+    public void setCompletedProjects(Integer completedProjects) {
+        this.completedProjects = completedProjects;
+    }
+    
+    public Integer getTotalActivities() {
+        return totalActivities;
+    }
+    
+    public void setTotalActivities(Integer totalActivities) {
+        this.totalActivities = totalActivities;
+    }
+    
+    public Integer getThisMonthActivities() {
+        return thisMonthActivities;
+    }
+    
+    public void setThisMonthActivities(Integer thisMonthActivities) {
+        this.thisMonthActivities = thisMonthActivities;
+    }
+    
+    public LocalDateTime getCreateTime() {
+        return createTime;
+    }
+    
+    public void setCreateTime(LocalDateTime createTime) {
+        this.createTime = createTime;
+    }
+    
+    public LocalDateTime getUpdateTime() {
+        return updateTime;
+    }
+    
+    public void setUpdateTime(LocalDateTime updateTime) {
+        this.updateTime = updateTime;
+    }
+    
+    public Integer getDeleted() {
+        return deleted;
+    }
+    
+    public void setDeleted(Integer deleted) {
+        this.deleted = deleted;
+    }
+    
+    public Integer getVersion() {
+        return version;
+    }
+    
+    public void setVersion(Integer version) {
+        this.version = version;
+    }
+    
+    public String getUpdateReason() {
+        return updateReason;
+    }
+    
+    public void setUpdateReason(String updateReason) {
+        this.updateReason = updateReason;
+    }
+    
+    public String getUpdatedBy() {
+        return updatedBy;
+    }
+    
+    public void setUpdatedBy(String updatedBy) {
+        this.updatedBy = updatedBy;
+    }
 }

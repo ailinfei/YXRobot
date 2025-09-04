@@ -1,6 +1,47 @@
 {
   "groups": [
     {
+      "name": "order.validation",
+      "type": "com.yxrobot.config.ValidationConfig",
+      "sourceType": "com.yxrobot.config.ValidationConfig"
+    },
+    {
+      "name": "order.validation.amount",
+      "type": "com.yxrobot.config.ValidationConfig$AmountConfig",
+      "sourceType": "com.yxrobot.config.ValidationConfig",
+      "sourceMethod": "getAmount()"
+    },
+    {
+      "name": "order.validation.business-rule",
+      "type": "com.yxrobot.config.ValidationConfig$BusinessRuleConfig",
+      "sourceType": "com.yxrobot.config.ValidationConfig",
+      "sourceMethod": "getBusinessRule()"
+    },
+    {
+      "name": "order.validation.customer",
+      "type": "com.yxrobot.config.ValidationConfig$CustomerConfig",
+      "sourceType": "com.yxrobot.config.ValidationConfig",
+      "sourceMethod": "getCustomer()"
+    },
+    {
+      "name": "order.validation.order-number",
+      "type": "com.yxrobot.config.ValidationConfig$OrderNumberConfig",
+      "sourceType": "com.yxrobot.config.ValidationConfig",
+      "sourceMethod": "getOrderNumber()"
+    },
+    {
+      "name": "order.validation.product",
+      "type": "com.yxrobot.config.ValidationConfig$ProductConfig",
+      "sourceType": "com.yxrobot.config.ValidationConfig",
+      "sourceMethod": "getProduct()"
+    },
+    {
+      "name": "order.validation.rental",
+      "type": "com.yxrobot.config.ValidationConfig$RentalConfig",
+      "sourceType": "com.yxrobot.config.ValidationConfig",
+      "sourceMethod": "getRental()"
+    },
+    {
       "name": "platform.link.performance",
       "type": "com.yxrobot.config.PerformanceConfig",
       "sourceType": "com.yxrobot.config.PerformanceConfig"
@@ -28,50 +69,174 @@
       "type": "com.yxrobot.config.PerformanceConfig$Validation",
       "sourceType": "com.yxrobot.config.PerformanceConfig",
       "sourceMethod": "getValidation()"
-    },
-    {
-      "name": "yxrobot.validation.customer",
-      "type": "com.yxrobot.config.ValidationConfig",
-      "sourceType": "com.yxrobot.config.ValidationConfig"
-    },
-    {
-      "name": "yxrobot.validation.customer.business-rules",
-      "type": "com.yxrobot.config.ValidationConfig$BusinessRules",
-      "sourceType": "com.yxrobot.config.ValidationConfig",
-      "sourceMethod": "getBusinessRules()"
-    },
-    {
-      "name": "yxrobot.validation.customer.email-config",
-      "type": "com.yxrobot.config.ValidationConfig$EmailConfig",
-      "sourceType": "com.yxrobot.config.ValidationConfig",
-      "sourceMethod": "getEmailConfig()"
-    },
-    {
-      "name": "yxrobot.validation.customer.field-limits",
-      "type": "com.yxrobot.config.ValidationConfig$FieldLimits",
-      "sourceType": "com.yxrobot.config.ValidationConfig",
-      "sourceMethod": "getFieldLimits()"
-    },
-    {
-      "name": "yxrobot.validation.customer.phone-config",
-      "type": "com.yxrobot.config.ValidationConfig$PhoneConfig",
-      "sourceType": "com.yxrobot.config.ValidationConfig",
-      "sourceMethod": "getPhoneConfig()"
-    },
-    {
-      "name": "yxrobot.validation.customer.sensitive-words",
-      "type": "com.yxrobot.config.ValidationConfig$SensitiveWords",
-      "sourceType": "com.yxrobot.config.ValidationConfig",
-      "sourceMethod": "getSensitiveWords()"
-    },
-    {
-      "name": "yxrobot.validation.customer.switches",
-      "type": "com.yxrobot.config.ValidationConfig$ValidationSwitches",
-      "sourceType": "com.yxrobot.config.ValidationConfig",
-      "sourceMethod": "getSwitches()"
     }
   ],
   "properties": [
+    {
+      "name": "order.validation.amount.allow-negative",
+      "type": "java.lang.Boolean",
+      "sourceType": "com.yxrobot.config.ValidationConfig$AmountConfig",
+      "defaultValue": false
+    },
+    {
+      "name": "order.validation.amount.allow-zero",
+      "type": "java.lang.Boolean",
+      "sourceType": "com.yxrobot.config.ValidationConfig$AmountConfig",
+      "defaultValue": false
+    },
+    {
+      "name": "order.validation.amount.decimal-places",
+      "type": "java.lang.Integer",
+      "sourceType": "com.yxrobot.config.ValidationConfig$AmountConfig",
+      "defaultValue": 2
+    },
+    {
+      "name": "order.validation.amount.max-amount",
+      "type": "java.math.BigDecimal",
+      "sourceType": "com.yxrobot.config.ValidationConfig$AmountConfig"
+    },
+    {
+      "name": "order.validation.amount.min-amount",
+      "type": "java.math.BigDecimal",
+      "sourceType": "com.yxrobot.config.ValidationConfig$AmountConfig"
+    },
+    {
+      "name": "order.validation.business-rule.allowed-order-statuses",
+      "type": "java.util.List<java.lang.String>",
+      "sourceType": "com.yxrobot.config.ValidationConfig$BusinessRuleConfig"
+    },
+    {
+      "name": "order.validation.business-rule.allowed-order-types",
+      "type": "java.util.List<java.lang.String>",
+      "sourceType": "com.yxrobot.config.ValidationConfig$BusinessRuleConfig"
+    },
+    {
+      "name": "order.validation.business-rule.allowed-payment-methods",
+      "type": "java.util.List<java.lang.String>",
+      "sourceType": "com.yxrobot.config.ValidationConfig$BusinessRuleConfig"
+    },
+    {
+      "name": "order.validation.business-rule.status-transitions",
+      "type": "java.util.Map<java.lang.String,java.util.List<java.lang.String>>",
+      "sourceType": "com.yxrobot.config.ValidationConfig$BusinessRuleConfig"
+    },
+    {
+      "name": "order.validation.customer.address-max-length",
+      "type": "java.lang.Integer",
+      "sourceType": "com.yxrobot.config.ValidationConfig$CustomerConfig",
+      "defaultValue": 200
+    },
+    {
+      "name": "order.validation.customer.email-pattern",
+      "type": "java.lang.String",
+      "sourceType": "com.yxrobot.config.ValidationConfig$CustomerConfig",
+      "defaultValue": "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$"
+    },
+    {
+      "name": "order.validation.customer.name-max-length",
+      "type": "java.lang.Integer",
+      "sourceType": "com.yxrobot.config.ValidationConfig$CustomerConfig",
+      "defaultValue": 50
+    },
+    {
+      "name": "order.validation.customer.name-min-length",
+      "type": "java.lang.Integer",
+      "sourceType": "com.yxrobot.config.ValidationConfig$CustomerConfig",
+      "defaultValue": 2
+    },
+    {
+      "name": "order.validation.customer.phone-pattern",
+      "type": "java.lang.String",
+      "sourceType": "com.yxrobot.config.ValidationConfig$CustomerConfig",
+      "defaultValue": "^1[3-9]\\d{9}$"
+    },
+    {
+      "name": "order.validation.order-number.allowed-prefixes",
+      "type": "java.util.List<java.lang.String>",
+      "sourceType": "com.yxrobot.config.ValidationConfig$OrderNumberConfig"
+    },
+    {
+      "name": "order.validation.order-number.max-length",
+      "type": "java.lang.Integer",
+      "sourceType": "com.yxrobot.config.ValidationConfig$OrderNumberConfig",
+      "defaultValue": 20
+    },
+    {
+      "name": "order.validation.order-number.min-length",
+      "type": "java.lang.Integer",
+      "sourceType": "com.yxrobot.config.ValidationConfig$OrderNumberConfig",
+      "defaultValue": 13
+    },
+    {
+      "name": "order.validation.order-number.pattern",
+      "type": "java.lang.String",
+      "sourceType": "com.yxrobot.config.ValidationConfig$OrderNumberConfig",
+      "defaultValue": "^[A-Z]{3}\\d{10}$"
+    },
+    {
+      "name": "order.validation.product.check-product-status",
+      "type": "java.lang.Boolean",
+      "sourceType": "com.yxrobot.config.ValidationConfig$ProductConfig",
+      "defaultValue": true
+    },
+    {
+      "name": "order.validation.product.check-stock",
+      "type": "java.lang.Boolean",
+      "sourceType": "com.yxrobot.config.ValidationConfig$ProductConfig",
+      "defaultValue": true
+    },
+    {
+      "name": "order.validation.product.max-quantity",
+      "type": "java.lang.Integer",
+      "sourceType": "com.yxrobot.config.ValidationConfig$ProductConfig",
+      "defaultValue": 9999
+    },
+    {
+      "name": "order.validation.product.min-quantity",
+      "type": "java.lang.Integer",
+      "sourceType": "com.yxrobot.config.ValidationConfig$ProductConfig",
+      "defaultValue": 1
+    },
+    {
+      "name": "order.validation.product.name-max-length",
+      "type": "java.lang.Integer",
+      "sourceType": "com.yxrobot.config.ValidationConfig$ProductConfig",
+      "defaultValue": 100
+    },
+    {
+      "name": "order.validation.rental.advance-booking-days",
+      "type": "java.lang.Integer",
+      "sourceType": "com.yxrobot.config.ValidationConfig$RentalConfig",
+      "defaultValue": 30
+    },
+    {
+      "name": "order.validation.rental.max-deposit-rate",
+      "type": "java.math.BigDecimal",
+      "sourceType": "com.yxrobot.config.ValidationConfig$RentalConfig"
+    },
+    {
+      "name": "order.validation.rental.max-rental-days",
+      "type": "java.lang.Integer",
+      "sourceType": "com.yxrobot.config.ValidationConfig$RentalConfig",
+      "defaultValue": 365
+    },
+    {
+      "name": "order.validation.rental.min-deposit-rate",
+      "type": "java.math.BigDecimal",
+      "sourceType": "com.yxrobot.config.ValidationConfig$RentalConfig"
+    },
+    {
+      "name": "order.validation.rental.min-rental-days",
+      "type": "java.lang.Integer",
+      "sourceType": "com.yxrobot.config.ValidationConfig$RentalConfig",
+      "defaultValue": 1
+    },
+    {
+      "name": "order.validation.rental.require-deposit",
+      "type": "java.lang.Boolean",
+      "sourceType": "com.yxrobot.config.ValidationConfig$RentalConfig",
+      "defaultValue": true
+    },
     {
       "name": "platform.link.performance.cache.enable-warmup",
       "type": "java.lang.Boolean",
@@ -204,207 +369,6 @@
       "description": "重试次数",
       "sourceType": "com.yxrobot.config.PerformanceConfig$Validation",
       "defaultValue": 2
-    },
-    {
-      "name": "yxrobot.validation.customer.business-rules.active-threshold-days",
-      "type": "java.lang.Integer",
-      "sourceType": "com.yxrobot.config.ValidationConfig$BusinessRules",
-      "defaultValue": 30
-    },
-    {
-      "name": "yxrobot.validation.customer.business-rules.default-page-size",
-      "type": "java.lang.Integer",
-      "sourceType": "com.yxrobot.config.ValidationConfig$BusinessRules",
-      "defaultValue": 20
-    },
-    {
-      "name": "yxrobot.validation.customer.business-rules.inactive-threshold-days",
-      "type": "java.lang.Integer",
-      "sourceType": "com.yxrobot.config.ValidationConfig$BusinessRules",
-      "defaultValue": 90
-    },
-    {
-      "name": "yxrobot.validation.customer.business-rules.max-customer-value",
-      "type": "java.math.BigDecimal",
-      "sourceType": "com.yxrobot.config.ValidationConfig$BusinessRules"
-    },
-    {
-      "name": "yxrobot.validation.customer.business-rules.max-page-size",
-      "type": "java.lang.Integer",
-      "sourceType": "com.yxrobot.config.ValidationConfig$BusinessRules",
-      "defaultValue": 100
-    },
-    {
-      "name": "yxrobot.validation.customer.business-rules.min-customer-value",
-      "type": "java.math.BigDecimal",
-      "sourceType": "com.yxrobot.config.ValidationConfig$BusinessRules"
-    },
-    {
-      "name": "yxrobot.validation.customer.business-rules.premium-threshold",
-      "type": "java.math.BigDecimal",
-      "sourceType": "com.yxrobot.config.ValidationConfig$BusinessRules"
-    },
-    {
-      "name": "yxrobot.validation.customer.business-rules.vip-threshold",
-      "type": "java.math.BigDecimal",
-      "sourceType": "com.yxrobot.config.ValidationConfig$BusinessRules"
-    },
-    {
-      "name": "yxrobot.validation.customer.email-config.allow-temporary-emails",
-      "type": "java.lang.Boolean",
-      "sourceType": "com.yxrobot.config.ValidationConfig$EmailConfig",
-      "defaultValue": false
-    },
-    {
-      "name": "yxrobot.validation.customer.email-config.require-trusted-domains",
-      "type": "java.lang.Boolean",
-      "sourceType": "com.yxrobot.config.ValidationConfig$EmailConfig",
-      "defaultValue": false
-    },
-    {
-      "name": "yxrobot.validation.customer.email-config.temporary-domains",
-      "type": "java.util.List<java.lang.String>",
-      "sourceType": "com.yxrobot.config.ValidationConfig$EmailConfig"
-    },
-    {
-      "name": "yxrobot.validation.customer.email-config.trusted-domains",
-      "type": "java.util.List<java.lang.String>",
-      "sourceType": "com.yxrobot.config.ValidationConfig$EmailConfig"
-    },
-    {
-      "name": "yxrobot.validation.customer.field-limits.max-address-length",
-      "type": "java.lang.Integer",
-      "sourceType": "com.yxrobot.config.ValidationConfig$FieldLimits",
-      "defaultValue": 200
-    },
-    {
-      "name": "yxrobot.validation.customer.field-limits.max-company-length",
-      "type": "java.lang.Integer",
-      "sourceType": "com.yxrobot.config.ValidationConfig$FieldLimits",
-      "defaultValue": 100
-    },
-    {
-      "name": "yxrobot.validation.customer.field-limits.max-email-length",
-      "type": "java.lang.Integer",
-      "sourceType": "com.yxrobot.config.ValidationConfig$FieldLimits",
-      "defaultValue": 100
-    },
-    {
-      "name": "yxrobot.validation.customer.field-limits.max-keyword-length",
-      "type": "java.lang.Integer",
-      "sourceType": "com.yxrobot.config.ValidationConfig$FieldLimits",
-      "defaultValue": 100
-    },
-    {
-      "name": "yxrobot.validation.customer.field-limits.max-name-length",
-      "type": "java.lang.Integer",
-      "sourceType": "com.yxrobot.config.ValidationConfig$FieldLimits",
-      "defaultValue": 50
-    },
-    {
-      "name": "yxrobot.validation.customer.field-limits.max-notes-length",
-      "type": "java.lang.Integer",
-      "sourceType": "com.yxrobot.config.ValidationConfig$FieldLimits",
-      "defaultValue": 500
-    },
-    {
-      "name": "yxrobot.validation.customer.field-limits.max-tag-length",
-      "type": "java.lang.Integer",
-      "sourceType": "com.yxrobot.config.ValidationConfig$FieldLimits",
-      "defaultValue": 20
-    },
-    {
-      "name": "yxrobot.validation.customer.field-limits.max-tags-count",
-      "type": "java.lang.Integer",
-      "sourceType": "com.yxrobot.config.ValidationConfig$FieldLimits",
-      "defaultValue": 10
-    },
-    {
-      "name": "yxrobot.validation.customer.field-limits.min-name-length",
-      "type": "java.lang.Integer",
-      "sourceType": "com.yxrobot.config.ValidationConfig$FieldLimits",
-      "defaultValue": 2
-    },
-    {
-      "name": "yxrobot.validation.customer.phone-config.allow-test-numbers",
-      "type": "java.lang.Boolean",
-      "sourceType": "com.yxrobot.config.ValidationConfig$PhoneConfig",
-      "defaultValue": false
-    },
-    {
-      "name": "yxrobot.validation.customer.phone-config.allow-virtual-numbers",
-      "type": "java.lang.Boolean",
-      "sourceType": "com.yxrobot.config.ValidationConfig$PhoneConfig",
-      "defaultValue": true
-    },
-    {
-      "name": "yxrobot.validation.customer.phone-config.test-numbers",
-      "type": "java.util.List<java.lang.String>",
-      "sourceType": "com.yxrobot.config.ValidationConfig$PhoneConfig"
-    },
-    {
-      "name": "yxrobot.validation.customer.phone-config.virtual-prefixes",
-      "type": "java.util.List<java.lang.String>",
-      "sourceType": "com.yxrobot.config.ValidationConfig$PhoneConfig"
-    },
-    {
-      "name": "yxrobot.validation.customer.sensitive-words.case-sensitive",
-      "type": "java.lang.Boolean",
-      "sourceType": "com.yxrobot.config.ValidationConfig$SensitiveWords",
-      "defaultValue": false
-    },
-    {
-      "name": "yxrobot.validation.customer.sensitive-words.words",
-      "type": "java.util.List<java.lang.String>",
-      "sourceType": "com.yxrobot.config.ValidationConfig$SensitiveWords"
-    },
-    {
-      "name": "yxrobot.validation.customer.switches.enable-business-rule-check",
-      "type": "java.lang.Boolean",
-      "sourceType": "com.yxrobot.config.ValidationConfig$ValidationSwitches",
-      "defaultValue": true
-    },
-    {
-      "name": "yxrobot.validation.customer.switches.enable-data-integrity-check",
-      "type": "java.lang.Boolean",
-      "sourceType": "com.yxrobot.config.ValidationConfig$ValidationSwitches",
-      "defaultValue": true
-    },
-    {
-      "name": "yxrobot.validation.customer.switches.enable-email-provider-check",
-      "type": "java.lang.Boolean",
-      "sourceType": "com.yxrobot.config.ValidationConfig$ValidationSwitches",
-      "defaultValue": true
-    },
-    {
-      "name": "yxrobot.validation.customer.switches.enable-phone-carrier-check",
-      "type": "java.lang.Boolean",
-      "sourceType": "com.yxrobot.config.ValidationConfig$ValidationSwitches",
-      "defaultValue": true
-    },
-    {
-      "name": "yxrobot.validation.customer.switches.enable-sensitive-word-check",
-      "type": "java.lang.Boolean",
-      "sourceType": "com.yxrobot.config.ValidationConfig$ValidationSwitches",
-      "defaultValue": true
-    },
-    {
-      "name": "yxrobot.validation.customer.switches.enable-strict-validation",
-      "type": "java.lang.Boolean",
-      "sourceType": "com.yxrobot.config.ValidationConfig$ValidationSwitches",
-      "defaultValue": true
-    },
-    {
-      "name": "yxrobot.validation.customer.switches.enable-temporary-email-check",
-      "type": "java.lang.Boolean",
-      "sourceType": "com.yxrobot.config.ValidationConfig$ValidationSwitches",
-      "defaultValue": true
-    },
-    {
-      "name": "yxrobot.validation.customer.switches.enable-uniqueness-check",
-      "type": "java.lang.Boolean",
-      "sourceType": "com.yxrobot.config.ValidationConfig$ValidationSwitches",
-      "defaultValue": true
     }
   ],
   "hints": []

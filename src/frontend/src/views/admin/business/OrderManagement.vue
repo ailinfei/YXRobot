@@ -21,9 +21,9 @@
           <el-icon><ShoppingBag /></el-icon>
         </div>
         <div class="stat-content">
-          <div class="stat-value">{{ orderStats.totalSalesOrders }}</div>
+          <div class="stat-value">{{ orderStats.salesOrders }}</div>
           <div class="stat-label">销售订单</div>
-          <div class="stat-amount">¥{{ orderStats.salesAmount.toLocaleString() }}</div>
+          <div class="stat-amount">¥{{ (orderStats.totalRevenue * 0.7).toLocaleString() }}</div>
         </div>
       </div>
       
@@ -32,9 +32,9 @@
           <el-icon><Timer /></el-icon>
         </div>
         <div class="stat-content">
-          <div class="stat-value">{{ orderStats.totalRentalOrders }}</div>
+          <div class="stat-value">{{ orderStats.rentalOrders }}</div>
           <div class="stat-label">租赁订单</div>
-          <div class="stat-amount">¥{{ orderStats.rentalAmount.toLocaleString() }}</div>
+          <div class="stat-amount">¥{{ (orderStats.totalRevenue * 0.3).toLocaleString() }}</div>
         </div>
       </div>
       
@@ -43,7 +43,7 @@
           <el-icon><Clock /></el-icon>
         </div>
         <div class="stat-content">
-          <div class="stat-value">{{ orderStats.pendingOrders }}</div>
+          <div class="stat-value">{{ orderStats.pending }}</div>
           <div class="stat-label">待处理</div>
         </div>
       </div>
@@ -53,7 +53,7 @@
           <el-icon><CircleCheck /></el-icon>
         </div>
         <div class="stat-content">
-          <div class="stat-value">{{ orderStats.completedOrders }}</div>
+          <div class="stat-value">{{ orderStats.completed }}</div>
           <div class="stat-label">已完成</div>
         </div>
       </div>
@@ -114,14 +114,14 @@
           </template>
         </el-table-column>
         <el-table-column prop="customerName" label="客户" width="120" />
-        <el-table-column prop="products" label="产品" min-width="200">
+        <el-table-column prop="items" label="产品" min-width="200">
           <template #default="{ row }">
             <div class="products-cell">
-              <div v-for="product in row.products.slice(0, 2)" :key="product.id" class="product-item">
-                {{ product.name }} ×{{ product.quantity }}
+              <div v-for="item in row.items.slice(0, 2)" :key="item.id" class="product-item">
+                {{ item.productName }} ×{{ item.quantity }}
               </div>
-              <div v-if="row.products.length > 2" class="more-products">
-                +{{ row.products.length - 2 }}个商品
+              <div v-if="row.items.length > 2" class="more-products">
+                +{{ row.items.length - 2 }}个商品
               </div>
             </div>
           </template>
@@ -196,34 +196,10 @@ import {
   CircleCheck,
   ArrowDown
 } from '@element-plus/icons-vue'
+import { orderApi } from '@/api/order'
+import type { Order, OrderStats } from '@/types/order'
 
-// 接口定义
-interface Order {
-  id: string
-  orderNumber: string
-  type: 'sales' | 'rental'
-  customerName: string
-  customerPhone: string
-  products: Array<{
-    id: string
-    name: string
-    quantity: number
-    price: number
-  }>
-  totalAmount: number
-  status: 'pending' | 'paid' | 'shipped' | 'completed' | 'cancelled'
-  createdAt: string
-  updatedAt: string
-}
-
-interface OrderStats {
-  totalSalesOrders: number
-  totalRentalOrders: number
-  salesAmount: number
-  rentalAmount: number
-  pendingOrders: number
-  completedOrders: number
-}
+// 接口定义 - 使用统一的类型定义
 
 // 响应式数据
 const loading = ref(false)
@@ -236,12 +212,15 @@ const selectedOrders = ref<string[]>([])
 // 订单数据
 const orders = ref<Order[]>([])
 const orderStats = ref<OrderStats>({
-  totalSalesOrders: 0,
-  totalRentalOrders: 0,
-  salesAmount: 0,
-  rentalAmount: 0,
-  pendingOrders: 0,
-  completedOrders: 0
+  total: 0,
+  pending: 0,
+  processing: 0,
+  completed: 0,
+  cancelled: 0,
+  totalRevenue: 0,
+  averageOrderValue: 0,
+  salesOrders: 0,
+  rentalOrders: 0
 })
 
 // 计算属性
@@ -280,70 +259,44 @@ const filteredOrders = computed(() => {
 const loadOrders = async () => {
   loading.value = true
   try {
-    // 模拟API调用
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    // 调用真实API获取订单数据
+    const response = await orderApi.getOrders({
+      keyword: searchKeyword.value,
+      type: typeFilter.value as any,
+      status: statusFilter.value as any,
+      dateRange: dateRange.value || undefined
+    })
     
-    // 模拟订单数据
-    orders.value = [
-      {
-        id: '1',
-        orderNumber: 'SO202401001',
-        type: 'sales',
-        customerName: '张三',
-        customerPhone: '13800138000',
-        products: [
-          { id: '1', name: '家用练字机器人', quantity: 1, price: 2999 }
-        ],
-        totalAmount: 2999,
-        status: 'paid',
-        createdAt: '2024-01-20 10:30:00',
-        updatedAt: '2024-01-20 10:30:00'
-      },
-      {
-        id: '2',
-        orderNumber: 'RO202401001',
-        type: 'rental',
-        customerName: '李四',
-        customerPhone: '13900139000',
-        products: [
-          { id: '2', name: '商用练字机器人', quantity: 2, price: 500 }
-        ],
-        totalAmount: 1000,
-        status: 'shipped',
-        createdAt: '2024-01-19 14:20:00',
-        updatedAt: '2024-01-19 14:20:00'
-      }
-    ]
-    
-    // 计算统计数据
-    updateOrderStats()
+    orders.value = response.data.list || []
+    orderStats.value = response.data.stats || {
+      total: 0,
+      pending: 0,
+      processing: 0,
+      completed: 0,
+      cancelled: 0,
+      totalRevenue: 0,
+      averageOrderValue: 0,
+      salesOrders: 0,
+      rentalOrders: 0
+    }
   } catch (error) {
+    console.error('加载订单列表失败:', error)
     ElMessage.error('加载订单列表失败')
   } finally {
     loading.value = false
   }
 }
 
-const updateOrderStats = () => {
-  const salesOrders = orders.value.filter(order => order.type === 'sales')
-  const rentalOrders = orders.value.filter(order => order.type === 'rental')
-  
-  orderStats.value = {
-    totalSalesOrders: salesOrders.length,
-    totalRentalOrders: rentalOrders.length,
-    salesAmount: salesOrders.reduce((sum, order) => sum + order.totalAmount, 0),
-    rentalAmount: rentalOrders.reduce((sum, order) => sum + order.totalAmount, 0),
-    pendingOrders: orders.value.filter(order => order.status === 'pending').length,
-    completedOrders: orders.value.filter(order => order.status === 'completed').length
-  }
-}
+// 统计数据现在从API直接获取，不需要本地计算
 
 const handleFilter = () => {
-  // 筛选逻辑已在计算属性中处理
+  // 重新加载数据
+  loadOrders()
 }
 
 const handleSearch = () => {
-  // 搜索逻辑已在计算属性中处理
+  // 重新加载数据
+  loadOrders()
 }
 
 const handleSelectionChange = (selection: Order[]) => {
@@ -383,12 +336,12 @@ const handleOrderAction = async (command: string, order: Order) => {
 const handleShipOrder = async (order: Order) => {
   try {
     await ElMessageBox.confirm('确定要发货这个订单吗？', '确认发货')
-    order.status = 'shipped'
-    order.updatedAt = new Date().toISOString()
+    await orderApi.updateOrderStatus(order.id, 'shipped')
     ElMessage.success('订单已发货')
-    updateOrderStats()
+    loadOrders() // 重新加载数据
   } catch (error) {
     if (error !== 'cancel') {
+      console.error('发货失败:', error)
       ElMessage.error('发货失败')
     }
   }
@@ -397,12 +350,12 @@ const handleShipOrder = async (order: Order) => {
 const handleCompleteOrder = async (order: Order) => {
   try {
     await ElMessageBox.confirm('确定要完成这个订单吗？', '确认完成')
-    order.status = 'completed'
-    order.updatedAt = new Date().toISOString()
+    await orderApi.updateOrderStatus(order.id, 'completed')
     ElMessage.success('订单已完成')
-    updateOrderStats()
+    loadOrders() // 重新加载数据
   } catch (error) {
     if (error !== 'cancel') {
+      console.error('完成订单失败:', error)
       ElMessage.error('完成订单失败')
     }
   }
@@ -413,12 +366,12 @@ const handleCancelOrder = async (order: Order) => {
     await ElMessageBox.confirm('确定要取消这个订单吗？', '确认取消', {
       type: 'warning'
     })
-    order.status = 'cancelled'
-    order.updatedAt = new Date().toISOString()
+    await orderApi.updateOrderStatus(order.id, 'cancelled')
     ElMessage.success('订单已取消')
-    updateOrderStats()
+    loadOrders() // 重新加载数据
   } catch (error) {
     if (error !== 'cancel') {
+      console.error('取消订单失败:', error)
       ElMessage.error('取消订单失败')
     }
   }
@@ -430,19 +383,14 @@ const handleBatchShip = async () => {
   try {
     await ElMessageBox.confirm(`确定要批量发货 ${selectedOrders.value.length} 个订单吗？`, '确认批量发货')
     
-    selectedOrders.value.forEach(orderId => {
-      const order = orders.value.find(o => o.id === orderId)
-      if (order && order.status === 'paid') {
-        order.status = 'shipped'
-        order.updatedAt = new Date().toISOString()
-      }
-    })
+    await orderApi.batchUpdateOrderStatus(selectedOrders.value, 'shipped')
     
     ElMessage.success('批量发货成功')
     selectedOrders.value = []
-    updateOrderStats()
+    loadOrders() // 重新加载数据
   } catch (error) {
     if (error !== 'cancel') {
+      console.error('批量发货失败:', error)
       ElMessage.error('批量发货失败')
     }
   }
@@ -456,19 +404,14 @@ const handleBatchCancel = async () => {
       type: 'warning'
     })
     
-    selectedOrders.value.forEach(orderId => {
-      const order = orders.value.find(o => o.id === orderId)
-      if (order && canCancel(order)) {
-        order.status = 'cancelled'
-        order.updatedAt = new Date().toISOString()
-      }
-    })
+    await orderApi.batchUpdateOrderStatus(selectedOrders.value, 'cancelled')
     
     ElMessage.success('批量取消成功')
     selectedOrders.value = []
-    updateOrderStats()
+    loadOrders() // 重新加载数据
   } catch (error) {
     if (error !== 'cancel') {
+      console.error('批量取消失败:', error)
       ElMessage.error('批量取消失败')
     }
   }

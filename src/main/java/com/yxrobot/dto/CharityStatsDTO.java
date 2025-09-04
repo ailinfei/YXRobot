@@ -138,6 +138,152 @@ public class CharityStatsDTO {
      * 项目数环比增长率（百分比）
      */
     private BigDecimal projectsGrowthRate;
+    
+    // 手动添加getter方法，确保Lombok正常工作
+    public Long getId() {
+        return id;
+    }
+    
+    public Integer getTotalBeneficiaries() {
+        return totalBeneficiaries;
+    }
+    
+    public Integer getTotalInstitutions() {
+        return totalInstitutions;
+    }
+    
+    public Integer getCooperatingInstitutions() {
+        return cooperatingInstitutions;
+    }
+    
+    public Integer getTotalVolunteers() {
+        return totalVolunteers;
+    }
+    
+    public BigDecimal getTotalRaised() {
+        return totalRaised;
+    }
+    
+    public BigDecimal getTotalDonated() {
+        return totalDonated;
+    }
+    
+    public Integer getTotalProjects() {
+        return totalProjects;
+    }
+    
+    public Integer getActiveProjects() {
+        return activeProjects;
+    }
+    
+    public Integer getCompletedProjects() {
+        return completedProjects;
+    }
+    
+    public Integer getTotalActivities() {
+        return totalActivities;
+    }
+    
+    public Integer getThisMonthActivities() {
+        return thisMonthActivities;
+    }
+    
+    public LocalDateTime getCreateTime() {
+        return createTime;
+    }
+    
+    public LocalDateTime getUpdateTime() {
+        return updateTime;
+    }
+    
+    public Integer getVersion() {
+        return version;
+    }
+    
+    public BigDecimal getBeneficiariesGrowthRate() {
+        return beneficiariesGrowthRate;
+    }
+    
+    public BigDecimal getRaisedGrowthRate() {
+        return raisedGrowthRate;
+    }
+    
+    public BigDecimal getProjectsGrowthRate() {
+        return projectsGrowthRate;
+    }
+    
+    // 手动添加setter方法，确保Lombok正常工作
+    public void setId(Long id) {
+        this.id = id;
+    }
+    
+    public void setTotalBeneficiaries(Integer totalBeneficiaries) {
+        this.totalBeneficiaries = totalBeneficiaries;
+    }
+    
+    public void setTotalInstitutions(Integer totalInstitutions) {
+        this.totalInstitutions = totalInstitutions;
+    }
+    
+    public void setCooperatingInstitutions(Integer cooperatingInstitutions) {
+        this.cooperatingInstitutions = cooperatingInstitutions;
+    }
+    
+    public void setTotalVolunteers(Integer totalVolunteers) {
+        this.totalVolunteers = totalVolunteers;
+    }
+    
+    public void setTotalRaised(BigDecimal totalRaised) {
+        this.totalRaised = totalRaised;
+    }
+    
+    public void setTotalDonated(BigDecimal totalDonated) {
+        this.totalDonated = totalDonated;
+    }
+    
+    public void setTotalProjects(Integer totalProjects) {
+        this.totalProjects = totalProjects;
+    }
+    
+    public void setActiveProjects(Integer activeProjects) {
+        this.activeProjects = activeProjects;
+    }
+    
+    public void setCompletedProjects(Integer completedProjects) {
+        this.completedProjects = completedProjects;
+    }
+    
+    public void setTotalActivities(Integer totalActivities) {
+        this.totalActivities = totalActivities;
+    }
+    
+    public void setThisMonthActivities(Integer thisMonthActivities) {
+        this.thisMonthActivities = thisMonthActivities;
+    }
+    
+    public void setCreateTime(LocalDateTime createTime) {
+        this.createTime = createTime;
+    }
+    
+    public void setUpdateTime(LocalDateTime updateTime) {
+        this.updateTime = updateTime;
+    }
+    
+    public void setVersion(Integer version) {
+        this.version = version;
+    }
+    
+    public void setBeneficiariesGrowthRate(BigDecimal beneficiariesGrowthRate) {
+        this.beneficiariesGrowthRate = beneficiariesGrowthRate;
+    }
+    
+    public void setRaisedGrowthRate(BigDecimal raisedGrowthRate) {
+        this.raisedGrowthRate = raisedGrowthRate;
+    }
+    
+    public void setProjectsGrowthRate(BigDecimal projectsGrowthRate) {
+        this.projectsGrowthRate = projectsGrowthRate;
+    }
 }
 
 /**

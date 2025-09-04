@@ -131,14 +131,14 @@
         WHERE id = #{id} AND is_deleted = 0
     </update>
 
-    <!-- 根据ID软删除项目 -->
+    <!-- 根据ID软删除项射-->
     <update id="deleteById">
         UPDATE charity_projects
         SET is_deleted = 1, updated_at = NOW()
         WHERE id = #{id} AND is_deleted = 0
     </update>
 
-    <!-- 批量软删除项目 -->
+    <!-- 批量软删除项射-->
     <update id="batchDeleteByIds">
         UPDATE charity_projects
         SET is_deleted = 1, updated_at = NOW()
@@ -149,21 +149,21 @@
         AND is_deleted = 0
     </update>
 
-    <!-- 检查项目名称是否存在 -->
+    <!-- 检查项目名称是否存射-->
     <select id="existsByName" resultType="java.lang.Boolean">
-        SELECT COUNT(*) > 0
+        SELECT COUNT(*) &gt; 0
         FROM charity_projects
         WHERE name = #{name} AND is_deleted = 0
     </select>
 
-    <!-- 检查项目名称是否存在（排除指定ID） -->
+    <!-- 检查项目名称是否存在（排除指定ID射-->
     <select id="existsByNameExcludeId" resultType="java.lang.Boolean">
-        SELECT COUNT(*) > 0
+        SELECT COUNT(*) &gt; 0
         FROM charity_projects
         WHERE name = #{name} AND id != #{excludeId} AND is_deleted = 0
     </select>
 
-    <!-- 根据状态统计项目数量 -->
+    <!-- 根据状态统计项目数射-->
     <select id="countByStatus" resultType="java.lang.Long">
         SELECT COUNT(*)
         FROM charity_projects
@@ -184,17 +184,17 @@
         WHERE location = #{region} AND is_deleted = 0
     </select>
 
-    <!-- 获取所有项目状态统计 -->
+    <!-- 获取所有项目状态统射-->
     <select id="getStatusStatistics" resultType="java.util.Map">
         SELECT 
             status,
             COUNT(*) as count,
             CASE status
-                WHEN 'planning' THEN '规划中'
-                WHEN 'active' THEN '进行中'
-                WHEN 'completed' THEN '已完成'
+                WHEN 'planning' THEN '规划射
+                WHEN 'active' THEN '进行射
+                WHEN 'completed' THEN '已完射
                 WHEN 'suspended' THEN '暂停'
-                WHEN 'cancelled' THEN '已取消'
+                WHEN 'cancelled' THEN '已取射
                 ELSE status
             END as statusName
         FROM charity_projects
@@ -211,7 +211,7 @@
             END
     </select>
 
-    <!-- 获取所有项目类型统计 -->
+    <!-- 获取所有项目类型统射-->
     <select id="getTypeStatistics" resultType="java.util.Map">
         SELECT 
             type,
@@ -243,12 +243,12 @@
         LIMIT 10
     </select>
 
-    <!-- 获取优先级分布统计 -->
+    <!-- 获取优先级分布统射-->
     <select id="getPriorityStatistics" resultType="java.util.Map">
         SELECT 
             'normal' as priority,
             COUNT(*) as count,
-            '普通项目' as priorityName
+            '普通项射 as priorityName
         FROM charity_projects
         WHERE is_deleted = 0
     </select>
@@ -257,9 +257,9 @@
     <select id="getProgressStatistics" resultType="java.util.Map">
         SELECT 
             CASE status
-                WHEN 'completed' THEN '已完成'
-                WHEN 'active' THEN '进行中'
-                WHEN 'planning' THEN '规划中'
+                WHEN 'completed' THEN '已完射
+                WHEN 'active' THEN '进行射
+                WHEN 'planning' THEN '规划射
                 ELSE '其他'
             END as progress_range,
             COUNT(*) as count
@@ -283,7 +283,7 @@
         ORDER BY created_at DESC
     </select>
 
-    <!-- 获取即将结束的项目 -->
+    <!-- 获取即将结束的项射-->
     <select id="selectProjectsEndingSoon" resultMap="CharityProjectResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM charity_projects
@@ -305,7 +305,7 @@
         </if>
     </select>
 
-    <!-- 更新项目状态 -->
+    <!-- 更新项目状射-->
     <update id="updateStatus">
         UPDATE charity_projects
         SET status = #{status},
@@ -321,7 +321,7 @@
         WHERE id = #{id} AND is_deleted = 0
     </update>
 
-    <!-- 批量更新项目状态 -->
+    <!-- 批量更新项目状射-->
     <update id="batchUpdateStatus">
         UPDATE charity_projects
         SET status = #{status},
@@ -341,48 +341,48 @@
             SUM(target_amount) as total_budget,
             SUM(raised_amount) as total_cost,
             CASE 
-                WHEN SUM(target_amount) > 0 
+                WHEN SUM(target_amount) &gt; 0 
                 THEN ROUND(SUM(raised_amount) * 100.0 / SUM(target_amount), 2)
                 ELSE 0 
             END as execution_rate
         FROM charity_projects
         WHERE is_deleted = 0 
         AND status IN ('active', 'completed')
-        AND target_amount > 0
+        AND target_amount &gt; 0
         GROUP BY type
         ORDER BY execution_rate DESC
     </select>
 
-    <!-- 获取项目受益人统计 -->
+    <!-- 获取项目受益人统射-->
     <select id="getBeneficiaryStatistics" resultType="java.util.Map">
         SELECT 
             CASE 
-                WHEN beneficiaries >= 10000 THEN '10000人以上'
-                WHEN beneficiaries >= 5000 THEN '5000-9999人'
-                WHEN beneficiaries >= 1000 THEN '1000-4999人'
-                WHEN beneficiaries >= 500 THEN '500-999人'
-                WHEN beneficiaries >= 100 THEN '100-499人'
-                ELSE '100人以下'
+                WHEN beneficiaries &gt;= 10000 THEN '10000人以射
+                WHEN beneficiaries &gt;= 5000 THEN '5000-9999射
+                WHEN beneficiaries &gt;= 1000 THEN '1000-4999射
+                WHEN beneficiaries &gt;= 500 THEN '500-999射
+                WHEN beneficiaries &gt;= 100 THEN '100-499射
+                ELSE '100人以射
             END as beneficiary_range,
             COUNT(*) as count
         FROM charity_projects
-        WHERE is_deleted = 0 AND beneficiaries > 0
+        WHERE is_deleted = 0 AND beneficiaries &gt; 0
         GROUP BY 
             CASE 
-                WHEN beneficiaries >= 10000 THEN '10000人以上'
-                WHEN beneficiaries >= 5000 THEN '5000-9999人'
-                WHEN beneficiaries >= 1000 THEN '1000-4999人'
-                WHEN beneficiaries >= 500 THEN '500-999人'
-                WHEN beneficiaries >= 100 THEN '100-499人'
-                ELSE '100人以下'
+                WHEN beneficiaries &gt;= 10000 THEN '10000人以射
+                WHEN beneficiaries &gt;= 5000 THEN '5000-9999射
+                WHEN beneficiaries &gt;= 1000 THEN '1000-4999射
+                WHEN beneficiaries &gt;= 500 THEN '500-999射
+                WHEN beneficiaries &gt;= 100 THEN '100-499射
+                ELSE '100人以射
             END
         ORDER BY 
             CASE 
-                WHEN beneficiary_range = '10000人以上' THEN 1
-                WHEN beneficiary_range = '5000-9999人' THEN 2
-                WHEN beneficiary_range = '1000-4999人' THEN 3
-                WHEN beneficiary_range = '500-999人' THEN 4
-                WHEN beneficiary_range = '100-499人' THEN 5
+                WHEN beneficiary_range = '10000人以射 THEN 1
+                WHEN beneficiary_range = '5000-9999射 THEN 2
+                WHEN beneficiary_range = '1000-4999射 THEN 3
+                WHEN beneficiary_range = '500-999射 THEN 4
+                WHEN beneficiary_range = '100-499射 THEN 5
                 ELSE 6
             END
     </select>
@@ -400,11 +400,11 @@
                 ELSE DATEDIFF(NOW(), start_date)
             END as duration_days,
             CASE 
-                WHEN end_date IS NOT NULL AND DATEDIFF(end_date, start_date) >= 365 THEN '长期项目'
-                WHEN end_date IS NOT NULL AND DATEDIFF(end_date, start_date) >= 90 THEN '中期项目'
+                WHEN end_date IS NOT NULL AND DATEDIFF(end_date, start_date) &gt;= 365 THEN '长期项目'
+                WHEN end_date IS NOT NULL AND DATEDIFF(end_date, start_date) &gt;= 90 THEN '中期项目'
                 WHEN end_date IS NOT NULL THEN '短期项目'
-                WHEN DATEDIFF(NOW(), start_date) >= 365 THEN '长期项目'
-                WHEN DATEDIFF(NOW(), start_date) >= 90 THEN '中期项目'
+                WHEN DATEDIFF(NOW(), start_date) &gt;= 365 THEN '长期项目'
+                WHEN DATEDIFF(NOW(), start_date) &gt;= 90 THEN '中期项目'
                 ELSE '短期项目'
             END as duration_type
         FROM charity_projects

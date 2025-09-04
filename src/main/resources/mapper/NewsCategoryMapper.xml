@@ -67,7 +67,7 @@
         ORDER BY sort_order ASC, created_at DESC
     </select>
 
-    <!-- 查询所有新闻分类 -->
+    <!-- 查询所有新闻分射?-->
     <select id="selectAll" resultMap="NewsCategoryResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM news_categories
@@ -87,17 +87,17 @@
         SELECT COUNT(*) FROM news_categories
     </select>
 
-    <!-- 统计启用的新闻分类数量 -->
+    <!-- 统计启用的新闻分类数射?-->
     <select id="countEnabled" resultType="java.lang.Integer">
         SELECT COUNT(*) FROM news_categories WHERE is_enabled = 1
     </select>
 
-    <!-- 检查分类名称是否存在 -->
+    <!-- 检查分类名称是否存射?-->
     <select id="existsByName" parameterType="java.lang.String" resultType="java.lang.Boolean">
         SELECT COUNT(*) > 0 FROM news_categories WHERE name = #{name}
     </select>
 
-    <!-- 检查分类名称是否存在（排除指定ID） -->
+    <!-- 检查分类名称是否存在（排除指定ID射?-->
     <select id="existsByNameExcludeId" resultType="java.lang.Boolean">
         SELECT COUNT(*) > 0 FROM news_categories 
         WHERE name = #{name} AND id != #{id}

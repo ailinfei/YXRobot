@@ -37,7 +37,7 @@
         WHERE model = #{model} AND is_deleted = 0
     </select>
 
-    <!-- 查询所有产品 -->
+    <!-- 查询所有产射?-->
     <select id="selectAll" resultMap="ProductResultMap">
         SELECT
         <include refid="Base_Column_List"/>
@@ -46,7 +46,7 @@
         ORDER BY created_at DESC
     </select>
 
-    <!-- 根据状态查询产品 -->
+    <!-- 根据状态查询产射?-->
     <select id="selectByStatus" parameterType="java.lang.String" resultMap="ProductResultMap">
         SELECT
         <include refid="Base_Column_List"/>
@@ -101,7 +101,7 @@
         WHERE is_deleted = 0
     </select>
 
-    <!-- 根据状态统计产品数量 -->
+    <!-- 根据状态统计产品数射?-->
     <select id="countByStatus" parameterType="java.lang.String" resultType="java.lang.Integer">
         SELECT COUNT(*)
         FROM products
@@ -132,7 +132,7 @@
         </where>
     </select>
 
-    <!-- 插入新产品 -->
+    <!-- 插入新产射?-->
     <insert id="insert" parameterType="com.yxrobot.entity.Product" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO products (
             name, model, description, price, cover_image_url, status, created_at, updated_at, is_deleted
@@ -168,7 +168,7 @@
         WHERE id = #{id} AND is_deleted = 0
     </update>
 
-    <!-- 更新产品状态 -->
+    <!-- 更新产品状射?-->
     <update id="updateStatus">
         UPDATE products
         SET status = #{status}, updated_at = NOW()
@@ -182,14 +182,14 @@
         WHERE id = #{id} AND is_deleted = 0
     </update>
 
-    <!-- 软删除产品 -->
+    <!-- 软删除产射?-->
     <update id="deleteById" parameterType="java.lang.Long">
         UPDATE products
         SET is_deleted = 1, updated_at = NOW()
         WHERE id = #{id}
     </update>
 
-    <!-- 批量软删除产品 -->
+    <!-- 批量软删除产射?-->
     <update id="deleteBatch">
         UPDATE products
         SET is_deleted = 1, updated_at = NOW()
@@ -206,21 +206,21 @@
         WHERE id = #{id}
     </update>
 
-    <!-- 检查产品型号是否存在 -->
+    <!-- 检查产品型号是否存射?-->
     <select id="existsByModel" parameterType="java.lang.String" resultType="java.lang.Boolean">
         SELECT COUNT(*) > 0
         FROM products
         WHERE model = #{model} AND is_deleted = 0
     </select>
 
-    <!-- 检查产品型号是否存在（排除指定ID） -->
+    <!-- 检查产品型号是否存在（排除指定ID射?-->
     <select id="existsByModelExcludeId" resultType="java.lang.Boolean">
         SELECT COUNT(*) > 0
         FROM products
         WHERE model = #{model} AND id != #{id} AND is_deleted = 0
     </select>
 
-    <!-- 添加测试代码期望的方法实现 -->
+    <!-- 添加测试代码期望的方法实射?-->
     
     <!-- 根据查询条件查询产品 -->
     <select id="selectByQuery" parameterType="com.yxrobot.dto.ProductQueryDTO" resultMap="ProductResultMap">
@@ -309,7 +309,7 @@
         </foreach>
     </update>
     
-    <!-- 获取状态统计 -->
+    <!-- 获取状态统射?-->
     <select id="getStatusStatistics" resultType="java.util.HashMap">
         SELECT 
             'published' as status, COUNT(*) as count

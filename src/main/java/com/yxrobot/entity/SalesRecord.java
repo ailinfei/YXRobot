@@ -160,7 +160,7 @@ public class SalesRecord {
     public SalesRecord() {
         this.discountAmount = BigDecimal.ZERO;
         this.status = SalesStatus.PENDING;
-        this.paymentStatus = PaymentStatus.UNPAID;
+        this.paymentStatus = PaymentStatus.PENDING;
         this.isDeleted = false;
     }
     

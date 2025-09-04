@@ -1,138 +1,111 @@
+<!--
+  通用文件上传组件
+  支持多种文件类型上传，包括图片、文档、固件等
+-->
 <template>
   <div class="file-upload">
-    <!-- 上传区域 -->
     <el-upload
       ref="uploadRef"
-      :class="uploadClass"
-      :action="action"
-      :headers="headers"
-      :data="data"
-      :name="name"
+      :action="uploadUrl"
+      :headers="uploadHeaders"
+      :data="uploadData"
       :multiple="multiple"
-      :drag="drag"
-      :accept="accept"
-      :file-list="fileList"
-      :auto-upload="autoUpload"
-      :disabled="disabled"
       :limit="limit"
-      :show-file-list="showFileList"
-      :list-type="listType"
+      :accept="acceptTypes"
       :before-upload="handleBeforeUpload"
       :on-progress="handleProgress"
       :on-success="handleSuccess"
       :on-error="handleError"
-      :on-remove="handleRemove"
       :on-exceed="handleExceed"
-      :on-preview="handlePreview"
+      :on-remove="handleRemove"
+      :file-list="fileList"
+      :list-type="listType"
+      :drag="drag"
+      :disabled="disabled"
+      :auto-upload="autoUpload"
+      class="upload-component"
     >
       <!-- 上传触发区域 -->
-      <template v-if="listType === 'picture-card'">
-        <div class="upload-card-trigger">
-          <el-icon><Plus /></el-icon>
-          <div class="upload-text">{{ uploadText }}</div>
-        </div>
-      </template>
-      
-      <template v-else-if="drag">
-        <div class="upload-drag-area">
-          <el-icon class="upload-icon"><UploadFilled /></el-icon>
-          <div class="upload-text">{{ uploadText }}</div>
-          <div class="upload-hint">{{ uploadHint }}</div>
-        </div>
-      </template>
-      
-      <template v-else>
-        <el-button :type="buttonType" :icon="Upload" :loading="uploading">
-          {{ uploadText }}
+      <template #trigger v-if="!drag">
+        <el-button type="primary" :loading="uploading" :disabled="disabled">
+          <el-icon><Upload /></el-icon>
+          {{ triggerText }}
         </el-button>
       </template>
       
-      <!-- 上传提示 -->
+      <!-- 拖拽上传区域 -->
+      <template #default v-if="drag">
+        <div class="drag-upload-area">
+          <el-icon class="upload-icon"><UploadFilled /></el-icon>
+          <div class="upload-text">
+            <p>{{ dragText }}</p>
+            <p class="upload-hint">{{ hintText }}</p>
+          </div>
+        </div>
+      </template>
+      
+      <!-- 提示信息 -->
       <template #tip v-if="showTip">
         <div class="upload-tip">
-          <div class="tip-content">
-            <span v-if="accept">支持格式: {{ formatAccept(accept) }}</span>
-            <span v-if="maxSize">单个文件不超过 {{ formatSize(maxSize) }}</span>
-            <span v-if="limit">最多上传 {{ limit }} 个文件</span>
-          </div>
+          <p>{{ tipText }}</p>
+          <p v-if="maxSize">文件大小不超过 {{ maxSize }}MB</p>
         </div>
       </template>
     </el-upload>
-
-    <!-- 自定义文件列表 -->
-    <div v-if="showCustomList && fileList.length > 0" class="custom-file-list">
-      <div class="file-list-header">
-        <span>已上传文件 ({{ fileList.length }})</span>
-        <el-button 
-          v-if="multiple" 
-          type="danger" 
-          size="small" 
-          text
-          @click="handleClearAll"
-        >
-          清空全部
-        </el-button>
-      </div>
-      
-      <div class="file-list-content">
+    
+    <!-- 上传进度 -->
+    <div v-if="uploading && showProgress" class="upload-progress">
+      <el-progress 
+        :percentage="uploadProgress" 
+        :status="uploadStatus"
+        :stroke-width="6"
+      />
+      <p class="progress-text">{{ progressText }}</p>
+    </div>
+    
+    <!-- 已上传文件列表 -->
+    <div v-if="showFileList && uploadedFiles.length > 0" class="uploaded-files">
+      <h4>已上传文件</h4>
+      <div class="file-list">
         <div 
-          v-for="(file, index) in fileList" 
-          :key="file.uid || index"
+          v-for="file in uploadedFiles" 
+          :key="file.data.fileId"
           class="file-item"
-          :class="{ 'is-uploading': file.status === 'uploading' }"
         >
-          <!-- 文件图标 -->
-          <div class="file-icon">
-            <el-icon v-if="isImage(file)"><Picture /></el-icon>
-            <el-icon v-else-if="isVideo(file)"><VideoPlay /></el-icon>
-            <el-icon v-else-if="isDocument(file)"><Document /></el-icon>
-            <el-icon v-else><Files /></el-icon>
-          </div>
-          
-          <!-- 文件信息 -->
           <div class="file-info">
-            <div class="file-name" :title="file.name">{{ file.name }}</div>
-            <div class="file-meta">
-              <span class="file-size">{{ formatFileSize(file.size) }}</span>
-              <span class="file-status" :class="file.status">
-                {{ getStatusText(file.status) }}
-              </span>
+            <el-icon class="file-icon">
+              <Document v-if="!isImageFile(file.data.fileName)" />
+              <Picture v-else />
+            </el-icon>
+            <div class="file-details">
+              <p class="file-name">{{ file.data.fileName }}</p>
+              <p class="file-size">{{ formatFileSize(file.data.fileSize) }}</p>
             </div>
-            
-            <!-- 上传进度 -->
-            <el-progress 
-              v-if="file.status === 'uploading'" 
-              :percentage="file.percentage || 0"
-              :stroke-width="2"
-              :show-text="false"
-            />
           </div>
-          
-          <!-- 文件操作 -->
           <div class="file-actions">
             <el-button 
-              v-if="file.status === 'success'"
+              text 
               type="primary" 
-              size="small" 
-              text
-              @click="handlePreview(file)"
+              size="small"
+              @click="previewFile(file)"
+              v-if="canPreview(file)"
             >
               预览
             </el-button>
             <el-button 
-              v-if="file.url"
+              text 
               type="primary" 
-              size="small" 
-              text
-              @click="handleDownload(file)"
+              size="small"
+              @click="downloadFile(file)"
             >
               下载
             </el-button>
             <el-button 
+              text 
               type="danger" 
-              size="small" 
-              text
-              @click="handleRemove(file)"
+              size="small"
+              @click="deleteFile(file)"
+              :disabled="disabled"
             >
               删除
             </el-button>
@@ -140,526 +113,377 @@
         </div>
       </div>
     </div>
-
-    <!-- 图片预览对话框 -->
-    <el-dialog
-      v-model="previewVisible"
-      title="图片预览"
-      width="60%"
-      :before-close="handleClosePreview"
-    >
-      <div class="preview-container">
-        <el-image
-          :src="previewUrl"
-          fit="contain"
-          class="preview-image"
-          :preview-src-list="[previewUrl]"
-        />
-      </div>
-    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import type { UploadFile, UploadFiles, UploadProps } from 'element-plus'
-import {
-  Plus,
-  Upload,
-  UploadFilled,
-  Picture,
-  VideoPlay,
-  Document,
-  Files
-} from '@element-plus/icons-vue'
+import type { UploadFile, UploadRawFile, UploadProgressEvent } from 'element-plus'
+import { Upload, UploadFilled, Document, Picture } from '@element-plus/icons-vue'
+import { FileUploadService, FileUploadType, type FileUploadResponse } from '@/services/fileUploadService'
 
-// 定义接口
-interface FileUploadProps {
-  modelValue?: UploadFile[]
-  action?: string
-  headers?: Record<string, any>
-  data?: Record<string, any>
-  name?: string
+// 组件属性
+interface Props {
+  // 上传类型
+  uploadType: FileUploadType
+  // 设备ID（可选）
+  deviceId?: string
+  // 是否支持多文件上传
   multiple?: boolean
-  drag?: boolean
-  accept?: string
+  // 最大文件数量
   limit?: number
-  maxSize?: number // MB
-  autoUpload?: boolean
-  disabled?: boolean
-  showFileList?: boolean
-  showCustomList?: boolean
-  showTip?: boolean
+  // 是否拖拽上传
+  drag?: boolean
+  // 列表类型
   listType?: 'text' | 'picture' | 'picture-card'
-  buttonType?: 'primary' | 'success' | 'warning' | 'danger' | 'info'
-  uploadText?: string
-  uploadHint?: string
+  // 是否禁用
+  disabled?: boolean
+  // 是否自动上传
+  autoUpload?: boolean
+  // 是否显示进度条
+  showProgress?: boolean
+  // 是否显示文件列表
+  showFileList?: boolean
+  // 是否显示提示
+  showTip?: boolean
+  // 自定义触发文本
+  triggerText?: string
+  // 自定义拖拽文本
+  dragText?: string
+  // 自定义提示文本
+  tipText?: string
 }
 
-// Props定义
-const props = withDefaults(defineProps<FileUploadProps>(), {
-  modelValue: () => [],
-  action: '/api/v1/upload/temp', // 默认上传地址
-  headers: () => ({}),
-  data: () => ({}),
-  name: 'file',
+const props = withDefaults(defineProps<Props>(), {
   multiple: false,
+  limit: 1,
   drag: false,
-  accept: '',
-  limit: 0,
-  maxSize: 10,
-  autoUpload: false, // 改为手动上传，由父组件控制
-  disabled: false,
-  showFileList: true,
-  showCustomList: false,
-  showTip: true,
   listType: 'text',
-  buttonType: 'primary',
-  uploadText: '选择文件',
-  uploadHint: '将文件拖到此处，或点击上传'
+  disabled: false,
+  autoUpload: true,
+  showProgress: true,
+  showFileList: true,
+  showTip: true,
+  triggerText: '选择文件',
+  dragText: '将文件拖到此处，或点击上传',
+  tipText: '请选择要上传的文件'
 })
 
-// Emits定义
-const emit = defineEmits([
-  'update:modelValue',
-  'success',
-  'error',
-  'progress',
-  'remove',
-  'exceed',
-  'preview'
-])
+// 组件事件
+const emit = defineEmits<{
+  'upload-success': [file: FileUploadResponse]
+  'upload-error': [error: Error]
+  'file-remove': [fileId: string]
+}>()
 
 // 响应式数据
 const uploadRef = ref()
 const uploading = ref(false)
-const fileList = ref<UploadFile[]>([...props.modelValue])
-const previewVisible = ref(false)
-const previewUrl = ref('')
+const uploadProgress = ref(0)
+const uploadedFiles = ref<FileUploadResponse[]>([])
+const fileList = ref<UploadFile[]>([])
 
 // 计算属性
-const uploadClass = computed(() => {
+const uploadUrl = computed(() => {
+  const configs = {
+    [FileUploadType.DEVICE_IMAGE]: '/api/admin/devices/upload/image',
+    [FileUploadType.DEVICE_DOCUMENT]: '/api/admin/devices/upload/document',
+    [FileUploadType.FIRMWARE_FILE]: '/api/admin/devices/upload/firmware',
+    [FileUploadType.DEVICE_MANUAL]: '/api/admin/devices/upload/manual',
+    [FileUploadType.DEVICE_CERTIFICATE]: '/api/admin/devices/upload/certificate'
+  }
+  return configs[props.uploadType]
+})
+
+const uploadHeaders = computed(() => {
+  const token = localStorage.getItem('token')
+  return token ? { Authorization: `Bearer ${token}` } : {}
+})
+
+const uploadData = computed(() => {
   return {
-    'upload-disabled': props.disabled,
-    'upload-drag': props.drag,
-    'upload-picture-card': props.listType === 'picture-card'
+    type: props.uploadType,
+    deviceId: props.deviceId
   }
 })
 
-// 文件类型判断
-const isImage = (file: UploadFile) => {
-  const imageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
-  return imageTypes.includes(file.raw?.type || '') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name || '')
-}
-
-const isVideo = (file: UploadFile) => {
-  const videoTypes = ['video/mp4', 'video/avi', 'video/mov', 'video/wmv']
-  return videoTypes.includes(file.raw?.type || '') || /\.(mp4|avi|mov|wmv)$/i.test(file.name || '')
-}
-
-const isDocument = (file: UploadFile) => {
-  const docTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
-  return docTypes.includes(file.raw?.type || '') || /\.(pdf|doc|docx)$/i.test(file.name || '')
-}
-
-// 格式化函数
-const formatAccept = (accept: string) => {
-  return accept.split(',').map(type => type.trim()).join(', ')
-}
-
-const formatSize = (size: number) => {
-  return `${size}MB`
-}
-
-const formatFileSize = (size?: number) => {
-  if (!size) return '0B'
-  const units = ['B', 'KB', 'MB', 'GB']
-  let index = 0
-  let fileSize = size
-  
-  while (fileSize >= 1024 && index < units.length - 1) {
-    fileSize /= 1024
-    index++
+const acceptTypes = computed(() => {
+  const typeMap = {
+    [FileUploadType.DEVICE_IMAGE]: 'image/*',
+    [FileUploadType.DEVICE_DOCUMENT]: '.pdf,.doc,.docx',
+    [FileUploadType.FIRMWARE_FILE]: '.zip,.tar,.bin',
+    [FileUploadType.DEVICE_MANUAL]: '.pdf',
+    [FileUploadType.DEVICE_CERTIFICATE]: '.pdf,image/*'
   }
-  
-  return `${fileSize.toFixed(1)}${units[index]}`
+  return typeMap[props.uploadType]
+})
+
+const maxSize = computed(() => {
+  const sizeMap = {
+    [FileUploadType.DEVICE_IMAGE]: 5,
+    [FileUploadType.DEVICE_DOCUMENT]: 10,
+    [FileUploadType.FIRMWARE_FILE]: 50,
+    [FileUploadType.DEVICE_MANUAL]: 20,
+    [FileUploadType.DEVICE_CERTIFICATE]: 5
+  }
+  return sizeMap[props.uploadType]
+})
+
+const hintText = computed(() => {
+  return `支持 ${acceptTypes.value} 格式，大小不超过 ${maxSize.value}MB`
+})
+
+const uploadStatus = computed(() => {
+  if (uploadProgress.value === 100) return 'success'
+  if (uploading.value) return undefined
+  return 'exception'
+})
+
+const progressText = computed(() => {
+  if (uploadProgress.value === 100) return '上传完成'
+  if (uploading.value) return `上传中... ${uploadProgress.value}%`
+  return '准备上传'
+})
+
+// 方法
+const handleBeforeUpload = (file: UploadRawFile) => {
+  return FileUploadService.validateFile(file, props.uploadType)
 }
 
-const getStatusText = (status?: string) => {
-  const statusMap: Record<string, string> = {
-    ready: '准备上传',
-    uploading: '上传中',
-    success: '上传成功',
-    fail: '上传失败'
-  }
-  return statusMap[status || ''] || '未知状态'
-}
-
-// 事件处理
-const handleBeforeUpload = (rawFile: File) => {
-  // 文件大小检查
-  if (props.maxSize && rawFile.size / 1024 / 1024 > props.maxSize) {
-    ElMessage.error(`文件大小不能超过 ${props.maxSize}MB`)
-    return false
-  }
-  
-  // 文件类型检查
-  if (props.accept) {
-    const acceptTypes = props.accept.split(',').map(type => type.trim())
-    const isValidType = acceptTypes.some(type => {
-      if (type.startsWith('.')) {
-        return rawFile.name.toLowerCase().endsWith(type.toLowerCase())
-      } else {
-        return rawFile.type.includes(type.replace('*', ''))
-      }
-    })
-    
-    if (!isValidType) {
-      ElMessage.error(`文件格式不支持，请选择 ${formatAccept(props.accept)} 格式的文件`)
-      return false
-    }
-  }
-  
+const handleProgress = (event: UploadProgressEvent) => {
+  uploadProgress.value = Math.round(event.percent || 0)
   uploading.value = true
-  return true
 }
 
-const handleProgress = (event: any, file: UploadFile) => {
-  emit('progress', event, file)
-}
-
-const handleSuccess = (response: any, file: UploadFile, files: UploadFiles) => {
+const handleSuccess = (response: any, file: UploadFile) => {
   uploading.value = false
-  fileList.value = [...files]
-  emit('update:modelValue', fileList.value)
-  emit('success', response, file, files)
-  ElMessage.success('文件上传成功')
-}
-
-const handleError = (error: Error, file: UploadFile, files: UploadFiles) => {
-  uploading.value = false
-  emit('error', error, file, files)
-  ElMessage.error('文件上传失败')
-}
-
-const handleRemove = async (file: UploadFile) => {
-  try {
-    await ElMessageBox.confirm('确定要删除这个文件吗？', '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
-    
-    const index = fileList.value.findIndex(item => item.uid === file.uid)
-    if (index > -1) {
-      fileList.value.splice(index, 1)
-      emit('update:modelValue', fileList.value)
-      emit('remove', file)
-    }
-  } catch {
-    // 用户取消删除
+  uploadProgress.value = 100
+  
+  if (response.code === 200) {
+    uploadedFiles.value.push(response)
+    emit('upload-success', response)
+    ElMessage.success('文件上传成功')
+  } else {
+    handleError(new Error(response.message || '上传失败'), file)
   }
 }
 
-const handleExceed = (files: File[], fileList: UploadFiles) => {
+const handleError = (error: Error, file: UploadFile) => {
+  uploading.value = false
+  uploadProgress.value = 0
+  emit('upload-error', error)
+  ElMessage.error(`文件上传失败: ${error.message}`)
+}
+
+const handleExceed = () => {
   ElMessage.warning(`最多只能上传 ${props.limit} 个文件`)
-  emit('exceed', files, fileList)
 }
 
-const handlePreview = (file: UploadFile) => {
-  if (isImage(file) && file.url) {
-    previewUrl.value = file.url
-    previewVisible.value = true
-  } else if (file.url) {
-    window.open(file.url, '_blank')
-  }
-  emit('preview', file)
-}
-
-const handleDownload = (file: UploadFile) => {
-  if (file.url) {
-    const link = document.createElement('a')
-    link.href = file.url
-    link.download = file.name || 'download'
-    link.click()
+const handleRemove = (file: UploadFile) => {
+  // 从文件列表中移除
+  const index = fileList.value.findIndex(f => f.uid === file.uid)
+  if (index > -1) {
+    fileList.value.splice(index, 1)
   }
 }
 
-const handleClearAll = async () => {
+const deleteFile = async (file: FileUploadResponse) => {
   try {
-    await ElMessageBox.confirm('确定要清空所有文件吗？', '提示', {
+    await ElMessageBox.confirm('确定要删除这个文件吗？', '确认删除', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
     })
     
-    fileList.value = []
-    emit('update:modelValue', fileList.value)
-    uploadRef.value?.clearFiles()
-  } catch {
-    // 用户取消清空
+    await FileUploadService.deleteFile(file.data.fileId)
+    
+    const index = uploadedFiles.value.findIndex(f => f.data.fileId === file.data.fileId)
+    if (index > -1) {
+      uploadedFiles.value.splice(index, 1)
+    }
+    
+    emit('file-remove', file.data.fileId)
+    ElMessage.success('文件删除成功')
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('文件删除失败')
+    }
   }
 }
 
-const handleClosePreview = () => {
-  previewVisible.value = false
-  previewUrl.value = ''
+const previewFile = (file: FileUploadResponse) => {
+  const previewUrl = FileUploadService.getPreviewUrl(file.data.fileId)
+  window.open(previewUrl, '_blank')
 }
 
-// 监听外部文件列表变化
-watch(() => props.modelValue, (newVal) => {
-  fileList.value = [...newVal]
-}, { deep: true })
+const downloadFile = (file: FileUploadResponse) => {
+  const downloadUrl = FileUploadService.getFileUrl(file.data.fileId)
+  const link = document.createElement('a')
+  link.href = downloadUrl
+  link.download = file.data.fileName
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
 
-// 暴露方法给父组件
+const canPreview = (file: FileUploadResponse) => {
+  const previewableTypes = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp']
+  const extension = FileUploadService.getFileExtension(file.data.fileName).toLowerCase()
+  return previewableTypes.includes(extension)
+}
+
+const isImageFile = (fileName: string) => {
+  const imageTypes = ['jpg', 'jpeg', 'png', 'gif', 'webp']
+  const extension = FileUploadService.getFileExtension(fileName).toLowerCase()
+  return imageTypes.includes(extension)
+}
+
+const formatFileSize = (bytes: number) => {
+  return FileUploadService.formatFileSize(bytes)
+}
+
+// 清空文件列表
+const clearFiles = () => {
+  uploadRef.value?.clearFiles()
+  uploadedFiles.value = []
+  fileList.value = []
+}
+
+// 手动上传
+const submit = () => {
+  uploadRef.value?.submit()
+}
+
+// 暴露方法
 defineExpose({
-  clearFiles: () => uploadRef.value?.clearFiles(),
-  abort: () => uploadRef.value?.abort(),
-  submit: () => uploadRef.value?.submit()
+  clearFiles,
+  submit
 })
 </script>
 
 <style lang="scss" scoped>
 .file-upload {
-  .upload-card-trigger {
+  .upload-component {
+    width: 100%;
+  }
+  
+  .drag-upload-area {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 100%;
-    height: 100%;
-    color: var(--text-secondary);
-    
-    .el-icon {
-      font-size: 28px;
-      margin-bottom: 8px;
-    }
-    
-    .upload-text {
-      font-size: 14px;
-    }
-  }
-  
-  .upload-drag-area {
-    text-align: center;
     padding: 40px 20px;
+    border: 2px dashed #d9d9d9;
+    border-radius: 6px;
+    background: #fafafa;
+    transition: border-color 0.3s;
+    
+    &:hover {
+      border-color: #409eff;
+    }
     
     .upload-icon {
       font-size: 48px;
-      color: var(--text-light);
+      color: #c0c4cc;
       margin-bottom: 16px;
     }
     
     .upload-text {
-      font-size: 16px;
-      color: var(--text-primary);
-      margin-bottom: 8px;
-    }
-    
-    .upload-hint {
-      font-size: 14px;
-      color: var(--text-secondary);
+      text-align: center;
+      
+      p {
+        margin: 0 0 8px 0;
+        color: #606266;
+        font-size: 14px;
+      }
+      
+      .upload-hint {
+        color: #909399;
+        font-size: 12px;
+      }
     }
   }
   
   .upload-tip {
     margin-top: 8px;
     
-    .tip-content {
+    p {
+      margin: 0 0 4px 0;
+      color: #909399;
       font-size: 12px;
-      color: var(--text-light);
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      
-      span {
-        &:not(:last-child)::after {
-          content: '|';
-          margin-left: 8px;
-          color: var(--border-color);
-        }
-      }
+      line-height: 1.4;
     }
   }
-}
-
-.custom-file-list {
-  margin-top: 16px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  overflow: hidden;
   
-  .file-list-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 16px;
-    background: var(--bg-secondary);
-    border-bottom: 1px solid var(--border-color);
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--text-primary);
+  .upload-progress {
+    margin-top: 16px;
+    
+    .progress-text {
+      margin: 8px 0 0 0;
+      color: #606266;
+      font-size: 12px;
+      text-align: center;
+    }
   }
   
-  .file-list-content {
-    max-height: 300px;
-    overflow-y: auto;
-  }
-  
-  .file-item {
-    display: flex;
-    align-items: center;
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border-color);
-    transition: background-color 0.2s ease;
+  .uploaded-files {
+    margin-top: 20px;
     
-    &:last-child {
-      border-bottom: none;
+    h4 {
+      margin: 0 0 12px 0;
+      color: #303133;
+      font-size: 14px;
+      font-weight: 500;
     }
     
-    &:hover {
-      background: var(--bg-secondary);
-    }
-    
-    &.is-uploading {
-      background: rgba(255, 90, 95, 0.05);
-    }
-    
-    .file-icon {
-      width: 32px;
-      height: 32px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: var(--bg-tertiary);
-      border-radius: var(--radius-sm);
-      margin-right: 12px;
+    .file-list {
+      border: 1px solid #e4e7ed;
+      border-radius: 6px;
+      overflow: hidden;
       
-      .el-icon {
-        font-size: 16px;
-        color: var(--text-secondary);
-      }
-    }
-    
-    .file-info {
-      flex: 1;
-      min-width: 0;
-      
-      .file-name {
-        font-size: 14px;
-        color: var(--text-primary);
-        margin-bottom: 4px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-      
-      .file-meta {
+      .file-item {
         display: flex;
         align-items: center;
-        gap: 12px;
-        font-size: 12px;
+        justify-content: space-between;
+        padding: 12px 16px;
+        border-bottom: 1px solid #f5f7fa;
         
-        .file-size {
-          color: var(--text-secondary);
+        &:last-child {
+          border-bottom: none;
         }
         
-        .file-status {
-          &.success {
-            color: var(--el-color-success);
+        .file-info {
+          display: flex;
+          align-items: center;
+          flex: 1;
+          
+          .file-icon {
+            font-size: 20px;
+            color: #909399;
+            margin-right: 12px;
           }
           
-          &.uploading {
-            color: var(--el-color-primary);
-          }
-          
-          &.fail {
-            color: var(--el-color-danger);
+          .file-details {
+            .file-name {
+              margin: 0 0 4px 0;
+              color: #303133;
+              font-size: 14px;
+              font-weight: 500;
+            }
+            
+            .file-size {
+              margin: 0;
+              color: #909399;
+              font-size: 12px;
+            }
           }
         }
-      }
-      
-      :deep(.el-progress) {
-        margin-top: 4px;
         
-        .el-progress-bar__outer {
-          height: 4px;
+        .file-actions {
+          display: flex;
+          gap: 8px;
         }
-      }
-    }
-    
-    .file-actions {
-      display: flex;
-      gap: 8px;
-      margin-left: 12px;
-    }
-  }
-}
-
-.preview-container {
-  text-align: center;
-  
-  .preview-image {
-    max-width: 100%;
-    max-height: 60vh;
-  }
-}
-
-// Element Plus 样式覆盖
-:deep(.el-upload) {
-  &.upload-disabled {
-    cursor: not-allowed;
-    
-    .el-upload-dragger {
-      background-color: var(--bg-tertiary);
-      border-color: var(--border-color);
-      cursor: not-allowed;
-    }
-  }
-  
-  &.upload-picture-card {
-    .el-upload-dragger {
-      width: 148px;
-      height: 148px;
-      border-radius: var(--radius-md);
-    }
-  }
-}
-
-:deep(.el-upload-dragger) {
-  border: 2px dashed var(--border-color);
-  border-radius: var(--radius-lg);
-  background: var(--bg-secondary);
-  transition: all 0.3s ease;
-  
-  &:hover {
-    border-color: var(--primary-color);
-    background: rgba(255, 90, 95, 0.05);
-  }
-  
-  &.is-dragover {
-    border-color: var(--primary-color);
-    background: rgba(255, 90, 95, 0.1);
-  }
-}
-
-// 响应式设计
-@media (max-width: 768px) {
-  .custom-file-list {
-    .file-item {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 12px;
-      
-      .file-info {
-        width: 100%;
-      }
-      
-      .file-actions {
-        margin-left: 0;
-        width: 100%;
-        justify-content: flex-end;
       }
     }
   }

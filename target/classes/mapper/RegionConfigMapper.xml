@@ -15,7 +15,7 @@
         <result column="updated_at" property="updatedAt" jdbcType="TIMESTAMP"/>
     </resultMap>
 
-    <!-- 基础列 -->
+    <!-- 基础射?-->
     <sql id="Base_Column_List">
         id, region, country, language_code, language_name, 
         is_active, sort_order, created_at, updated_at
@@ -60,7 +60,7 @@
         ORDER BY sort_order ASC, region ASC
     </select>
 
-    <!-- 查询所有不重复的地区 -->
+    <!-- 查询所有不重复的地射?-->
     <select id="selectDistinctRegions" resultType="string">
         SELECT DISTINCT region
         FROM region_configs
@@ -68,7 +68,7 @@
         ORDER BY region ASC
     </select>
 
-    <!-- 查询所有不重复的国家 -->
+    <!-- 查询所有不重复的国射?-->
     <select id="selectDistinctCountries" resultType="string">
         SELECT DISTINCT country
         FROM region_configs
@@ -130,14 +130,14 @@
         WHERE id = #{id}
     </delete>
 
-    <!-- 更新激活状态 -->
+    <!-- 更新激活状射?-->
     <update id="updateActiveStatus">
         UPDATE region_configs
         SET is_active = #{isActive}, updated_at = NOW()
         WHERE id = #{id}
     </update>
 
-    <!-- 检查区域和语言组合是否已存在 -->
+    <!-- 检查区域和语言组合是否已存射?-->
     <select id="checkExists" resultType="int">
         SELECT COUNT(*)
         FROM region_configs

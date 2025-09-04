@@ -188,8 +188,9 @@ public class CustomerMapperTest {
         assertEquals(2, result);
         assertNull(customerMapper.selectById(testCustomer.getId()));
         assertNull(customerMapper.selectById(customer2.getId()));
-    }    /
-/ ==================== 查询功能测试 ====================
+    }
+    
+    // ==================== 查询功能测试 ====================
     
     @Test
     void testSelectList_Success() {

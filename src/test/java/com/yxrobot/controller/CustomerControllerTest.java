@@ -118,7 +118,7 @@ public class CustomerControllerTest {
         when(searchOptimizationService.optimizeSearchQuery(any())).thenReturn(searchResult);
         
         CustomerQueryOptimizationService.OptimizedQuery optimizedQuery = 
-            new CustomerQueryOptimizationService.OptimizedQuery(new CustomerQueryDTO());
+            new CustomerQueryOptimizationService.OptimizedQuery();
         when(queryOptimizationService.optimizeCustomerQuery(any())).thenReturn(optimizedQuery);
         
         CustomerValidationService.ValidationSummary validationSummary = 
@@ -184,7 +184,7 @@ public class CustomerControllerTest {
         // Given
         CustomerApiValidationService.ValidationResult errorResult = 
             new CustomerApiValidationService.ValidationResult();
-        errorResult.addError("页码必须大于0");
+        errorResult.addError("page", "页码必须大于0");
         when(apiValidationService.validateQueryParameters(any())).thenReturn(errorResult);
         
         // When & Then
@@ -287,14 +287,14 @@ public class CustomerControllerTest {
         CustomerValidationService.ValidationSummary errorSummary = 
             new CustomerValidationService.ValidationSummary();
         errorSummary.setValid(false);
-        errorSummary.addError("客户姓名不能为空");
+        errorSummary.addError("name", "客户姓名不能为空");
         when(customerValidationService.validateCustomerCreate(any())).thenReturn(errorSummary);
         
         // When & Then
         mockMvc.perform(post("/api/admin/customers")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(testCreateDTO)))
-                .andExpected(status().isOk())
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(400))
                 .andExpect(jsonPath("$.message").value("数据验证失败"));
     }
@@ -362,8 +362,9 @@ public class CustomerControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(500))
                 .andExpect(jsonPath("$.message").exists());
-    }    // 
-==================== 搜索和筛选接口测试 ====================
+    }
+    
+    // ==================== 搜索和筛选接口测试 ====================
     
     @Test
     void testSearchCustomers_Success() throws Exception {
@@ -490,8 +491,8 @@ public class CustomerControllerTest {
     void testGetCustomerDevices_Success() throws Exception {
         // Given
         Long customerId = 1L;
-        List<CustomerDeviceService.DeviceInfo> devices = Arrays.asList(
-            new CustomerDeviceService.DeviceInfo()
+        List<CustomerDeviceDTO> devices = Arrays.asList(
+            new CustomerDeviceDTO()
         );
         when(customerDeviceService.getCustomerDevices(customerId)).thenReturn(devices);
         
@@ -509,8 +510,8 @@ public class CustomerControllerTest {
     void testGetCustomerOrders_Success() throws Exception {
         // Given
         Long customerId = 1L;
-        List<CustomerOrderService.OrderInfo> orders = Arrays.asList(
-            new CustomerOrderService.OrderInfo()
+        List<CustomerOrderDTO> orders = Arrays.asList(
+            new CustomerOrderDTO()
         );
         when(customerOrderService.getCustomerOrders(customerId)).thenReturn(orders);
         
@@ -528,8 +529,8 @@ public class CustomerControllerTest {
     void testGetCustomerServiceRecords_Success() throws Exception {
         // Given
         Long customerId = 1L;
-        List<CustomerServiceRecordService.ServiceRecordInfo> records = Arrays.asList(
-            new CustomerServiceRecordService.ServiceRecordInfo()
+        List<ServiceRecordDTO> records = Arrays.asList(
+            new ServiceRecordDTO()
         );
         when(customerServiceRecordService.getCustomerServiceRecords(customerId))
             .thenReturn(records);
@@ -543,8 +544,8 @@ public class CustomerControllerTest {
         
         verify(customerServiceRecordService).getCustomerServiceRecords(customerId);
     }
-}    // =
-=================== 性能监控接口测试 ====================
+    
+    // =================== 性能监控接口测试 ====================
     
     @Test
     void testGetSearchPerformanceReport_Success() throws Exception {

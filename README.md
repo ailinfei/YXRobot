@@ -262,8 +262,9 @@ mvn spring-boot:run
 6. [核心功能](#核心功能)
 7. [API文档](#api文档)
 8. [部署指南](#部署指南)
-9. [开发规范](#开发规范)
-10. [故障排除](#故障排除)
+9. [开发前置检查规范](#-开发前置检查规范)
+10. [开发规范](#开发规范)
+11. [故障排除](#故障排除)
 
 ## 项目概述
 
@@ -1191,10 +1192,202 @@ scripts/deploy-tomcat.bat
 
 ---
 
+## 🔍 开发前置检查规范
+
+### 🚨 数据库表名冲突检查（强制执行）
+
+**⚠️ 核心原则：开发新模块前必须检查数据库表名是否与现有表名重复，避免表名冲突导致的数据覆盖风险**
+
+#### 📋 数据库表名检查流程
+
+**每个新模块开发前必须执行的检查步骤：**
+
+1. **查看现有数据库表**：
+```bash
+# 连接数据库查看所有表名
+E:\YXRobot\mysql-9.3.0-winx64\bin\mysql.exe -h yun.finiot.cn -P 3306 -u YXRobot -p2200548qq YXRobot -e "SHOW TABLES"
+
+# 查看特定前缀的表（如设备相关表）
+E:\YXRobot\mysql-9.3.0-winx64\bin\mysql.exe -h yun.finiot.cn -P 3306 -u YXRobot -p2200548qq YXRobot -e "SHOW TABLES LIKE 'device_%'"
+```
+
+2. **检查模块设计文档中的表名**：
+```bash
+# 搜索设计文档中的CREATE TABLE语句
+grep -r "CREATE TABLE" docs/specs/*/design.md
+
+# 检查特定模块的表名定义
+grep "CREATE TABLE.*device_" docs/specs/frontend-pages-development/admin/monitoring/design.md
+```
+
+3. **验证表名唯一性**：
+   - 对比现有数据库表名列表
+   - 确认新模块计划创建的表名不存在重复
+   - 检查关联表命名是否符合规范
+
+#### 🚨 表名冲突处理规范
+
+**如果发现表名冲突，必须遵循以下处理原则：**
+
+1. **保留现有表**：
+   - ❌ **严禁删除**现有数据库表
+   - ❌ **严禁覆盖**现有表结构
+   - ✅ **必须保留**所有现有数据和表结构
+
+2. **重命名新表**：
+   - 为新模块的表添加更具体的前缀或后缀
+   - 使用模块名称作为区分标识
+   - 确保新表名能够清晰表达其功能用途
+
+3. **更新相关文档**：
+   - 同步更新设计文档中的表名
+   - 修改任务文档中的表名引用
+   - 更新实体类和映射文件的命名
+
+#### 📊 表名命名规范建议
+
+**推荐的表名命名模式：**
+```sql
+-- 基础表命名：{模块前缀}_{功能描述}
+device_monitoring_stats     -- 设备监控统计表
+device_monitoring_data      -- 设备监控数据表
+device_alerts              -- 设备告警表
+
+-- 关联表命名：{主表名}_{关联表名}_relation
+device_monitoring_alert_relation    -- 设备监控告警关联表
+device_performance_metric_relation  -- 设备性能指标关联表
+
+-- 避免冲突的命名：{模块名}_{原表名}
+monitoring_device_stats     -- 监控模块的设备统计表
+alert_device_records       -- 告警模块的设备记录表
+```
+
+### 🚨 Java类重复检查（强制执行）
+
+**⚠️ 核心原则：开发新功能前必须检查Java类名是否与现有类重复，如果重复必须保留旧类并重命名新类**
+
+#### 📋 Java类重复检查流程
+
+**每个新功能开发前必须执行的检查步骤：**
+
+1. **检查现有Java类**：
+```bash
+# 搜索现有的Service类
+find src/main/java -name "*Service.java" | sort
+
+# 搜索现有的Controller类
+find src/main/java -name "*Controller.java" | sort
+
+# 搜索现有的Entity类
+find src/main/java -name "*.java" -path "*/entity/*" | sort
+
+# 搜索现有的Mapper类
+find src/main/java -name "*Mapper.java" | sort
+```
+
+2. **检查特定功能相关的类**：
+```bash
+# 搜索设备相关的类
+find src/main/java -name "*Device*.java" | grep -v test | sort
+
+# 搜索监控相关的类
+find src/main/java -name "*Monitor*.java" | grep -v test | sort
+
+# 搜索性能相关的类
+find src/main/java -name "*Performance*.java" | grep -v test | sort
+```
+
+3. **验证类名唯一性**：
+   - 对比现有Java类名列表
+   - 确认新功能计划创建的类名不存在重复
+   - 检查包路径是否合理
+
+#### 🚨 Java类冲突处理规范
+
+**如果发现类名冲突，必须遵循以下处理原则：**
+
+1. **保留现有类**：
+   - ❌ **严禁删除**现有Java类文件
+   - ❌ **严禁修改**现有类的核心功能
+   - ✅ **必须保留**所有现有类的完整性
+
+2. **重命名新类**：
+   - 为新功能的类添加更具体的前缀或后缀
+   - 使用模块名称或功能特征作为区分标识
+   - 确保新类名能够清晰表达其功能用途
+
+3. **更新相关引用**：
+   - 同步更新所有对新类的引用
+   - 修改配置文件中的类名引用
+   - 更新测试类中的类名引用
+
+#### 📊 Java类命名规范建议
+
+**推荐的类命名模式：**
+
+```java
+// 现有类（保留不变）
+ManagedDeviceService                    // 设备管理服务
+ManagedDeviceController                 // 设备管理控制器
+ManagedDevicePerformanceMonitorService  // 设备性能监控服务
+
+// 新类（避免冲突的命名）
+DeviceMonitoringService                 // 设备监控服务（监控模块专用）
+DeviceMonitoringController              // 设备监控控制器（监控模块专用）
+DeviceAlertService                      // 设备告警服务（告警功能专用）
+DevicePerformanceService               // 设备性能服务（性能监控专用）
+DeviceNetworkService                    // 设备网络服务（网络监控专用）
+
+// 实体类命名
+DeviceMonitoringStats                   // 设备监控统计实体
+DeviceAlert                            // 设备告警实体
+DevicePerformanceMetrics               // 设备性能指标实体
+```
+
+#### 🔍 类冲突检查工具
+
+**推荐使用的检查命令：**
+
+```bash
+# 检查特定类名是否存在
+find src/main/java -name "DeviceService.java"
+
+# 检查包含特定关键词的类
+find src/main/java -name "*Device*Service.java" | xargs basename -s .java
+
+# 检查类的完整路径和包结构
+find src/main/java -name "*Device*.java" -exec grep -l "class.*Device" {} \;
+
+# 生成现有类名清单
+find src/main/java -name "*.java" -exec basename {} .java \; | sort | uniq > existing-classes.txt
+```
+
+#### 📋 开发前检查清单
+
+**每个新模块/功能开发前必须完成：**
+
+- [ ] **数据库表名检查**：确认所有计划创建的表名不与现有表重复
+- [ ] **Java类名检查**：确认所有计划创建的类名不与现有类重复
+- [ ] **包结构规划**：确认新类的包路径合理且不冲突
+- [ ] **命名规范遵循**：确认所有命名符合项目规范
+- [ ] **文档同步更新**：如有重命名，同步更新所有相关文档
+- [ ] **依赖关系检查**：确认新类与现有类的依赖关系清晰
+
+#### ⚠️ 重要提醒
+
+**开发过程中如果发现冲突：**
+1. **立即停止开发**，不要继续创建冲突的类或表
+2. **分析冲突原因**，确定是命名问题还是功能重复
+3. **制定解决方案**，重命名新类/表或重新设计功能
+4. **更新所有文档**，确保文档与实际实现一致
+5. **通知团队成员**，避免其他人遇到相同问题
+
+---
+
 ## 开发规范
 
 ### API设计规范
-- 基础路径: `/api/v1`
+- 基础路径: `/api/`
 - 资源命名使用复数形式
 - HTTP方法: GET(查询), POST(创建), PUT(更新), DELETE(删除)
 - 响应格式:

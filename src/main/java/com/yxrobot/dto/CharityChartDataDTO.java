@@ -60,6 +60,39 @@ public class CharityChartDataDTO {
      * 预算执行情况数据（柱状图）
      */
     private Map<String, Object> budgetExecutionData;
+    
+    // 手动添加setter方法，确保Lombok正常工作
+    public void setProjectStatusData(Map<String, Object> projectStatusData) {
+        this.projectStatusData = projectStatusData;
+    }
+    
+    public void setFundingTrendData(Map<String, Object> fundingTrendData) {
+        this.fundingTrendData = fundingTrendData;
+    }
+    
+    public void setRegionDistributionData(Map<String, Object> regionDistributionData) {
+        this.regionDistributionData = regionDistributionData;
+    }
+    
+    public void setVolunteerActivityData(Map<String, Object> volunteerActivityData) {
+        this.volunteerActivityData = volunteerActivityData;
+    }
+    
+    public void setInstitutionTypeData(Map<String, Object> institutionTypeData) {
+        this.institutionTypeData = institutionTypeData;
+    }
+    
+    public void setActivityTypeData(Map<String, Object> activityTypeData) {
+        this.activityTypeData = activityTypeData;
+    }
+    
+    public void setProjectProgressData(Map<String, Object> projectProgressData) {
+        this.projectProgressData = projectProgressData;
+    }
+    
+    public void setBudgetExecutionData(Map<String, Object> budgetExecutionData) {
+        this.budgetExecutionData = budgetExecutionData;
+    }
 }
 
 /**

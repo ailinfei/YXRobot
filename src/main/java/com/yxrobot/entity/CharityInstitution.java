@@ -147,4 +147,157 @@ public class CharityInstitution {
      * 是否删除（0：未删除，1：已删除）
      */
     private Integer deleted;
+    
+    // 手动添加getter和setter方法，确保Lombok正常工作
+    public Long getId() {
+        return id;
+    }
+    
+    public void setId(Long id) {
+        this.id = id;
+    }
+    
+    public String getName() {
+        return name;
+    }
+    
+    public void setName(String name) {
+        this.name = name;
+    }
+    
+    public String getType() {
+        return type;
+    }
+    
+    public void setType(String type) {
+        this.type = type;
+    }
+    
+    public String getLocation() {
+        return location;
+    }
+    
+    public void setLocation(String location) {
+        this.location = location;
+    }
+    
+    public String getAddress() {
+        return address;
+    }
+    
+    public void setAddress(String address) {
+        this.address = address;
+    }
+    
+    public String getContactPerson() {
+        return contactPerson;
+    }
+    
+    public void setContactPerson(String contactPerson) {
+        this.contactPerson = contactPerson;
+    }
+    
+    public String getContactPhone() {
+        return contactPhone;
+    }
+    
+    public void setContactPhone(String contactPhone) {
+        this.contactPhone = contactPhone;
+    }
+    
+    public String getEmail() {
+        return email;
+    }
+    
+    public void setEmail(String email) {
+        this.email = email;
+    }
+    
+    public Integer getStudentCount() {
+        return studentCount;
+    }
+    
+    public void setStudentCount(Integer studentCount) {
+        this.studentCount = studentCount;
+    }
+    
+    public LocalDate getCooperationDate() {
+        return cooperationDate;
+    }
+    
+    public void setCooperationDate(LocalDate cooperationDate) {
+        this.cooperationDate = cooperationDate;
+    }
+    
+    public String getStatus() {
+        return status;
+    }
+    
+    public void setStatus(String status) {
+        this.status = status;
+    }
+    
+    public Integer getDeviceCount() {
+        return deviceCount;
+    }
+    
+    public void setDeviceCount(Integer deviceCount) {
+        this.deviceCount = deviceCount;
+    }
+    
+    public LocalDate getLastVisitDate() {
+        return lastVisitDate;
+    }
+    
+    public void setLastVisitDate(LocalDate lastVisitDate) {
+        this.lastVisitDate = lastVisitDate;
+    }
+    
+    public String getNotes() {
+        return notes;
+    }
+    
+    public void setNotes(String notes) {
+        this.notes = notes;
+    }
+    
+    public LocalDateTime getCreateTime() {
+        return createTime;
+    }
+    
+    public void setCreateTime(LocalDateTime createTime) {
+        this.createTime = createTime;
+    }
+    
+    public LocalDateTime getUpdateTime() {
+        return updateTime;
+    }
+    
+    public void setUpdateTime(LocalDateTime updateTime) {
+        this.updateTime = updateTime;
+    }
+    
+    public Long getCreateBy() {
+        return createBy;
+    }
+    
+    public void setCreateBy(Long createBy) {
+        this.createBy = createBy;
+    }
+    
+    public Long getUpdateBy() {
+        return updateBy;
+    }
+    
+    public void setUpdateBy(Long updateBy) {
+        this.updateBy = updateBy;
+    }
+    
+    public Integer getDeleted() {
+        return deleted;
+    }
+    
+    public void setDeleted(Integer deleted) {
+        this.deleted = deleted;
+    }
 }

@@ -373,9 +373,9 @@
 import { ref, computed, watch, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Plus, Delete } from '@element-plus/icons-vue'
-import { mockOrderAPI } from '@/api/mock/order'
-import { mockCustomerAPI } from '@/api/mock/customer'  
-import { mockProductAPI } from '@/api/mock/product'
+import { orderApi } from '@/api/order'
+import { customerApi } from '@/api/customer'  
+import { productApi } from '@/api/product'
 import type { Order, OrderItem } from '@/types/order'
 import type { Customer } from '@/types/customer'
 import type { Product } from '@/types/product'
@@ -543,7 +543,7 @@ watch(() => formData.value.type, (newType) => {
 
 const loadProductOptions = async () => {
   try {
-    const response = await mockProductAPI.getProducts({ pageSize: 100 })
+    const response = await productApi.getProducts({ pageSize: 100 })
     productOptions.value = response.data.list
   } catch (error) {
     console.error('加载产品列表失败:', error)
@@ -558,7 +558,7 @@ const searchCustomers = async (query: string) => {
   
   customerLoading.value = true
   try {
-    const response = await mockCustomerAPI.getCustomers({
+    const response = await customerApi.getCustomers({
       keyword: query,
       pageSize: 20
     })
@@ -637,10 +637,10 @@ const handleSubmit = async () => {
     submitLoading.value = true
     
     if (isEdit.value) {
-      await mockOrderAPI.updateOrder(props.order!.id, formData.value)
+      await orderApi.updateOrder(props.order!.id, formData.value)
       ElMessage.success('订单更新成功')
     } else {
-      await mockOrderAPI.createOrder(formData.value)
+      await orderApi.createOrder(formData.value)
       ElMessage.success('订单创建成功')
     }
     

@@ -1,0 +1,561 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yxrobot.mapper.OrderMapper">
+
+    <!-- 订单结果映射 -->
+    <resultMap id="OrderResultMap" type="com.yxrobot.entity.Order">
+        <id column="id" property="id"/>
+        <result column="order_number" property="orderNumber"/>
+        <result column="type" property="type"/>
+        <result column="status" property="status"/>
+        <result column="customer_id" property="customerId"/>
+        <result column="delivery_address" property="deliveryAddress"/>
+        <result column="subtotal" property="subtotal"/>
+        <result column="shipping_fee" property="shippingFee"/>
+        <result column="discount" property="discount"/>
+        <result column="total_amount" property="totalAmount"/>
+        <result column="currency" property="currency"/>
+        <result column="payment_status" property="paymentStatus"/>
+        <result column="payment_method" property="paymentMethod"/>
+        <result column="payment_time" property="paymentTime"/>
+        <result column="expected_delivery_date" property="expectedDeliveryDate"/>
+        <result column="sales_person" property="salesPerson"/>
+        <result column="notes" property="notes"/>
+        <result column="rental_start_date" property="rentalStartDate"/>
+        <result column="rental_end_date" property="rentalEndDate"/>
+        <result column="rental_days" property="rentalDays"/>
+        <result column="rental_notes" property="rentalNotes"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+        <result column="created_by" property="createdBy"/>
+        <result column="is_deleted" property="isDeleted"/>
+    </resultMap>
+
+    <!-- 订单详情结果映射（包含关联数据） -->
+    <resultMap id="OrderWithDetailsResultMap" type="com.yxrobot.entity.Order" extends="OrderResultMap">
+        <!-- 客户信息 -->
+        <association property="customer" javaType="com.yxrobot.entity.Customer">
+            <id column="customer_id" property="id"/>
+            <result column="customer_name" property="name"/>
+            <result column="customer_phone" property="phone"/>
+            <result column="customer_email" property="email"/>
+            <result column="customer_company" property="company"/>
+        </association>
+        <!-- 订单商品明细 -->
+        <collection property="orderItems" ofType="com.yxrobot.entity.OrderItem">
+            <id column="item_id" property="id"/>
+            <result column="item_order_id" property="orderId"/>
+            <result column="item_product_id" property="productId"/>
+            <result column="item_product_name" property="productName"/>
+            <result column="item_product_model" property="productModel"/>
+            <result column="item_quantity" property="quantity"/>
+            <result column="item_unit_price" property="unitPrice"/>
+            <result column="item_total_price" property="totalPrice"/>
+        </collection>
+        <!-- 物流信息 -->
+        <association property="shippingInfo" javaType="com.yxrobot.entity.ShippingInfo">
+            <id column="shipping_id" property="id"/>
+            <result column="shipping_company" property="company"/>
+            <result column="shipping_tracking_number" property="trackingNumber"/>
+            <result column="shipping_shipped_at" property="shippedAt"/>
+            <result column="shipping_delivered_at" property="deliveredAt"/>
+            <result column="shipping_notes" property="notes"/>
+        </association>
+    </resultMap>
+
+    <!-- 基础查询字段 -->
+    <sql id="Base_Column_List">
+        id, order_number, type, status, customer_id, delivery_address, subtotal, 
+        shipping_fee, discount, total_amount, currency, payment_status, payment_method, 
+        payment_time, expected_delivery_date, sales_person, notes, rental_start_date, 
+        rental_end_date, rental_days, rental_notes, created_at, updated_at, created_by, is_deleted
+    </sql>
+
+    <!-- 带关联信息的查询字段 -->
+    <sql id="Detail_Column_List">
+        o.id, o.order_number, o.type, o.status, o.customer_id, o.delivery_address, 
+        o.subtotal, o.shipping_fee, o.discount, o.total_amount, o.currency, 
+        o.payment_status, o.payment_method, o.payment_time, o.expected_delivery_date, 
+        o.sales_person, o.notes, o.rental_start_date, o.rental_end_date, o.rental_days, 
+        o.rental_notes, o.created_at, o.updated_at, o.created_by, o.is_deleted,
+        c.name as customer_name,
+        c.phone as customer_phone,
+        c.email as customer_email,
+        c.company as customer_company,
+        oi.id as item_id,
+        oi.order_id as item_order_id,
+        oi.product_id as item_product_id,
+        oi.product_name as item_product_name,
+        oi.product_model as item_product_model,
+        oi.quantity as item_quantity,
+        oi.unit_price as item_unit_price,
+        oi.total_price as item_total_price,
+        si.id as shipping_id,
+        si.company as shipping_company,
+        si.tracking_number as shipping_tracking_number,
+        si.shipped_at as shipping_shipped_at,
+        si.delivered_at as shipping_delivered_at,
+        si.notes as shipping_notes
+    </sql>
+
+    <!-- 查询条件 -->
+    <sql id="Query_Where_Clause">
+        <where>
+            o.is_deleted = 0
+            <!-- 关键词搜索（订单号、客户名称） -->
+            <if test="query.keyword != null and query.keyword != ''">
+                AND (o.order_number LIKE CONCAT('%', #{query.keyword}, '%') 
+                     OR c.name LIKE CONCAT('%', #{query.keyword}, '%'))
+            </if>
+            <!-- 订单号精确匹配 -->
+            <if test="query.orderNumber != null and query.orderNumber != ''">
+                AND o.order_number = #{query.orderNumber}
+            </if>
+            <!-- 订单类型筛选 -->
+            <if test="query.type != null and query.type != ''">
+                AND o.type = #{query.type}
+            </if>
+            <!-- 订单状态筛选 -->
+            <if test="query.status != null and query.status != ''">
+                AND o.status = #{query.status}
+            </if>
+            <!-- 支付状态筛选 -->
+            <if test="query.paymentStatus != null and query.paymentStatus != ''">
+                AND o.payment_status = #{query.paymentStatus}
+            </if>
+            <!-- 客户筛选 -->
+            <if test="query.customerId != null">
+                AND o.customer_id = #{query.customerId}
+            </if>
+            <if test="query.customerName != null and query.customerName != ''">
+                AND c.name LIKE CONCAT('%', #{query.customerName}, '%')
+            </if>
+            <!-- 销售人员筛选 -->
+            <if test="query.salesPerson != null and query.salesPerson != ''">
+                AND o.sales_person = #{query.salesPerson}
+            </if>
+            <!-- 日期范围筛选 -->
+            <if test="query.startDate != null">
+                AND DATE(o.created_at) >= #{query.startDate}
+            </if>
+            <if test="query.endDate != null">
+                AND DATE(o.created_at) <= #{query.endDate}
+            </if>
+            <!-- 金额范围筛选 -->
+            <if test="query.minAmount != null">
+                AND o.total_amount >= #{query.minAmount}
+            </if>
+            <if test="query.maxAmount != null">
+                AND o.total_amount <= #{query.maxAmount}
+            </if>
+        </where>
+    </sql>
+
+    <!-- 排序条件 -->
+    <sql id="Order_By_Clause">
+        <choose>
+            <when test="query.sortBy != null and query.sortBy != ''">
+                ORDER BY 
+                <choose>
+                    <when test="query.sortBy == 'orderNumber'">o.order_number</when>
+                    <when test="query.sortBy == 'totalAmount'">o.total_amount</when>
+                    <when test="query.sortBy == 'status'">o.status</when>
+                    <when test="query.sortBy == 'paymentStatus'">o.payment_status</when>
+                    <when test="query.sortBy == 'createdAt'">o.created_at</when>
+                    <when test="query.sortBy == 'updatedAt'">o.updated_at</when>
+                    <otherwise>o.created_at</otherwise>
+                </choose>
+                <choose>
+                    <when test="query.sortOrder != null and query.sortOrder.toLowerCase() == 'asc'">ASC</when>
+                    <otherwise>DESC</otherwise>
+                </choose>
+            </when>
+            <otherwise>ORDER BY o.created_at DESC</otherwise>
+        </choose>
+    </sql>
+
+    <!-- 根据ID查询订单 -->
+    <select id="selectById" resultMap="OrderResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM orders
+        WHERE id = #{id} AND is_deleted = 0
+    </select>
+
+    <!-- 根据ID查询订单详情（包含关联数据） -->
+    <select id="selectByIdWithDetails" resultMap="OrderWithDetailsResultMap">
+        SELECT <include refid="Detail_Column_List"/>
+        FROM orders o
+        LEFT JOIN customers c ON o.customer_id = c.id
+        LEFT JOIN order_items oi ON o.id = oi.order_id
+        LEFT JOIN shipping_info si ON o.id = si.order_id
+        WHERE o.id = #{id} AND o.is_deleted = 0
+    </select>
+
+    <!-- 根据订单号查询订单 -->
+    <select id="selectByOrderNumber" resultMap="OrderResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM orders
+        WHERE order_number = #{orderNumber} AND is_deleted = 0
+    </select>
+
+    <!-- 插入订单 -->
+    <insert id="insert" parameterType="com.yxrobot.entity.Order" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO orders (
+            order_number, type, status, customer_id, delivery_address, subtotal, 
+            shipping_fee, discount, total_amount, currency, payment_status, payment_method, 
+            payment_time, expected_delivery_date, sales_person, notes, rental_start_date, 
+            rental_end_date, rental_days, rental_notes, created_by, created_at, updated_at, is_deleted
+        ) VALUES (
+            #{orderNumber}, #{type}, #{status}, #{customerId}, #{deliveryAddress}, #{subtotal}, 
+            #{shippingFee}, #{discount}, #{totalAmount}, #{currency}, #{paymentStatus}, #{paymentMethod}, 
+            #{paymentTime}, #{expectedDeliveryDate}, #{salesPerson}, #{notes}, #{rentalStartDate}, 
+            #{rentalEndDate}, #{rentalDays}, #{rentalNotes}, #{createdBy}, NOW(), NOW(), 0
+        )
+    </insert>
+
+    <!-- 更新订单 -->
+    <update id="updateById" parameterType="com.yxrobot.entity.Order">
+        UPDATE orders SET
+            type = #{type},
+            status = #{status},
+            customer_id = #{customerId},
+            delivery_address = #{deliveryAddress},
+            subtotal = #{subtotal},
+            shipping_fee = #{shippingFee},
+            discount = #{discount},
+            total_amount = #{totalAmount},
+            currency = #{currency},
+            payment_status = #{paymentStatus},
+            payment_method = #{paymentMethod},
+            payment_time = #{paymentTime},
+            expected_delivery_date = #{expectedDeliveryDate},
+            sales_person = #{salesPerson},
+            notes = #{notes},
+            rental_start_date = #{rentalStartDate},
+            rental_end_date = #{rentalEndDate},
+            rental_days = #{rentalDays},
+            rental_notes = #{rentalNotes},
+            updated_at = NOW()
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <!-- 根据ID删除订单（软删除） -->
+    <update id="deleteById">
+        UPDATE orders SET is_deleted = 1, updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 批量删除订单（软删除） -->
+    <update id="batchDelete">
+        UPDATE orders SET is_deleted = 1, updated_at = NOW()
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <!-- 分页查询订单列表 -->
+    <select id="selectList" resultMap="OrderResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM orders o
+        LEFT JOIN customers c ON o.customer_id = c.id
+        <include refid="Query_Where_Clause"/>
+        <include refid="Order_By_Clause"/>
+        <if test="query.page != null and query.size != null">
+            LIMIT #{query.size} OFFSET #{query.page * query.size - query.size}
+        </if>
+    </select>
+
+    <!-- 查询订单总数 -->
+    <select id="selectCount" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM orders o
+        LEFT JOIN customers c ON o.customer_id = c.id
+        <include refid="Query_Where_Clause"/>
+    </select>
+
+    <!-- 分页查询订单列表（包含关联数据） -->
+    <select id="selectListWithDetails" resultMap="OrderWithDetailsResultMap">
+        SELECT <include refid="Detail_Column_List"/>
+        FROM orders o
+        LEFT JOIN customers c ON o.customer_id = c.id
+        LEFT JOIN order_items oi ON o.id = oi.order_id
+        LEFT JOIN shipping_info si ON o.id = si.order_id
+        <include refid="Query_Where_Clause"/>
+        <include refid="Order_By_Clause"/>
+        <if test="query.page != null and query.size != null">
+            LIMIT #{query.size} OFFSET #{query.page * query.size - query.size}
+        </if>
+    </select>
+
+    <!-- 查询订单总数（包含关联数据） -->
+    <select id="selectCountWithDetails" resultType="java.lang.Long">
+        SELECT COUNT(DISTINCT o.id)
+        FROM orders o
+        LEFT JOIN customers c ON o.customer_id = c.id
+        LEFT JOIN order_items oi ON o.id = oi.order_id
+        LEFT JOIN shipping_info si ON o.id = si.order_id
+        <include refid="Query_Where_Clause"/>
+    </select>
+
+    <!-- 更新订单状态 -->
+    <update id="updateStatus">
+        UPDATE orders SET status = #{status}, updated_at = NOW()
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <!-- 批量更新订单状态 -->
+    <update id="batchUpdateStatus">
+        UPDATE orders SET status = #{status}, updated_at = NOW()
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        AND is_deleted = 0
+    </update>
+
+    <!-- 更新支付状态 -->
+    <update id="updatePaymentStatus">
+        UPDATE orders SET payment_status = #{paymentStatus}, updated_at = NOW()
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <!-- 更新支付信息 -->
+    <update id="updatePaymentInfo">
+        UPDATE orders SET 
+            payment_status = #{paymentStatus},
+            payment_method = #{paymentMethod},
+            payment_time = #{paymentTime},
+            updated_at = NOW()
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <!-- 查询订单统计数据 -->
+    <select id="selectOrderStats" resultType="java.util.Map">
+        SELECT 
+            COUNT(*) as total,
+            COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending,
+            COUNT(CASE WHEN status = 'confirmed' THEN 1 END) as confirmed,
+            COUNT(CASE WHEN status = 'processing' THEN 1 END) as processing,
+            COUNT(CASE WHEN status = 'shipped' THEN 1 END) as shipped,
+            COUNT(CASE WHEN status = 'delivered' THEN 1 END) as delivered,
+            COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed,
+            COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelled,
+            COALESCE(SUM(CASE WHEN status = 'completed' THEN total_amount END), 0) as totalRevenue,
+            COALESCE(AVG(total_amount), 0) as averageOrderValue,
+            COUNT(CASE WHEN type = 'sales' THEN 1 END) as salesOrders,
+            COUNT(CASE WHEN type = 'rental' THEN 1 END) as rentalOrders
+        FROM orders
+        WHERE is_deleted = 0
+    </select>
+
+    <!-- 根据日期范围查询订单统计数据 -->
+    <select id="selectOrderStatsByDateRange" resultType="java.util.Map">
+        SELECT 
+            COUNT(*) as total,
+            COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending,
+            COUNT(CASE WHEN status = 'confirmed' THEN 1 END) as confirmed,
+            COUNT(CASE WHEN status = 'processing' THEN 1 END) as processing,
+            COUNT(CASE WHEN status = 'shipped' THEN 1 END) as shipped,
+            COUNT(CASE WHEN status = 'delivered' THEN 1 END) as delivered,
+            COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed,
+            COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelled,
+            COALESCE(SUM(CASE WHEN status = 'completed' THEN total_amount END), 0) as totalRevenue,
+            COALESCE(AVG(total_amount), 0) as averageOrderValue,
+            COUNT(CASE WHEN type = 'sales' THEN 1 END) as salesOrders,
+            COUNT(CASE WHEN type = 'rental' THEN 1 END) as rentalOrders
+        FROM orders
+        WHERE is_deleted = 0
+        <if test="startDate != null">
+            AND DATE(created_at) >= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND DATE(created_at) <= #{endDate}
+        </if>
+    </select>
+
+    <!-- 检查订单号是否存在 -->
+    <select id="existsByOrderNumber" resultType="boolean">
+        SELECT COUNT(*) > 0 FROM orders 
+        WHERE order_number = #{orderNumber} AND is_deleted = 0
+    </select>
+
+    <!-- 根据客户ID查询订单列表 -->
+    <select id="selectByCustomerId" resultMap="OrderResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM orders
+        WHERE customer_id = #{customerId} AND is_deleted = 0
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 根据状态查询订单列表 -->
+    <select id="selectByStatus" resultMap="OrderResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM orders
+        WHERE status = #{status} AND is_deleted = 0
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 查询待处理订单 -->
+    <select id="selectPendingOrders" resultMap="OrderResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM orders
+        WHERE status IN ('pending', 'confirmed') AND is_deleted = 0
+        ORDER BY created_at ASC
+    </select>
+
+    <!-- OrderService专用查询方法 -->
+    
+    <!-- 分页查询订单列表，支持搜索和筛选 -->
+    <select id="selectOrdersWithPagination" resultMap="OrderResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM orders o
+        LEFT JOIN customers c ON o.customer_id = c.id
+        <where>
+            o.is_deleted = 0
+            <if test="keyword != null and keyword != ''">
+                AND (o.order_number LIKE CONCAT('%', #{keyword}, '%') 
+                     OR c.name LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="type != null and type != ''">
+                AND o.type = #{type}
+            </if>
+            <if test="status != null and status != ''">
+                AND o.status = #{status}
+            </if>
+            <if test="startDate != null">
+                AND DATE(o.created_at) >= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND DATE(o.created_at) <= #{endDate}
+            </if>
+        </where>
+        ORDER BY o.created_at DESC
+        LIMIT #{pageSize} OFFSET #{offset}
+    </select>
+
+    <!-- 查询订单总数，支持搜索和筛选 -->
+    <select id="countOrders" resultType="int">
+        SELECT COUNT(*)
+        FROM orders o
+        LEFT JOIN customers c ON o.customer_id = c.id
+        <where>
+            o.is_deleted = 0
+            <if test="keyword != null and keyword != ''">
+                AND (o.order_number LIKE CONCAT('%', #{keyword}, '%') 
+                     OR c.name LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="type != null and type != ''">
+                AND o.type = #{type}
+            </if>
+            <if test="status != null and status != ''">
+                AND o.status = #{status}
+            </if>
+            <if test="startDate != null">
+                AND DATE(o.created_at) >= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND DATE(o.created_at) <= #{endDate}
+            </if>
+        </where>
+    </select>
+
+    <!-- 根据查询条件查询订单列表 -->
+    <select id="selectByQuery" resultMap="OrderResultMap" parameterType="com.yxrobot.dto.OrderQueryDTO">
+        SELECT <include refid="Base_Column_List"/>
+        FROM orders o
+        LEFT JOIN customers c ON o.customer_id = c.id
+        <where>
+            o.is_deleted = 0
+            <if test="keyword != null and keyword != ''">
+                AND (o.order_number LIKE CONCAT('%', #{keyword}, '%') 
+                     OR c.name LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="orderNumber != null and orderNumber != ''">
+                AND o.order_number = #{orderNumber}
+            </if>
+            <if test="type != null and type != ''">
+                AND o.type = #{type}
+            </if>
+            <if test="status != null and status != ''">
+                AND o.status = #{status}
+            </if>
+            <if test="paymentStatus != null and paymentStatus != ''">
+                AND o.payment_status = #{paymentStatus}
+            </if>
+            <if test="customerId != null">
+                AND o.customer_id = #{customerId}
+            </if>
+            <if test="customerName != null and customerName != ''">
+                AND c.name LIKE CONCAT('%', #{customerName}, '%')
+            </if>
+            <if test="salesPerson != null and salesPerson != ''">
+                AND o.sales_person = #{salesPerson}
+            </if>
+            <if test="startDate != null">
+                AND DATE(o.created_at) >= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND DATE(o.created_at) <= #{endDate}
+            </if>
+            <if test="minAmount != null">
+                AND o.total_amount >= #{minAmount}
+            </if>
+            <if test="maxAmount != null">
+                AND o.total_amount <= #{maxAmount}
+            </if>
+        </where>
+        ORDER BY o.created_at DESC
+        <if test="page != null and size != null">
+            LIMIT #{size} OFFSET #{page * size - size}
+        </if>
+    </select>
+
+    <!-- 根据查询条件统计订单数量 -->
+    <select id="countByQuery" resultType="java.lang.Long" parameterType="com.yxrobot.dto.OrderQueryDTO">
+        SELECT COUNT(*)
+        FROM orders o
+        LEFT JOIN customers c ON o.customer_id = c.id
+        <where>
+            o.is_deleted = 0
+            <if test="keyword != null and keyword != ''">
+                AND (o.order_number LIKE CONCAT('%', #{keyword}, '%') 
+                     OR c.name LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="orderNumber != null and orderNumber != ''">
+                AND o.order_number = #{orderNumber}
+            </if>
+            <if test="type != null and type != ''">
+                AND o.type = #{type}
+            </if>
+            <if test="status != null and status != ''">
+                AND o.status = #{status}
+            </if>
+            <if test="paymentStatus != null and paymentStatus != ''">
+                AND o.payment_status = #{paymentStatus}
+            </if>
+            <if test="customerId != null">
+                AND o.customer_id = #{customerId}
+            </if>
+            <if test="customerName != null and customerName != ''">
+                AND c.name LIKE CONCAT('%', #{customerName}, '%')
+            </if>
+            <if test="salesPerson != null and salesPerson != ''">
+                AND o.sales_person = #{salesPerson}
+            </if>
+            <if test="startDate != null">
+                AND DATE(o.created_at) >= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND DATE(o.created_at) <= #{endDate}
+            </if>
+            <if test="minAmount != null">
+                AND o.total_amount >= #{minAmount}
+            </if>
+            <if test="maxAmount != null">
+                AND o.total_amount <= #{maxAmount}
+            </if>
+        </where>
+    </select>
+
+</mapper>

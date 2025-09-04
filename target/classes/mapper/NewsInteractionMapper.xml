@@ -6,7 +6,7 @@
     <resultMap id="NewsInteractionResultMap" type="com.yxrobot.entity.NewsInteraction">
         <id column="id" property="id" jdbcType="BIGINT"/>
         <result column="news_id" property="newsId" jdbcType="BIGINT"/>
-        <result column="interaction_type" property="interactionType" jdbcType="VARCHAR" typeHandler="com.yxrobot.handler.InteractionTypeHandler"/>
+        <result column="interaction_type" property="interactionType" jdbcType="VARCHAR"/>
         <result column="user_id" property="userId" jdbcType="BIGINT"/>
         <result column="ip_address" property="ipAddress" jdbcType="VARCHAR"/>
         <result column="user_agent" property="userAgent" jdbcType="VARCHAR"/>
@@ -42,7 +42,7 @@
         DELETE FROM news_interactions WHERE id = #{id}
     </delete>
 
-    <!-- 根据新闻ID删除所有互动记录 -->
+    <!-- 根据新闻ID删除所有互动记射?-->
     <delete id="deleteByNewsId" parameterType="java.lang.Long">
         DELETE FROM news_interactions WHERE news_id = #{newsId}
     </delete>
@@ -63,7 +63,7 @@
         LIMIT #{offset}, #{limit}
     </select>
 
-    <!-- 根据新闻ID和互动类型查询记录 -->
+    <!-- 根据新闻ID和互动类型查询记射?-->
     <select id="selectByNewsIdAndType" resultMap="NewsInteractionResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM news_interactions
@@ -104,7 +104,7 @@
         SELECT COUNT(*) FROM news_interactions WHERE news_id = #{newsId}
     </select>
 
-    <!-- 统计新闻指定类型的互动数量 -->
+    <!-- 统计新闻指定类型的互动数射?-->
     <select id="countByNewsIdAndType" resultType="java.lang.Integer">
         SELECT COUNT(*) FROM news_interactions 
         WHERE news_id = #{newsId} AND interaction_type = #{interactionType}
@@ -132,13 +132,13 @@
         WHERE user_id = #{userId} AND news_id = #{newsId} AND interaction_type = #{interactionType}
     </select>
 
-    <!-- 检查IP是否对新闻进行过指定类型的互动 -->
+    <!-- 检查IP是否对新闻进行过指定类型的互射?-->
     <select id="existsByIpAndNewsIdAndType" resultType="java.lang.Boolean">
         SELECT COUNT(*) > 0 FROM news_interactions 
         WHERE ip_address = #{ipAddress} AND news_id = #{newsId} AND interaction_type = #{interactionType}
     </select>
 
-    <!-- 获取新闻的互动统计 -->
+    <!-- 获取新闻的互动统射?-->
     <select id="getInteractionStatsByNewsId" parameterType="java.lang.Long" resultType="java.util.Map">
         SELECT 
             COUNT(*) as total,
@@ -207,7 +207,7 @@
         LIMIT #{limit}
     </select>
 
-    <!-- 删除过期的互动记录 -->
+    <!-- 删除过期的互动记射?-->
     <delete id="deleteExpiredRecords">
         DELETE FROM news_interactions 
         WHERE created_at &lt; #{expireDate}

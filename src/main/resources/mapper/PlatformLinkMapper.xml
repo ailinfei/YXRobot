@@ -7,7 +7,7 @@
         <id column="id" property="id" jdbcType="BIGINT"/>
         <result column="platform_name" property="platformName" jdbcType="VARCHAR"/>
         <result column="platform_type" property="platformType" jdbcType="VARCHAR" 
-                typeHandler="com.yxrobot.handler.PlatformTypeHandler"/>
+               />
         <result column="link_url" property="linkUrl" jdbcType="VARCHAR"/>
         <result column="region" property="region" jdbcType="VARCHAR"/>
         <result column="country" property="country" jdbcType="VARCHAR"/>
@@ -15,7 +15,7 @@
         <result column="language_name" property="languageName" jdbcType="VARCHAR"/>
         <result column="is_enabled" property="isEnabled" jdbcType="TINYINT"/>
         <result column="link_status" property="linkStatus" jdbcType="VARCHAR" 
-                typeHandler="com.yxrobot.handler.LinkStatusHandler"/>
+               />
         <result column="last_checked_at" property="lastCheckedAt" jdbcType="TIMESTAMP"/>
         <result column="click_count" property="clickCount" jdbcType="INTEGER"/>
         <result column="conversion_count" property="conversionCount" jdbcType="INTEGER"/>
@@ -24,7 +24,7 @@
         <result column="is_deleted" property="isDeleted" jdbcType="TINYINT"/>
     </resultMap>
 
-    <!-- 基础列 -->
+    <!-- 基础射?-->
     <sql id="Base_Column_List">
         id, platform_name, platform_type, link_url, region, country, 
         language_code, language_name, is_enabled, link_status, 
@@ -152,35 +152,35 @@
         WHERE id = #{id} AND is_deleted = 0
     </update>
 
-    <!-- 软删除 -->
+    <!-- 软删射?-->
     <update id="deleteById">
         UPDATE platform_links 
         SET is_deleted = 1, updated_at = NOW()
         WHERE id = #{id} AND is_deleted = 0
     </update>
 
-    <!-- 更新启用状态 -->
+    <!-- 更新启用状射?-->
     <update id="updateEnabledStatus">
         UPDATE platform_links 
         SET is_enabled = #{isEnabled}, updated_at = NOW()
         WHERE id = #{id} AND is_deleted = 0
     </update>
 
-    <!-- 更新链接状态 -->
+    <!-- 更新链接状射?-->
     <update id="updateLinkStatus">
         UPDATE platform_links 
         SET link_status = #{linkStatus}, last_checked_at = NOW(), updated_at = NOW()
         WHERE id = #{id} AND is_deleted = 0
     </update>
 
-    <!-- 更新点击量 -->
+    <!-- 更新点击射?-->
     <update id="updateClickCount">
         UPDATE platform_links 
         SET click_count = #{clickCount}, updated_at = NOW()
         WHERE id = #{id} AND is_deleted = 0
     </update>
 
-    <!-- 更新转化量 -->
+    <!-- 更新转化射?-->
     <update id="updateConversionCount">
         UPDATE platform_links 
         SET conversion_count = #{conversionCount}, updated_at = NOW()
@@ -250,7 +250,7 @@
         </if>
     </select>
 
-    <!-- 检查是否存在 -->
+    <!-- 检查是否存射?-->
     <select id="checkExists" resultType="int">
         SELECT COUNT(*)
         FROM platform_links

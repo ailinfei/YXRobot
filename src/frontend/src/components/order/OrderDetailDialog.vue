@@ -304,7 +304,7 @@
 import { ref, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Edit, ArrowDown, Printer } from '@element-plus/icons-vue'
-import { mockOrderAPI } from '@/api/mock/order'
+import { orderApi } from '@/api/order'
 import type { Order } from '@/types/order'
 import { ORDER_STATUS_TEXT, PAYMENT_STATUS_TEXT } from '@/types/order'
 
@@ -369,7 +369,7 @@ const handleStatusAction = async (command: string) => {
       type: 'warning'
     })
     
-    await mockOrderAPI.updateOrderStatus(props.order.id, command as any)
+    await orderApi.updateOrderStatus(props.order.id, command as any)
     ElMessage.success('操作成功')
     emit('status-change')
     

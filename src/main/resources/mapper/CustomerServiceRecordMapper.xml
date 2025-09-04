@@ -7,20 +7,20 @@
         <id column="id" property="id"/>
         <result column="customer_id" property="customerId"/>
         <result column="service_id" property="serviceId"/>
-        <result column="customer_role" property="customerRole" typeHandler="com.yxrobot.handler.ServiceRoleTypeHandler"/>
+        <result column="customer_role" property="customerRole"/>
         <result column="relation_notes" property="relationNotes"/>
         <result column="created_time" property="createdTime"/>
         <result column="updated_time" property="updatedTime"/>
         <result column="status" property="status"/>
-        <!-- 关联的服务记录信息 -->
+        <!-- 关联的服务记录信射?-->
         <association property="serviceRecord" javaType="com.yxrobot.entity.ServiceRecord">
             <id column="service_id" property="id"/>
             <result column="service_number" property="serviceNumber"/>
-            <result column="service_type" property="serviceType" typeHandler="com.yxrobot.handler.ServiceTypeTypeHandler"/>
+            <result column="service_type" property="serviceType"/>
             <result column="service_title" property="serviceTitle"/>
             <result column="service_description" property="serviceDescription"/>
-            <result column="service_status" property="serviceStatus" typeHandler="com.yxrobot.handler.ServiceStatusTypeHandler"/>
-            <result column="priority" property="priority" typeHandler="com.yxrobot.handler.PriorityTypeHandler"/>
+            <result column="service_status" property="serviceStatus"/>
+            <result column="priority" property="priority"/>
             <result column="service_cost" property="serviceCost"/>
             <result column="service_date" property="serviceDate"/>
         </association>
@@ -50,13 +50,13 @@
     <resultMap id="ServiceRecordResultMap" type="com.yxrobot.entity.ServiceRecord">
         <id column="id" property="id"/>
         <result column="service_number" property="serviceNumber"/>
-        <result column="service_type" property="serviceType" typeHandler="com.yxrobot.handler.ServiceTypeTypeHandler"/>
+        <result column="service_type" property="serviceType"/>
         <result column="service_title" property="serviceTitle"/>
         <result column="service_description" property="serviceDescription"/>
         <result column="service_staff" property="serviceStaff"/>
         <result column="service_cost" property="serviceCost"/>
-        <result column="service_status" property="serviceStatus" typeHandler="com.yxrobot.handler.ServiceStatusTypeHandler"/>
-        <result column="priority" property="priority" typeHandler="com.yxrobot.handler.PriorityTypeHandler"/>
+        <result column="service_status" property="serviceStatus"/>
+        <result column="priority" property="priority"/>
         <result column="assigned_to" property="assignedTo"/>
         <result column="resolved_at" property="resolvedAt"/>
         <result column="service_date" property="serviceDate"/>
@@ -166,7 +166,7 @@
 
     <!-- ==================== 关联查询功能 ==================== -->
 
-    <!-- 查询客户的所有服务记录 -->
+    <!-- 查询客户的所有服务记射?-->
     <select id="selectServiceRecordsByCustomerId" resultMap="ServiceRecordResultMap">
         SELECT <include refid="serviceRecordColumns"/>
         FROM service_records sr
@@ -175,7 +175,7 @@
         ORDER BY sr.service_date DESC
     </select>
 
-    <!-- 查询客户的维护服务记录列表 -->
+    <!-- 查询客户的维护服务记录列射?-->
     <select id="selectMaintenanceServicesByCustomerId" resultMap="ServiceRecordDTOResultMap">
         SELECT <include refid="serviceRecordDTOColumns"/>
         FROM customer_service_relation csr
@@ -184,7 +184,7 @@
         ORDER BY sr.service_date DESC
     </select>
 
-    <!-- 查询客户的升级服务记录列表 -->
+    <!-- 查询客户的升级服务记录列射?-->
     <select id="selectUpgradeServicesByCustomerId" resultMap="ServiceRecordDTOResultMap">
         SELECT <include refid="serviceRecordDTOColumns"/>
         FROM customer_service_relation csr
@@ -193,7 +193,7 @@
         ORDER BY sr.service_date DESC
     </select>
 
-    <!-- 查询客户的咨询服务记录列表 -->
+    <!-- 查询客户的咨询服务记录列射?-->
     <select id="selectConsultationServicesByCustomerId" resultMap="ServiceRecordDTOResultMap">
         SELECT <include refid="serviceRecordDTOColumns"/>
         FROM customer_service_relation csr
@@ -202,7 +202,7 @@
         ORDER BY sr.service_date DESC
     </select>
 
-    <!-- 查询客户的投诉处理记录列表 -->
+    <!-- 查询客户的投诉处理记录列射?-->
     <select id="selectComplaintServicesByCustomerId" resultMap="ServiceRecordDTOResultMap">
         SELECT <include refid="serviceRecordDTOColumns"/>
         FROM customer_service_relation csr
@@ -299,7 +299,7 @@
 
     <!-- ==================== 数据验证功能 ==================== -->
 
-    <!-- 检查客户服务记录关联是否存在 -->
+    <!-- 检查客户服务记录关联是否存射?-->
     <select id="existsByCustomerAndService" resultType="boolean">
         SELECT COUNT(*) > 0
         FROM customer_service_relation
@@ -335,7 +335,7 @@
         </if>
     </select>
 
-    <!-- 查询客户的高优先级服务记录 -->
+    <!-- 查询客户的高优先级服务记射?-->
     <select id="selectHighPriorityServices" resultMap="ServiceRecordDTOResultMap">
         SELECT <include refid="serviceRecordDTOColumns"/>
         FROM customer_service_relation csr
@@ -350,7 +350,7 @@
             END, sr.service_date DESC
     </select>
 
-    <!-- 查询客户的紧急服务记录 -->
+    <!-- 查询客户的紧急服务记射?-->
     <select id="selectUrgentServices" resultMap="ServiceRecordDTOResultMap">
         SELECT <include refid="serviceRecordDTOColumns"/>
         FROM customer_service_relation csr
@@ -380,13 +380,13 @@
         ORDER BY sr.priority DESC, sr.service_date ASC
     </select>
 
-    <!-- 更新服务记录关联状态 -->
+    <!-- 更新服务记录关联状射?-->
     <update id="updateRelationStatus">
         UPDATE customer_service_relation SET status = #{status}, updated_time = NOW()
         WHERE id = #{id}
     </update>
 
-    <!-- 批量更新服务记录关联状态 -->
+    <!-- 批量更新服务记录关联状射?-->
     <update id="batchUpdateRelationStatus">
         UPDATE customer_service_relation SET status = #{status}, updated_time = NOW()
         WHERE id IN
@@ -397,7 +397,7 @@
 
     <!-- ==================== 高级查询功能 ==================== -->
 
-    <!-- 查询客户的平均服务费用 -->
+    <!-- 查询客户的平均服务费射?-->
     <select id="selectAverageServiceCost" resultType="java.math.BigDecimal">
         SELECT COALESCE(AVG(sr.service_cost), 0)
         FROM customer_service_relation csr
@@ -416,7 +416,7 @@
         FROM customer_service_relation csr
         INNER JOIN service_records sr ON csr.service_id = sr.id AND sr.is_deleted = 0
         WHERE csr.customer_id = #{customerId} AND csr.status = 1
-        AND sr.service_date >= DATE_SUB(CURDATE(), INTERVAL #{months} MONTH)
+        AND sr.service_date &gt;= DATE_SUB(CURDATE(), INTERVAL #{months} MONTH)
         GROUP BY DATE_FORMAT(sr.service_date, '%Y-%m')
         ORDER BY month DESC
     </select>

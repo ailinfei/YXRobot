@@ -374,6 +374,10 @@ public class CustomerValidationService {
             return valid;
         }
         
+        public void setValid(boolean valid) {
+            this.valid = valid;
+        }
+        
         public boolean hasErrors() {
             return !errors.isEmpty();
         }

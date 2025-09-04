@@ -225,5 +225,3 @@ export const allCustomerApis = {
 // 默认导出主要的客户API
 export default customerApi
 
-// 兼容性导出
-export { customerApi }

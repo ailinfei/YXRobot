@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yxrobot.mapper.DeviceMonitoringDataMapper">
+
+    <!-- 基础结果映射 -->
+    <resultMap id="BaseResultMap" type="com.yxrobot.entity.DeviceMonitoringData">
+        <id column="id" property="id"/>
+        <result column="device_id" property="deviceId"/>
+        <result column="serial_number" property="serialNumber"/>
+        <result column="customer_name" property="customerName"/>
+        <result column="status" property="status" typeHandler="org.apache.ibatis.type.EnumTypeHandler"/>
+        <result column="last_online_at" property="lastOnlineAt"/>
+        <result column="model" property="model"/>
+        <result column="firmware_version" property="firmwareVersion"/>
+        <result column="location_latitude" property="locationLatitude"/>
+        <result column="location_longitude" property="locationLongitude"/>
+        <result column="location_address" property="locationAddress"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <!-- 基础列定义 -->
+    <sql id="Base_Column_List">
+        id, device_id, serial_number, customer_name, status, last_online_at,
+        model, firmware_version, location_latitude, location_longitude, location_address,
+        created_at, updated_at
+    </sql>
+
+    <!-- 动态查询条件 -->
+    <sql id="Where_Clause">
+        <where>
+            <if test="params.keyword != null and params.keyword != ''">
+                AND (
+                    serial_number LIKE CONCAT('%', #{params.keyword}, '%')
+                    OR customer_name LIKE CONCAT('%', #{params.keyword}, '%')
+                    OR model LIKE CONCAT('%', #{params.keyword}, '%')
+                )
+            </if>
+            <if test="params.status != null and params.status != ''">
+                AND status = #{params.status}
+            </if>
+            <if test="params.model != null and params.model != ''">
+                AND model = #{params.model}
+            </if>
+            <if test="params.customerName != null and params.customerName != ''">
+                AND customer_name LIKE CONCAT('%', #{params.customerName}, '%')
+            </if>
+            <if test="params.startDate != null">
+                AND DATE(created_at) &gt;= #{params.startDate}
+            </if>
+            <if test="params.endDate != null">
+                AND DATE(created_at) &lt;= #{params.endDate}
+            </if>
+        </where>
+    </sql>
+
+    <!-- 插入设备监控数据 -->
+    <insert id="insert" parameterType="com.yxrobot.entity.DeviceMonitoringData" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO device_monitoring_data (
+            device_id, serial_number, customer_name, status, last_online_at,
+            model, firmware_version, location_latitude, location_longitude, location_address,
+            created_at, updated_at
+        ) VALUES (
+            #{deviceId}, #{serialNumber}, #{customerName}, #{status}, #{lastOnlineAt},
+            #{model}, #{firmwareVersion}, #{locationLatitude}, #{locationLongitude}, #{locationAddress},
+            NOW(), NOW()
+        )
+    </insert>
+
+    <!-- 根据ID查询设备监控数据 -->
+    <select id="selectById" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_monitoring_data
+        WHERE id = #{id}
+    </select>
+
+    <!-- 根据设备ID查询监控数据 -->
+    <select id="selectByDeviceId" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_monitoring_data
+        WHERE device_id = #{deviceId}
+    </select>
+
+    <!-- 根据设备序列号查询监控数据 -->
+    <select id="selectBySerialNumber" parameterType="java.lang.String" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_monitoring_data
+        WHERE serial_number = #{serialNumber}
+    </select>
+
+    <!-- 分页查询设备监控数据列表 -->
+    <select id="selectWithPagination" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_monitoring_data
+        <include refid="Where_Clause"/>
+        <if test="params.orderBy != null and params.orderBy != ''">
+            ORDER BY ${params.orderBy}
+        </if>
+        <if test="params.orderBy == null or params.orderBy == ''">
+            ORDER BY updated_at DESC
+        </if>
+        <if test="params.offset != null and params.limit != null">
+            LIMIT #{params.offset}, #{params.limit}
+        </if>
+    </select>
+
+    <!-- 统计设备监控数据总数 -->
+    <select id="countWithConditions" resultType="int">
+        SELECT COUNT(*)
+        FROM device_monitoring_data
+        <include refid="Where_Clause"/>
+    </select>
+
+    <!-- 根据状态查询设备列表 -->
+    <select id="selectByStatus" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_monitoring_data
+        WHERE status = #{status}
+        ORDER BY updated_at DESC
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 查询有位置信息的设备列表 -->
+    <select id="selectDevicesWithLocation" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_monitoring_data
+        WHERE location_latitude IS NOT NULL 
+          AND location_longitude IS NOT NULL
+          AND location_latitude != 0 
+          AND location_longitude != 0
+        ORDER BY updated_at DESC
+    </select>
+
+    <!-- 更新设备监控数据 -->
+    <update id="updateById" parameterType="com.yxrobot.entity.DeviceMonitoringData">
+        UPDATE device_monitoring_data
+        SET device_id = #{deviceId},
+            serial_number = #{serialNumber},
+            customer_name = #{customerName},
+            status = #{status},
+            last_online_at = #{lastOnlineAt},
+            model = #{model},
+            firmware_version = #{firmwareVersion},
+            location_latitude = #{locationLatitude},
+            location_longitude = #{locationLongitude},
+            location_address = #{locationAddress},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 更新设备状态 -->
+    <update id="updateDeviceStatus">
+        UPDATE device_monitoring_data
+        SET status = #{status},
+            last_online_at = #{lastOnlineAt},
+            updated_at = NOW()
+        WHERE device_id = #{deviceId}
+    </update>
+
+    <!-- 批量更新设备状态 -->
+    <update id="batchUpdateStatus">
+        UPDATE device_monitoring_data
+        SET status = #{status},
+            updated_at = NOW()
+        WHERE device_id IN
+        <foreach collection="deviceIds" item="deviceId" open="(" separator="," close=")">
+            #{deviceId}
+        </foreach>
+    </update>
+
+    <!-- 删除设备监控数据 -->
+    <delete id="deleteById" parameterType="java.lang.Long">
+        DELETE FROM device_monitoring_data WHERE id = #{id}
+    </delete>
+
+    <!-- 根据设备ID删除监控数据 -->
+    <delete id="deleteByDeviceId" parameterType="java.lang.Long">
+        DELETE FROM device_monitoring_data WHERE device_id = #{deviceId}
+    </delete>
+
+    <!-- 搜索设备 -->
+    <select id="searchDevices" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_monitoring_data
+        WHERE serial_number LIKE CONCAT('%', #{keyword}, '%')
+           OR customer_name LIKE CONCAT('%', #{keyword}, '%')
+           OR model LIKE CONCAT('%', #{keyword}, '%')
+        ORDER BY 
+            CASE WHEN serial_number = #{keyword} THEN 1 ELSE 2 END,
+            updated_at DESC
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 查询长时间离线的设备 -->
+    <select id="selectLongOfflineDevices" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_monitoring_data
+        WHERE status = 'OFFLINE'
+          AND (last_online_at IS NULL OR last_online_at &lt; #{offlineThreshold})
+        ORDER BY last_online_at ASC
+    </select>
+
+    <!-- 统计各状态设备数量 -->
+    <select id="countDevicesByStatus" resultType="map">
+        SELECT 
+            status as status,
+            COUNT(*) as count
+        FROM device_monitoring_data
+        GROUP BY status
+    </select>
+
+    <!-- 同步设备基本信息 -->
+    <update id="syncDeviceInfo">
+        UPDATE device_monitoring_data dmd
+        INNER JOIN managed_devices md ON dmd.device_id = md.id
+        SET dmd.serial_number = md.serial_number,
+            dmd.customer_name = md.customer_name,
+            dmd.model = md.model,
+            dmd.firmware_version = md.firmware_version,
+            dmd.status = md.status,
+            dmd.last_online_at = md.last_online_at,
+            dmd.updated_at = NOW()
+        WHERE dmd.device_id = #{deviceId}
+    </update>
+
+    <!-- 批量同步所有设备信息 -->
+    <update id="batchSyncAllDeviceInfo">
+        UPDATE device_monitoring_data dmd
+        INNER JOIN managed_devices md ON dmd.device_id = md.id
+        SET dmd.serial_number = md.serial_number,
+            dmd.customer_name = md.customer_name,
+            dmd.model = md.model,
+            dmd.firmware_version = md.firmware_version,
+            dmd.status = md.status,
+            dmd.last_online_at = md.last_online_at,
+            dmd.updated_at = NOW()
+        WHERE md.is_deleted = 0
+    </update>
+
+</mapper>

@@ -27,7 +27,7 @@
         ORDER BY media_type, sort_order ASC
     </select>
 
-    <!-- 根据产品ID和媒体类型获取媒体列表 -->
+    <!-- 根据产品ID和媒体类型获取媒体列射?-->
     <select id="selectByProductIdAndType" resultMap="ProductMediaResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM product_media
@@ -42,7 +42,7 @@
         WHERE id = #{id} AND is_deleted = 0
     </select>
 
-    <!-- 插入新媒体记录 -->
+    <!-- 插入新媒体记射?-->
     <insert id="insert" parameterType="com.yxrobot.entity.ProductMedia" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO product_media (
             product_id, media_type, media_url, sort_order, created_at, updated_at, is_deleted
@@ -62,14 +62,14 @@
         WHERE id = #{id} AND is_deleted = 0
     </update>
 
-    <!-- 根据ID软删除媒体 -->
+    <!-- 根据ID软删除媒射?-->
     <update id="deleteById">
         UPDATE product_media
         SET is_deleted = 1, updated_at = NOW()
         WHERE id = #{id} AND is_deleted = 0
     </update>
 
-    <!-- 根据产品ID删除所有媒体 -->
+    <!-- 根据产品ID删除所有媒射?-->
     <update id="deleteByProductId">
         UPDATE product_media
         SET is_deleted = 1, updated_at = NOW()
@@ -87,28 +87,28 @@
         AND is_deleted = 0
     </update>
 
-    <!-- 统计产品的媒体数量 -->
+    <!-- 统计产品的媒体数射?-->
     <select id="countByProductId" resultType="java.lang.Long">
         SELECT COUNT(*)
         FROM product_media
         WHERE product_id = #{productId} AND is_deleted = 0
     </select>
 
-    <!-- 统计产品指定类型的媒体数量 -->
+    <!-- 统计产品指定类型的媒体数射?-->
     <select id="countByProductIdAndType" resultType="java.lang.Long">
         SELECT COUNT(*)
         FROM product_media
         WHERE product_id = #{productId} AND media_type = #{mediaType} AND is_deleted = 0
     </select>
 
-    <!-- 获取产品媒体的最大排序值 -->
+    <!-- 获取产品媒体的最大排序射?-->
     <select id="getMaxSortOrder" resultType="java.lang.Integer">
         SELECT COALESCE(MAX(sort_order), 0)
         FROM product_media
         WHERE product_id = #{productId} AND media_type = #{mediaType} AND is_deleted = 0
     </select>
 
-    <!-- 更新媒体排序值 -->
+    <!-- 更新媒体排序射?-->
     <update id="updateSortOrder">
         UPDATE product_media
         SET sort_order = #{sortOrder}, updated_at = NOW()

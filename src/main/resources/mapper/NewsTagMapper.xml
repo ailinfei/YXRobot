@@ -57,7 +57,7 @@
         WHERE name = #{name}
     </select>
 
-    <!-- 查询所有新闻标签 -->
+    <!-- 查询所有新闻标射?-->
     <select id="selectAll" resultMap="NewsTagResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM news_tags
@@ -104,12 +104,12 @@
         SELECT COUNT(*) FROM news_tags
     </select>
 
-    <!-- 检查标签名称是否存在 -->
+    <!-- 检查标签名称是否存射?-->
     <select id="existsByName" parameterType="java.lang.String" resultType="java.lang.Boolean">
         SELECT COUNT(*) > 0 FROM news_tags WHERE name = #{name}
     </select>
 
-    <!-- 检查标签名称是否存在（排除指定ID） -->
+    <!-- 检查标签名称是否存在（排除指定ID射?-->
     <select id="existsByNameExcludeId" resultType="java.lang.Boolean">
         SELECT COUNT(*) > 0 FROM news_tags 
         WHERE name = #{name} AND id != #{id}

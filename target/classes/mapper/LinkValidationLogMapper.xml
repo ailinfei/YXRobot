@@ -13,7 +13,7 @@
         <result column="checked_at" property="checkedAt" jdbcType="TIMESTAMP"/>
     </resultMap>
 
-    <!-- 基础列 -->
+    <!-- 基础射?-->
     <sql id="Base_Column_List">
         id, link_id, is_valid, status_code, response_time, error_message, checked_at
     </sql>
@@ -64,13 +64,13 @@
         </foreach>
     </insert>
 
-    <!-- 删除指定时间之前的日志 -->
+    <!-- 删除指定时间之前的日射?-->
     <delete id="deleteBeforeTime">
         DELETE FROM link_validation_logs
         WHERE checked_at &lt; #{beforeTime}
     </delete>
 
-    <!-- 统计验证成功率 -->
+    <!-- 统计验证成功射?-->
     <select id="selectSuccessRate" resultType="double">
         SELECT 
             CASE 

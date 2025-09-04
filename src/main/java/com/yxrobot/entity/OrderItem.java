@@ -10,6 +10,11 @@ import java.time.LocalDateTime;
  * 订单商品明细实体类
  * 对应order_items表
  * 记录订单中的具体商品信息
+ * 
+ * 字段映射规范：
+ * - 数据库字段：snake_case（如：product_name, unit_price）
+ * - Java实体类：camelCase（如：productName, unitPrice）
+ * - 前端接口：camelCase（如：productName, unitPrice）
  */
 public class OrderItem {
     
@@ -18,56 +23,44 @@ public class OrderItem {
     @NotNull(message = "订单ID不能为空")
     private Long orderId;               // 订单ID
     
-    @NotNull(message = "商品名称不能为空")
-    @Size(max = 100, message = "商品名称不能超过100个字符")
-    private String productName;         // 商品名称
+    @NotNull(message = "产品ID不能为空")
+    private Long productId;             // 产品ID（引用products表）
     
-    @Size(max = 50, message = "商品型号不能超过50个字符")
-    private String productModel;        // 商品型号
+    @NotNull(message = "产品名称不能为空")
+    @Size(max = 200, message = "产品名称不能超过200个字符")
+    private String productName;         // 产品名称（冗余字段，避免关联查询）
     
-    @Size(max = 50, message = "商品SKU不能超过50个字符")
-    private String productSku;          // 商品SKU
+    @Size(max = 100, message = "产品型号不能超过100个字符")
+    private String productModel;        // 产品型号
     
     @NotNull(message = "商品数量不能为空")
     @Positive(message = "商品数量必须大于0")
-    private Integer quantity;           // 商品数量
+    private Integer quantity;           // 数量
     
     @NotNull(message = "商品单价不能为空")
     @Positive(message = "商品单价必须大于0")
-    private BigDecimal unitPrice;       // 商品单价
+    private BigDecimal unitPrice;       // 单价
     
     @NotNull(message = "商品总价不能为空")
-    private BigDecimal totalPrice;      // 商品总价
-    
-    private BigDecimal discountAmount;  // 折扣金额
-    private BigDecimal finalPrice;      // 最终价格
-    
-    @Size(max = 500, message = "商品描述不能超过500个字符")
-    private String description;         // 商品描述
-    
-    @Size(max = 200, message = "备注不能超过200个字符")
-    private String notes;               // 备注
-    
-    // 租赁相关字段（仅租赁订单使用）
-    private Integer rentalDays;         // 租赁天数
-    private BigDecimal dailyRentalFee;  // 日租金
+    private BigDecimal totalPrice;      // 小计金额
     
     // 系统字段
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private Boolean isDeleted;
+    
+    // 关联数据（用于查询时填充）
+    private Product product;            // 产品信息
     
     // 构造函数
     public OrderItem() {}
     
-    public OrderItem(Long orderId, String productName, Integer quantity, BigDecimal unitPrice) {
+    public OrderItem(Long orderId, Long productId, String productName, Integer quantity, BigDecimal unitPrice) {
         this.orderId = orderId;
+        this.productId = productId;
         this.productName = productName;
         this.quantity = quantity;
         this.unitPrice = unitPrice;
         this.totalPrice = unitPrice.multiply(BigDecimal.valueOf(quantity));
-        this.finalPrice = this.totalPrice;
-        this.isDeleted = false;
     }
     
     // Getter和Setter方法
@@ -87,6 +80,14 @@ public class OrderItem {
         this.orderId = orderId;
     }
     
+    public Long getProductId() {
+        return productId;
+    }
+    
+    public void setProductId(Long productId) {
+        this.productId = productId;
+    }
+    
     public String getProductName() {
         return productName;
     }
@@ -103,14 +104,6 @@ public class OrderItem {
         this.productModel = productModel;
     }
     
-    public String getProductSku() {
-        return productSku;
-    }
-    
-    public void setProductSku(String productSku) {
-        this.productSku = productSku;
-    }
-    
     public Integer getQuantity() {
         return quantity;
     }
@@ -120,11 +113,6 @@ public class OrderItem {
         // 自动计算总价
         if (this.unitPrice != null) {
             this.totalPrice = this.unitPrice.multiply(BigDecimal.valueOf(quantity));
-            if (this.discountAmount == null) {
-                this.finalPrice = this.totalPrice;
-            } else {
-                this.finalPrice = this.totalPrice.subtract(this.discountAmount);
-            }
         }
     }
     
@@ -137,11 +125,6 @@ public class OrderItem {
         // 自动计算总价
         if (this.quantity != null) {
             this.totalPrice = unitPrice.multiply(BigDecimal.valueOf(this.quantity));
-            if (this.discountAmount == null) {
-                this.finalPrice = this.totalPrice;
-            } else {
-                this.finalPrice = this.totalPrice.subtract(this.discountAmount);
-            }
         }
     }
     
@@ -151,58 +134,6 @@ public class OrderItem {
     
     public void setTotalPrice(BigDecimal totalPrice) {
         this.totalPrice = totalPrice;
-    }
-    
-    public BigDecimal getDiscountAmount() {
-        return discountAmount;
-    }
-    
-    public void setDiscountAmount(BigDecimal discountAmount) {
-        this.discountAmount = discountAmount;
-        // 自动计算最终价格
-        if (this.totalPrice != null) {
-            this.finalPrice = this.totalPrice.subtract(discountAmount != null ? discountAmount : BigDecimal.ZERO);
-        }
-    }
-    
-    public BigDecimal getFinalPrice() {
-        return finalPrice;
-    }
-    
-    public void setFinalPrice(BigDecimal finalPrice) {
-        this.finalPrice = finalPrice;
-    }
-    
-    public String getDescription() {
-        return description;
-    }
-    
-    public void setDescription(String description) {
-        this.description = description;
-    }
-    
-    public String getNotes() {
-        return notes;
-    }
-    
-    public void setNotes(String notes) {
-        this.notes = notes;
-    }
-    
-    public Integer getRentalDays() {
-        return rentalDays;
-    }
-    
-    public void setRentalDays(Integer rentalDays) {
-        this.rentalDays = rentalDays;
-    }
-    
-    public BigDecimal getDailyRentalFee() {
-        return dailyRentalFee;
-    }
-    
-    public void setDailyRentalFee(BigDecimal dailyRentalFee) {
-        this.dailyRentalFee = dailyRentalFee;
     }
     
     public LocalDateTime getCreatedAt() {
@@ -221,12 +152,12 @@ public class OrderItem {
         this.updatedAt = updatedAt;
     }
     
-    public Boolean getIsDeleted() {
-        return isDeleted;
+    public Product getProduct() {
+        return product;
     }
     
-    public void setIsDeleted(Boolean isDeleted) {
-        this.isDeleted = isDeleted;
+    public void setProduct(Product product) {
+        this.product = product;
     }
     
     @Override
@@ -234,12 +165,11 @@ public class OrderItem {
         return "OrderItem{" +
                 "id=" + id +
                 ", orderId=" + orderId +
+                ", productId=" + productId +
                 ", productName='" + productName + '\'' +
-                ", productModel='" + productModel + '\'' +
                 ", quantity=" + quantity +
                 ", unitPrice=" + unitPrice +
                 ", totalPrice=" + totalPrice +
-                ", finalPrice=" + finalPrice +
                 '}';
     }
 }

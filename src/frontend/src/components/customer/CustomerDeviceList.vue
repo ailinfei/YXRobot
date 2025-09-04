@@ -220,7 +220,7 @@ import {
   Refresh,
   CircleCheckFilled
 } from '@element-plus/icons-vue'
-import { mockCustomerAPI } from '@/api/mock/customer'
+import { customerRelationApi } from '@/api/customer'
 import type { CustomerDevice } from '@/types/customer'
 import DeviceDetailDialog from './DeviceDetailDialog.vue'
 
@@ -297,8 +297,8 @@ const deviceStats = computed(() => {
 const loadDevices = async () => {
   loading.value = true
   try {
-    const response = await mockCustomerAPI.getCustomerDevices(props.customerId)
-    deviceList.value = response.data
+    const response = await customerRelationApi.getCustomerDevices(props.customerId)
+    deviceList.value = response.data.list || response.data
   } catch (error) {
     console.error('加载设备列表失败:', error)
     ElMessage.error('加载设备列表失败')
@@ -343,7 +343,7 @@ const handleAddDeviceSubmit = async () => {
       notes: deviceForm.notes
     }
     
-    await mockCustomerAPI.addCustomerDevice(deviceData)
+    await customerRelationApi.addDeviceToCustomer(props.customerId, deviceData)
     
     ElMessage.success('设备添加成功')
     addDeviceDialogVisible.value = false
@@ -386,7 +386,7 @@ const removeDevice = async (device: CustomerDevice) => {
       }
     )
     
-    await mockCustomerAPI.removeCustomerDevice(props.customerId, device.id)
+    await customerRelationApi.removeDeviceFromCustomer(props.customerId, device.id)
     ElMessage.success('设备移除成功')
     refreshDevices()
     

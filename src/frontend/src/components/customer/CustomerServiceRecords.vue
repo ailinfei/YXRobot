@@ -256,7 +256,7 @@ import {
   ChatDotRound,
   Warning
 } from '@element-plus/icons-vue'
-import { mockCustomerAPI } from '@/api/mock/customer'
+import { customerRelationApi } from '@/api/customer'
 import type { CustomerServiceRecord, CustomerDevice } from '@/types/customer'
 import ServiceRecordDetailDialog from './ServiceRecordDetailDialog.vue'
 
@@ -350,8 +350,8 @@ const serviceStats = computed(() => {
 const loadRecords = async () => {
   loading.value = true
   try {
-    const response = await mockCustomerAPI.getCustomerServiceRecords(props.customerId)
-    recordList.value = response.data
+    const response = await customerRelationApi.getCustomerServiceRecords(props.customerId)
+    recordList.value = response.data.list || response.data
   } catch (error) {
     console.error('加载服务记录失败:', error)
     ElMessage.error('加载服务记录失败')
@@ -362,8 +362,8 @@ const loadRecords = async () => {
 
 const loadCustomerDevices = async () => {
   try {
-    const response = await mockCustomerAPI.getCustomerDevices(props.customerId)
-    customerDevices.value = response.data
+    const response = await customerRelationApi.getCustomerDevices(props.customerId)
+    customerDevices.value = response.data.list || response.data
   } catch (error) {
     console.error('加载客户设备失败:', error)
   }
@@ -417,7 +417,7 @@ const handleAddRecordSubmit = async () => {
       }))
     }
     
-    await mockCustomerAPI.addCustomerServiceRecord(recordData)
+    await customerRelationApi.createServiceRecord(props.customerId, recordData)
     
     ElMessage.success('服务记录添加成功')
     addRecordDialogVisible.value = false
@@ -451,10 +451,16 @@ const handleEditRecord = (record: CustomerServiceRecord) => {
 const handleCompleteRecord = async (record: CustomerServiceRecord) => {
   try {
     // 更新服务记录状态为已完成
-    await mockCustomerAPI.updateCustomerServiceRecord(props.customerId, record.id, {
+    await customerRelationApi.createServiceRecord(props.customerId, {
+      type: record.type,
+      subject: record.subject,
+      description: record.description,
+      deviceId: record.deviceId,
+      serviceStaff: record.serviceStaff,
+      cost: record.cost,
       status: 'completed',
-      updatedAt: new Date().toISOString()
-    })
+      attachments: record.attachments
+    });
     
     ElMessage.success('服务记录已标记为完成')
     refreshRecords()

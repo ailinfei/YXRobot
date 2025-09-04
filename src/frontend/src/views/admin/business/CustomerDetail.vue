@@ -138,8 +138,8 @@ import CustomerBasicInfo from '@/components/customer/CustomerBasicInfo.vue'
 import CustomerDeviceList from '@/components/customer/CustomerDeviceList.vue'
 import CustomerOrderHistory from '@/components/customer/CustomerOrderHistory.vue'
 import CustomerServiceRecords from '@/components/customer/CustomerServiceRecords.vue'
-import { mockCustomerAPI } from '@/api/mock'
-import type { Customer } from '@/api/mock/customer'
+import { customerApi } from '@/api/customer'
+import type { Customer } from '@/types/customer'
 
 const route = useRoute()
 const router = useRouter()
@@ -158,7 +158,7 @@ const goBack = () => {
 const loadCustomerDetail = async () => {
   loading.value = true
   try {
-    const response = await mockCustomerAPI.getCustomerById(customerId.value)
+    const response = await customerApi.getCustomer(customerId.value)
     customer.value = response.data
   } catch (error) {
     console.error('加载客户详情失败:', error)

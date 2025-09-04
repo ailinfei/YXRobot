@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yxrobot.mapper.DeviceAlertMapper">
+
+    <!-- 基础结果映射 -->
+    <resultMap id="BaseResultMap" type="com.yxrobot.entity.DeviceAlert">
+        <id column="id" property="id"/>
+        <result column="device_id" property="deviceId"/>
+        <result column="alert_level" property="alertLevel" typeHandler="org.apache.ibatis.type.EnumTypeHandler"/>
+        <result column="alert_type" property="alertType"/>
+        <result column="alert_message" property="alertMessage"/>
+        <result column="alert_timestamp" property="alertTimestamp"/>
+        <result column="is_resolved" property="isResolved"/>
+        <result column="resolved_at" property="resolvedAt"/>
+        <result column="resolved_by" property="resolvedBy"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <!-- 基础列定义 -->
+    <sql id="Base_Column_List">
+        id, device_id, alert_level, alert_type, alert_message, alert_timestamp,
+        is_resolved, resolved_at, resolved_by, created_at, updated_at
+    </sql>
+
+    <!-- 动态查询条件 -->
+    <sql id="Where_Clause">
+        <where>
+            <if test="params.deviceId != null">
+                AND device_id = #{params.deviceId}
+            </if>
+            <if test="params.alertLevel != null and params.alertLevel != ''">
+                AND alert_level = #{params.alertLevel}
+            </if>
+            <if test="params.alertType != null and params.alertType != ''">
+                AND alert_type = #{params.alertType}
+            </if>
+            <if test="params.isResolved != null">
+                AND is_resolved = #{params.isResolved}
+            </if>
+            <if test="params.startTime != null">
+                AND alert_timestamp &gt;= #{params.startTime}
+            </if>
+            <if test="params.endTime != null">
+                AND alert_timestamp &lt;= #{params.endTime}
+            </if>
+            <if test="params.keyword != null and params.keyword != ''">
+                AND (
+                    alert_message LIKE CONCAT('%', #{params.keyword}, '%')
+                    OR alert_type LIKE CONCAT('%', #{params.keyword}, '%')
+                )
+            </if>
+        </where>
+    </sql>
+
+    <!-- 插入设备告警 -->
+    <insert id="insert" parameterType="com.yxrobot.entity.DeviceAlert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO device_alerts (
+            device_id, alert_level, alert_type, alert_message, alert_timestamp,
+            is_resolved, resolved_at, resolved_by, created_at, updated_at
+        ) VALUES (
+            #{deviceId}, #{alertLevel}, #{alertType}, #{alertMessage}, #{alertTimestamp},
+            #{isResolved}, #{resolvedAt}, #{resolvedBy}, NOW(), NOW()
+        )
+    </insert>
+
+    <!-- 根据ID查询设备告警 -->
+    <select id="selectById" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_alerts
+        WHERE id = #{id}
+    </select>
+
+    <!-- 分页查询设备告警列表 -->
+    <select id="selectWithPagination" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_alerts
+        <include refid="Where_Clause"/>
+        <if test="params.orderBy != null and params.orderBy != ''">
+            ORDER BY ${params.orderBy}
+        </if>
+        <if test="params.orderBy == null or params.orderBy == ''">
+            ORDER BY alert_timestamp DESC
+        </if>
+        <if test="params.offset != null and params.limit != null">
+            LIMIT #{params.offset}, #{params.limit}
+        </if>
+    </select>
+
+    <!-- 统计设备告警总数 -->
+    <select id="countWithConditions" resultType="int">
+        SELECT COUNT(*)
+        FROM device_alerts
+        <include refid="Where_Clause"/>
+    </select>
+
+    <!-- 根据设备ID查询告警列表 -->
+    <select id="selectByDeviceId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_alerts
+        WHERE device_id = #{deviceId}
+        ORDER BY alert_timestamp DESC
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 根据告警级别查询告警列表 -->
+    <select id="selectByAlertLevel" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_alerts
+        WHERE alert_level = #{alertLevel}
+        ORDER BY alert_timestamp DESC
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 查询未解决的告警列表 -->
+    <select id="selectUnresolved" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_alerts
+        WHERE is_resolved = 0
+        ORDER BY alert_level ASC, alert_timestamp DESC
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 查询最近的告警列表 -->
+    <select id="selectRecent" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_alerts
+        WHERE alert_timestamp &gt;= DATE_SUB(NOW(), INTERVAL #{hours} HOUR)
+        ORDER BY alert_timestamp DESC
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 根据时间范围查询告警列表 -->
+    <select id="selectByTimeRange" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_alerts
+        WHERE alert_timestamp BETWEEN #{startTime} AND #{endTime}
+        ORDER BY alert_timestamp DESC
+    </select>
+
+    <!-- 更新设备告警 -->
+    <update id="updateById" parameterType="com.yxrobot.entity.DeviceAlert">
+        UPDATE device_alerts
+        SET device_id = #{deviceId},
+            alert_level = #{alertLevel},
+            alert_type = #{alertType},
+            alert_message = #{alertMessage},
+            alert_timestamp = #{alertTimestamp},
+            is_resolved = #{isResolved},
+            resolved_at = #{resolvedAt},
+            resolved_by = #{resolvedBy},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 解决告警 -->
+    <update id="resolveAlert">
+        UPDATE device_alerts
+        SET is_resolved = 1,
+            resolved_at = #{resolvedAt},
+            resolved_by = #{resolvedBy},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 批量解决告警 -->
+    <update id="batchResolveAlerts">
+        UPDATE device_alerts
+        SET is_resolved = 1,
+            resolved_at = #{resolvedAt},
+            resolved_by = #{resolvedBy},
+            updated_at = NOW()
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <!-- 删除设备告警 -->
+    <delete id="deleteById" parameterType="java.lang.Long">
+        DELETE FROM device_alerts WHERE id = #{id}
+    </delete>
+
+    <!-- 根据设备ID删除所有告警 -->
+    <delete id="deleteByDeviceId" parameterType="java.lang.Long">
+        DELETE FROM device_alerts WHERE device_id = #{deviceId}
+    </delete>
+
+    <!-- 统计各级别告警数量 -->
+    <select id="countAlertsByLevel" resultType="map">
+        SELECT 
+            alert_level as level,
+            COUNT(*) as count
+        FROM device_alerts
+        WHERE is_resolved = 0
+        GROUP BY alert_level
+    </select>
+
+    <!-- 统计设备告警数量 -->
+    <select id="countAlertsByDevice" resultType="map">
+        SELECT 
+            alert_level as level,
+            COUNT(*) as count
+        FROM device_alerts
+        WHERE device_id = #{deviceId}
+        GROUP BY alert_level
+    </select>
+
+    <!-- 查询告警趋势数据 -->
+    <select id="selectAlertTrend" resultType="map">
+        SELECT 
+            DATE(alert_timestamp) as date,
+            alert_level as level,
+            COUNT(*) as count
+        FROM device_alerts
+        WHERE alert_timestamp BETWEEN #{startDate} AND #{endDate}
+        GROUP BY DATE(alert_timestamp), alert_level
+        ORDER BY date ASC, alert_level ASC
+    </select>
+
+    <!-- 清理过期的已解决告警 -->
+    <delete id="deleteResolvedAlertsBefore">
+        DELETE FROM device_alerts 
+        WHERE is_resolved = 1 
+          AND resolved_at &lt; #{beforeDate}
+    </delete>
+
+    <!-- 查询重复告警 -->
+    <select id="selectDuplicateAlerts" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_alerts
+        WHERE device_id = #{deviceId}
+          AND alert_type = #{alertType}
+          AND is_resolved = 0
+        ORDER BY alert_timestamp DESC
+    </select>
+
+    <!-- 自动解决过期告警 -->
+    <update id="autoResolveExpiredAlerts">
+        UPDATE device_alerts
+        SET is_resolved = 1,
+            resolved_at = NOW(),
+            resolved_by = #{autoResolvedBy},
+            updated_at = NOW()
+        WHERE is_resolved = 0
+          AND alert_level = #{alertLevel}
+          AND alert_timestamp &lt; #{beforeTime}
+    </update>
+
+</mapper>

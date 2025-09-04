@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yxrobot.mapper.ManagedDeviceLogMapper">
+
+    <resultMap id="BaseResultMap" type="com.yxrobot.entity.ManagedDeviceLog">
+        <id column="id" property="id"/>
+        <result column="device_id" property="deviceId"/>
+        <result column="timestamp" property="timestamp"/>
+        <result column="level" property="level" typeHandler="org.apache.ibatis.type.EnumTypeHandler"/>
+        <result column="category" property="category" typeHandler="org.apache.ibatis.type.EnumTypeHandler"/>
+        <result column="message" property="message"/>
+        <result column="details" property="details" typeHandler="com.yxrobot.handler.JsonMapTypeHandler"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, device_id, timestamp, level, category, message, details, created_at
+    </sql>
+
+    <sql id="Search_Conditions">
+        <where>
+            device_id = #{deviceId}
+            <if test="level != null and level != ''">
+                AND level = #{level}
+            </if>
+            <if test="category != null and category != ''">
+                AND category = #{category}
+            </if>
+            <if test="startDate != null">
+                AND timestamp >= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND timestamp &lt;= #{endDate}
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectByPage" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM managed_device_logs
+        <include refid="Search_Conditions"/>
+        ORDER BY timestamp DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countByConditions" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM managed_device_logs
+        <include refid="Search_Conditions"/>
+    </select>
+
+    <insert id="insert" parameterType="com.yxrobot.entity.ManagedDeviceLog" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO managed_device_logs (
+            device_id, timestamp, level, category, message, details
+        ) VALUES (
+            #{deviceId}, #{timestamp}, #{level}, #{category}, #{message}, #{details}
+        )
+    </insert>
+
+    <delete id="deleteByDeviceId">
+        DELETE FROM managed_device_logs WHERE device_id = #{deviceId}
+    </delete>
+
+    <delete id="deleteByDateRange">
+        DELETE FROM managed_device_logs 
+        WHERE timestamp BETWEEN #{startDate} AND #{endDate}
+    </delete>
+
+</mapper>

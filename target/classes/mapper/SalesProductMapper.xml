@@ -22,14 +22,14 @@
         <result column="is_deleted" property="isDeleted" jdbcType="BOOLEAN"/>
     </resultMap>
 
-    <!-- 基础列 -->
+    <!-- 基础射?-->
     <sql id="Base_Column_List">
         id, product_name, product_code, category, brand, model, 
         unit_price, cost_price, stock_quantity, unit, description, 
         specifications, is_active, created_at, updated_at, is_deleted
     </sql>
 
-    <!-- 插入销售产品记录 -->
+    <!-- 插入销售产品记射?-->
     <insert id="insert" parameterType="com.yxrobot.entity.SalesProduct" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO sales_products (
             product_name, product_code, category, brand, model,
@@ -42,7 +42,7 @@
         )
     </insert>
 
-    <!-- 批量插入销售产品记录 -->
+    <!-- 批量插入销售产品记射?-->
     <insert id="insertBatch" parameterType="java.util.List">
         INSERT INTO sales_products (
             product_name, product_code, category, brand, model,
@@ -56,7 +56,7 @@
         </foreach>
     </insert>
 
-    <!-- 根据ID查询销售产品 -->
+    <!-- 根据ID查询销售产射?-->
     <select id="selectById" parameterType="java.lang.Long" resultMap="BaseResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM sales_products
@@ -78,7 +78,7 @@
         ORDER BY product_name ASC
     </select>
 
-    <!-- 查询所有启用的销售产品 -->
+    <!-- 查询所有启用的销售产射?-->
     <select id="selectAllActive" resultMap="BaseResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM sales_products
@@ -86,7 +86,7 @@
         ORDER BY category ASC, product_name ASC
     </select>
 
-    <!-- 查询所有销售产品记录 -->
+    <!-- 查询所有销售产品记射?-->
     <select id="selectAll" resultMap="BaseResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM sales_products
@@ -94,7 +94,7 @@
         ORDER BY created_at DESC
     </select>
 
-    <!-- 分页查询销售产品 -->
+    <!-- 分页查询销售产射?-->
     <select id="selectByPage" resultMap="BaseResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM sales_products
@@ -128,7 +128,7 @@
         </if>
     </select>
 
-    <!-- 更新销售产品记录 -->
+    <!-- 更新销售产品记射?-->
     <update id="updateById" parameterType="com.yxrobot.entity.SalesProduct">
         UPDATE sales_products
         SET product_name = #{productName},
@@ -155,7 +155,7 @@
         WHERE id = #{id} AND is_deleted = 0
     </update>
 
-    <!-- 根据ID删除销售产品记录（逻辑删除） -->
+    <!-- 根据ID删除销售产品记录（逻辑删除射?-->
     <update id="deleteById" parameterType="java.lang.Long">
         UPDATE sales_products
         SET is_deleted = 1, updated_at = NOW()
@@ -169,7 +169,7 @@
         WHERE id = #{id} AND is_deleted = 0
     </update>
 
-    <!-- 查询低库存产品 -->
+    <!-- 查询低库存产射?-->
     <select id="selectLowStockProducts" resultMap="BaseResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM sales_products

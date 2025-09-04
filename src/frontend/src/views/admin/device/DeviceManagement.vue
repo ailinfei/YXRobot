@@ -19,7 +19,7 @@
     </div>
 
     <!-- 设备统计卡片 -->
-    <div class="stats-cards">
+    <div class="stats-cards" v-loading="statsLoading">
       <div class="stat-card">
         <div class="stat-icon total">
           <el-icon><Monitor /></el-icon>
@@ -74,16 +74,21 @@
         />
         <el-select v-model="statusFilter" placeholder="设备状态" clearable @change="handleFilter">
           <el-option label="全部状态" value="" />
-          <el-option label="在线" value="online" />
-          <el-option label="离线" value="offline" />
-          <el-option label="故障" value="error" />
-          <el-option label="维护中" value="maintenance" />
+          <el-option 
+            v-for="status in Object.values(DeviceStatus)" 
+            :key="status"
+            :label="DEVICE_STATUS_TEXT[status]" 
+            :value="status" 
+          />
         </el-select>
         <el-select v-model="modelFilter" placeholder="设备型号" clearable @change="handleFilter">
           <el-option label="全部型号" value="" />
-          <el-option label="教育版" value="YX-EDU-2024" />
-          <el-option label="家庭版" value="YX-HOME-2024" />
-          <el-option label="专业版" value="YX-PRO-2024" />
+          <el-option 
+            v-for="model in Object.values(DeviceModel)" 
+            :key="model"
+            :label="DEVICE_MODEL_TEXT[model]" 
+            :value="model" 
+          />
         </el-select>
         <el-select v-model="customerFilter" placeholder="所属客户" clearable @change="handleFilter" filterable>
           <el-option label="全部客户" value="" />
@@ -96,9 +101,19 @@
         </el-select>
       </div>
       <div class="filters-right">
-     
+        <el-button 
+          :icon="Refresh" 
+          @click="handleRefresh"
+          :loading="tableLoading || statsLoading"
+        >
+          刷新
+        </el-button>
+        
         <el-dropdown @command="handleBatchAction" v-if="selectedDevices.length > 0">
-      
+          <el-button type="primary">
+            批量操作 ({{ selectedDevices.length }})
+            <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+          </el-button>
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item command="updateStatus">更新状态</el-dropdown-item>
@@ -119,6 +134,20 @@
         stripe
         @selection-change="handleSelectionChange"
       >
+        <template #empty>
+          <EmptyState
+            :icon="Monitor"
+            title="暂无设备数据"
+            description="还没有添加任何设备，点击右上角&quot;添加设备&quot;按钮开始添加"
+          >
+            <template #actions>
+              <el-button type="primary" @click="showAddDeviceDialog">
+                <el-icon><Plus /></el-icon>
+                添加设备
+              </el-button>
+            </template>
+          </EmptyState>
+        </template>
         <el-table-column type="selection" width="55" />
         <el-table-column prop="serialNumber" label="设备序列号" width="180" />
         <el-table-column prop="model" label="设备型号" width="150">
@@ -143,9 +172,9 @@
                 :class="getStatusIconClass(row.status)"
                 class="status-icon"
               >
-                <CircleCheckFilled v-if="row.status === 'online'" />
-                <CircleCloseFilled v-else-if="row.status === 'offline'" />
-                <WarningFilled v-else-if="row.status === 'error'" />
+                <CircleCheckFilled v-if="row.status === DeviceStatus.ONLINE" />
+                <CircleCloseFilled v-else-if="row.status === DeviceStatus.OFFLINE" />
+                <WarningFilled v-else-if="row.status === DeviceStatus.ERROR" />
                 <Tools v-else />
               </el-icon>
               <span class="status-text">{{ getStatusText(row.status) }}</span>
@@ -168,11 +197,11 @@
             <div class="usage-stats">
               <div class="usage-item">
                 <span class="label">运行时长:</span>
-                <span class="value">{{ formatDuration(row.totalRuntime) }}</span>
+                <span class="value">{{ formatDuration(row.usageStats?.totalRuntime) }}</span>
               </div>
               <div class="usage-item">
                 <span class="label">使用次数:</span>
-                <span class="value">{{ row.usageCount }}次</span>
+                <span class="value">{{ row.usageStats?.usageCount || 0 }}次</span>
               </div>
             </div>
           </template>
@@ -191,13 +220,13 @@
               </el-button>
               <template #dropdown>
                 <el-dropdown-menu>
-                  <el-dropdown-item command="reboot" v-if="row.status === 'online'">
+                  <el-dropdown-item command="reboot" v-if="row.status === DeviceStatus.ONLINE">
                     重启设备
                   </el-dropdown-item>
-                  <el-dropdown-item command="maintenance" v-if="row.status !== 'maintenance'">
+                  <el-dropdown-item command="maintenance" v-if="row.status !== DeviceStatus.MAINTENANCE">
                     进入维护
                   </el-dropdown-item>
-                  <el-dropdown-item command="activate" v-if="row.status === 'offline'">
+                  <el-dropdown-item command="activate" v-if="row.status === DeviceStatus.OFFLINE">
                     激活设备
                   </el-dropdown-item>
                   <el-dropdown-item command="firmware">
@@ -263,17 +292,30 @@ import {
   CircleCheckFilled,
   CircleCloseFilled,
   WarningFilled,
-  Tools
+  Tools,
+  Refresh
 } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { mockDeviceAPI } from '@/api/mock/device'
-import type { Device, DeviceStats } from '@/types/device'
+import { managedDeviceAPI } from '@/api/managedDevice'
+import type { 
+  ManagedDevice, 
+  ManagedDeviceStats, 
+  ManagedDeviceQueryParams,
+  DeviceStatus,
+  DeviceModel,
+  DEVICE_STATUS_TEXT,
+  DEVICE_MODEL_TEXT,
+  DEVICE_STATUS_COLOR,
+  CustomerOption
+} from '@/types/managedDevice'
 import DeviceDetailDialog from '@/components/device/DeviceDetailDialog.vue'
 import DeviceFormDialog from '@/components/device/DeviceFormDialog.vue'
 import DeviceLogsDialog from '@/components/device/DeviceLogsDialog.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
 
 // 响应式数据
 const tableLoading = ref(false)
+const statsLoading = ref(false)
 const searchKeyword = ref('')
 const statusFilter = ref('')
 const modelFilter = ref('')
@@ -281,12 +323,14 @@ const customerFilter = ref('')
 const currentPage = ref(1)
 const pageSize = ref(20)
 const total = ref(0)
+const hasError = ref(false)
+const errorMessage = ref('')
 
 // 设备数据
-const deviceList = ref<Device[]>([])
-const selectedDevices = ref<Device[]>([])
-const selectedDevice = ref<Device | null>(null)
-const deviceStats = ref<DeviceStats>({
+const deviceList = ref<ManagedDevice[]>([])
+const selectedDevices = ref<ManagedDevice[]>([])
+const selectedDevice = ref<ManagedDevice | null>(null)
+const deviceStats = ref<ManagedDeviceStats>({
   total: 0,
   online: 0,
   offline: 0,
@@ -295,18 +339,25 @@ const deviceStats = ref<DeviceStats>({
 })
 
 // 客户选项
-const customerOptions = ref<any[]>([])
+const customerOptions = ref<CustomerOption[]>([])
 
 // 弹窗状态
 const detailDialogVisible = ref(false)
 const editDialogVisible = ref(false)
 const logsDialogVisible = ref(false)
-const editingDevice = ref<Device | null>(null)
+const editingDevice = ref<ManagedDevice | null>(null)
 
-// 搜索处理
+// 搜索处理 - 添加防抖优化
+let searchTimer: NodeJS.Timeout | null = null
 const handleSearch = () => {
-  currentPage.value = 1
-  loadDeviceData()
+  if (searchTimer) {
+    clearTimeout(searchTimer)
+  }
+  
+  searchTimer = setTimeout(() => {
+    currentPage.value = 1
+    loadDeviceData()
+  }, 300) // 300ms防抖延迟
 }
 
 // 筛选处理
@@ -330,58 +381,97 @@ const handleCurrentChange = (page: number) => {
 }
 
 // 选择处理
-const handleSelectionChange = (selection: Device[]) => {
+const handleSelectionChange = (selection: ManagedDevice[]) => {
   selectedDevices.value = selection
 }
 
 // 加载设备数据
 const loadDeviceData = async () => {
   tableLoading.value = true
+  hasError.value = false
+  
   try {
-    const response = await mockDeviceAPI.getDevices({
+    const queryParams: ManagedDeviceQueryParams = {
       page: currentPage.value,
       pageSize: pageSize.value,
       keyword: searchKeyword.value,
-      status: statusFilter.value as any,
-      model: modelFilter.value,
+      status: statusFilter.value as DeviceStatus,
+      model: modelFilter.value as DeviceModel,
       customerId: customerFilter.value
-    })
+    }
     
-    deviceList.value = response.data.list
-    total.value = response.data.total
-    deviceStats.value = response.data.stats
-  } catch (error) {
+    const response = await managedDeviceAPI.getDevices(queryParams)
+    
+    deviceList.value = response.list || []
+    total.value = response.total || 0
+    
+    // 同时更新统计数据
+    if (response.stats) {
+      deviceStats.value = response.stats
+    }
+    
+  } catch (error: any) {
     console.error('加载设备数据失败:', error)
-    ElMessage.error('加载设备数据失败')
+    hasError.value = true
+    errorMessage.value = error?.message || '加载设备数据失败'
+    ElMessage.error(errorMessage.value)
+    
+    // 设置默认值
+    deviceList.value = []
+    total.value = 0
   } finally {
     tableLoading.value = false
+  }
+}
+
+// 加载统计数据
+const loadDeviceStats = async () => {
+  statsLoading.value = true
+  
+  try {
+    const stats = await managedDeviceAPI.getDeviceStats()
+    deviceStats.value = stats
+  } catch (error: any) {
+    console.error('加载统计数据失败:', error)
+    ElMessage.error('加载统计数据失败')
+    
+    // 设置默认统计值
+    deviceStats.value = {
+      total: 0,
+      online: 0,
+      offline: 0,
+      error: 0,
+      maintenance: 0
+    }
+  } finally {
+    statsLoading.value = false
   }
 }
 
 // 加载客户选项
 const loadCustomerOptions = async () => {
   try {
-    const response = await mockDeviceAPI.getCustomerOptions()
-    customerOptions.value = response.data
+    const response = await managedDeviceAPI.getCustomerOptions()
+    customerOptions.value = response
   } catch (error) {
     console.error('加载客户选项失败:', error)
   }
 }
 
 // 查看设备详情
-const viewDeviceDetail = (device: Device) => {
+const viewDeviceDetail = (device: ManagedDevice) => {
   selectedDevice.value = device
   detailDialogVisible.value = true
 }
 
 // 编辑设备
-const editDevice = (device: Device) => {
+const editDevice = (device: ManagedDevice) => {
   editingDevice.value = device
   editDialogVisible.value = true
 }
 
 // 从详情页编辑
-const handleEditFromDetail = (device: Device) => {
+const handleEditFromDetail = (device: ManagedDevice) => {
   detailDialogVisible.value = false
   editDevice(device)
 }
@@ -399,23 +489,23 @@ const handleDeviceEditSuccess = () => {
 }
 
 // 设备操作处理
-const handleDeviceAction = async (command: string, device: Device) => {
+const handleDeviceAction = async (command: string, device: ManagedDevice) => {
   try {
     switch (command) {
       case 'reboot':
-        await mockDeviceAPI.rebootDevice(device.id)
+        await managedDeviceAPI.rebootDevice(device.id)
         ElMessage.success('设备重启指令已发送')
         break
       case 'maintenance':
-        await mockDeviceAPI.updateDeviceStatus(device.id, 'maintenance')
+        await managedDeviceAPI.updateDeviceStatus(device.id, DeviceStatus.MAINTENANCE)
         ElMessage.success('设备已进入维护模式')
         break
       case 'activate':
-        await mockDeviceAPI.activateDevice(device.id)
+        await managedDeviceAPI.activateDevice(device.id)
         ElMessage.success('设备激活指令已发送')
         break
       case 'firmware':
-        await mockDeviceAPI.pushFirmware(device.id)
+        await managedDeviceAPI.pushFirmware(device.id)
         ElMessage.success('固件推送已启动')
         break
       case 'logs':
@@ -428,7 +518,7 @@ const handleDeviceAction = async (command: string, device: Device) => {
           cancelButtonText: '取消',
           type: 'warning'
         })
-        await mockDeviceAPI.deleteDevice(device.id)
+        await managedDeviceAPI.deleteDevice(device.id)
         ElMessage.success('设备已删除')
         break
     }
@@ -452,12 +542,20 @@ const handleBatchAction = async (command: string) => {
         ElMessage.info('批量状态更新功能开发中')
         break
       case 'pushFirmware':
-        await mockDeviceAPI.batchPushFirmware(deviceIds)
-        ElMessage.success(`已向 ${deviceIds.length} 个设备推送固件`)
+        const firmwareResult = await managedDeviceAPI.batchPushFirmware(deviceIds)
+        if (firmwareResult.failureCount > 0) {
+          ElMessage.warning(`固件推送完成：成功${firmwareResult.successCount}个，失败${firmwareResult.failureCount}个`)
+        } else {
+          ElMessage.success(`已向 ${firmwareResult.successCount} 个设备推送固件`)
+        }
         break
       case 'reboot':
-        await mockDeviceAPI.batchRebootDevices(deviceIds)
-        ElMessage.success(`已向 ${deviceIds.length} 个设备发送重启指令`)
+        const rebootResult = await managedDeviceAPI.batchRebootDevices(deviceIds)
+        if (rebootResult.failureCount > 0) {
+          ElMessage.warning(`重启指令发送完成：成功${rebootResult.successCount}个，失败${rebootResult.failureCount}个`)
+        } else {
+          ElMessage.success(`已向 ${rebootResult.successCount} 个设备发送重启指令`)
+        }
         break
       case 'delete':
         await ElMessageBox.confirm(`确定要删除选中的 ${deviceIds.length} 个设备吗？此操作不可恢复。`, '确认删除', {
@@ -465,8 +563,12 @@ const handleBatchAction = async (command: string) => {
           cancelButtonText: '取消',
           type: 'warning'
         })
-        await mockDeviceAPI.batchDeleteDevices(deviceIds)
-        ElMessage.success(`已删除 ${deviceIds.length} 个设备`)
+        const deleteResult = await managedDeviceAPI.batchDeleteDevices(deviceIds)
+        if (deleteResult.failureCount > 0) {
+          ElMessage.warning(`删除完成：成功${deleteResult.successCount}个，失败${deleteResult.failureCount}个`)
+        } else {
+          ElMessage.success(`已删除 ${deleteResult.successCount} 个设备`)
+        }
         break
     }
     loadDeviceData()
@@ -483,45 +585,33 @@ const handleStatusChange = () => {
   loadDeviceData()
 }
 
+// 刷新处理
+const handleRefresh = () => {
+  initializeData()
+}
+
 
 
 // 工具方法
-const getModelTagType = (model: string) => {
-  const types: Record<string, any> = {
-    'YX-EDU-2024': 'primary',
-    'YX-HOME-2024': 'success',
-    'YX-PRO-2024': 'warning'
+const getModelTagType = (model: DeviceModel) => {
+  const types: Record<DeviceModel, string> = {
+    [DeviceModel.YX_EDU_2024]: 'primary',
+    [DeviceModel.YX_HOME_2024]: 'success',
+    [DeviceModel.YX_PRO_2024]: 'warning'
   }
   return types[model] || 'info'
 }
 
-const getModelName = (model: string) => {
-  const names: Record<string, string> = {
-    'YX-EDU-2024': '教育版',
-    'YX-HOME-2024': '家庭版',
-    'YX-PRO-2024': '专业版'
-  }
-  return names[model] || model
+const getModelName = (model: DeviceModel) => {
+  return DEVICE_MODEL_TEXT[model] || model
 }
 
-const getStatusIconClass = (status: string) => {
-  const classes: Record<string, string> = {
-    online: 'online',
-    offline: 'offline',
-    error: 'error',
-    maintenance: 'maintenance'
-  }
-  return classes[status] || 'offline'
+const getStatusIconClass = (status: DeviceStatus) => {
+  return DEVICE_STATUS_COLOR[status] || 'info'
 }
 
-const getStatusText = (status: string) => {
-  const texts: Record<string, string> = {
-    online: '在线',
-    offline: '离线',
-    error: '故障',
-    maintenance: '维护中'
-  }
-  return texts[status] || status
+const getStatusText = (status: DeviceStatus) => {
+  return DEVICE_STATUS_TEXT[status] || status
 }
 
 const formatDateTime = (dateStr?: string) => {
@@ -536,9 +626,17 @@ const formatDuration = (minutes?: number) => {
   return hours > 0 ? `${hours}小时${mins}分钟` : `${mins}分钟`
 }
 
+// 初始化数据加载
+const initializeData = async () => {
+  await Promise.all([
+    loadDeviceData(),
+    loadDeviceStats(),
+    loadCustomerOptions()
+  ])
+}
+
 onMounted(() => {
-  loadDeviceData()
-  loadCustomerOptions()
+  initializeData()
 })
 </script>
 
@@ -749,6 +847,4 @@ onMounted(() => {
     }
   }
 }
-
-
 </style>

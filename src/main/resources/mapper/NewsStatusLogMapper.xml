@@ -6,8 +6,8 @@
     <resultMap id="NewsStatusLogResultMap" type="com.yxrobot.entity.NewsStatusLog">
         <id column="id" property="id" jdbcType="BIGINT"/>
         <result column="news_id" property="newsId" jdbcType="BIGINT"/>
-        <result column="from_status" property="fromStatus" jdbcType="VARCHAR" typeHandler="com.yxrobot.handler.CodeEnumTypeHandler"/>
-        <result column="to_status" property="toStatus" jdbcType="VARCHAR" typeHandler="com.yxrobot.handler.CodeEnumTypeHandler"/>
+        <result column="from_status" property="fromStatus" jdbcType="VARCHAR"/>
+        <result column="to_status" property="toStatus" jdbcType="VARCHAR"/>
         <result column="reason" property="reason" jdbcType="VARCHAR"/>
         <result column="operator" property="operator" jdbcType="VARCHAR"/>
         <result column="change_time" property="changeTime" jdbcType="TIMESTAMP"/>
@@ -19,7 +19,7 @@
         id, news_id, from_status, to_status, reason, operator, change_time, remark
     </sql>
 
-    <!-- 插入状态变更日志 -->
+    <!-- 插入状态变更日射?-->
     <insert id="insert" parameterType="com.yxrobot.entity.NewsStatusLog" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO news_status_logs (
             news_id, from_status, to_status, reason, operator, change_time, remark
@@ -28,7 +28,7 @@
         )
     </insert>
 
-    <!-- 根据新闻ID查询状态变更日志 -->
+    <!-- 根据新闻ID查询状态变更日射?-->
     <select id="selectByNewsId" resultMap="NewsStatusLogResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM news_status_logs
@@ -36,7 +36,7 @@
         ORDER BY change_time DESC
     </select>
 
-    <!-- 根据新闻ID查询最新的状态变更日志 -->
+    <!-- 根据新闻ID查询最新的状态变更日射?-->
     <select id="selectLatestByNewsId" resultMap="NewsStatusLogResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM news_status_logs
@@ -45,7 +45,7 @@
         LIMIT 1
     </select>
 
-    <!-- 分页查询状态变更日志 -->
+    <!-- 分页查询状态变更日射?-->
     <select id="selectByPage" resultMap="NewsStatusLogResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM news_status_logs
@@ -66,7 +66,7 @@
         WHERE news_id = #{newsId}
     </select>
 
-    <!-- 根据操作人查询日志 -->
+    <!-- 根据操作人查询日射?-->
     <select id="selectByOperator" resultMap="NewsStatusLogResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM news_status_logs
@@ -75,7 +75,7 @@
         LIMIT #{offset}, #{limit}
     </select>
 
-    <!-- 删除指定新闻的所有状态日志 -->
+    <!-- 删除指定新闻的所有状态日射?-->
     <delete id="deleteByNewsId">
         DELETE FROM news_status_logs
         WHERE news_id = #{newsId}

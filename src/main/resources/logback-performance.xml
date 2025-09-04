@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- 性能监控日志配置 -->
+    
+    <!-- 性能日志文件输出 -->
+    <appender name="PERFORMANCE_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/yxrobot-performance.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>logs/yxrobot-performance.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>3GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n</pattern>
+        </encoder>
+    </appender>
+    
+    <!-- 慢查询日志文件输出 -->
+    <appender name="SLOW_QUERY_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/yxrobot-slow-query.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>logs/yxrobot-slow-query.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>2GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n</pattern>
+        </encoder>
+        <!-- 只记录WARN级别以上的日志（慢查询） -->
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>WARN</level>
+        </filter>
+    </appender>
+    
+    <!-- 业务监控日志文件输出 -->
+    <appender name="BUSINESS_METRICS_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/yxrobot-business-metrics.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>logs/yxrobot-business-metrics.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>50MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} - %msg%n</pattern>
+        </encoder>
+    </appender>
+    
+    <!-- 控制台输出（仅开发环境） -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+        <!-- 只在开发环境输出到控制台 -->
+        <filter class="ch.qos.logback.core.filter.EvaluatorFilter">
+            <evaluator class="ch.qos.logback.classic.boolex.OnMarkerEvaluator">
+                <marker>DEV_ONLY</marker>
+            </evaluator>
+            <onMismatch>DENY</onMismatch>
+            <onMatch>ACCEPT</onMatch>
+        </filter>
+    </appender>
+    
+    <!-- 性能监控Logger -->
+    <logger name="PERFORMANCE" level="INFO" additivity="false">
+        <appender-ref ref="PERFORMANCE_FILE"/>
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+    
+    <!-- 慢查询Logger -->
+    <logger name="SLOW_QUERY" level="WARN" additivity="false">
+        <appender-ref ref="SLOW_QUERY_FILE"/>
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+    
+    <!-- 业务指标Logger -->
+    <logger name="BUSINESS_METRICS" level="INFO" additivity="false">
+        <appender-ref ref="BUSINESS_METRICS_FILE"/>
+    </logger>
+    
+    <!-- 数据库性能监控 -->
+    <logger name="com.yxrobot.aspect.DatabasePerformanceAspect" level="DEBUG" additivity="false">
+        <appender-ref ref="PERFORMANCE_FILE"/>
+    </logger>
+    
+    <!-- 性能拦截器 -->
+    <logger name="com.yxrobot.interceptor.PerformanceInterceptor" level="DEBUG" additivity="false">
+        <appender-ref ref="PERFORMANCE_FILE"/>
+    </logger>
+    
+    <!-- 大数据量优化服务 -->
+    <logger name="com.yxrobot.service.ManagedDeviceLargeDataOptimizationService" level="INFO" additivity="false">
+        <appender-ref ref="PERFORMANCE_FILE"/>
+    </logger>
+    
+    <!-- 根Logger配置 -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>

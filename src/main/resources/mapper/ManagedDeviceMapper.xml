@@ -1,0 +1,1359 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yxrobot.mapper.ManagedDeviceMapper">
+
+    <!-- 基础结果映射 -->
+    <resultMap id="BaseResultMap" type="com.yxrobot.entity.ManagedDevice">
+        <id column="id" property="id"/>
+        <result column="serial_number" property="serialNumber"/>
+        <result column="model" property="model" typeHandler="org.apache.ibatis.type.EnumTypeHandler"/>
+        <result column="status" property="status" typeHandler="org.apache.ibatis.type.EnumTypeHandler"/>
+        <result column="firmware_version" property="firmwareVersion"/>
+        <result column="customer_id" property="customerId"/>
+        <result column="customer_name" property="customerName"/>
+        <result column="customer_phone" property="customerPhone"/>
+        <result column="last_online_at" property="lastOnlineAt"/>
+        <result column="activated_at" property="activatedAt"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+        <result column="created_by" property="createdBy"/>
+        <result column="notes" property="notes"/>
+        <result column="is_deleted" property="isDeleted"/>
+    </resultMap>
+
+    <!-- 包含关联信息的结果映射 -->
+    <resultMap id="WithAssociationsResultMap" type="com.yxrobot.entity.ManagedDevice" extends="BaseResultMap">
+        <!-- 技术参数 -->
+        <association property="specifications" javaType="com.yxrobot.entity.ManagedDeviceSpecification">
+            <id column="spec_id" property="id"/>
+            <result column="spec_device_id" property="deviceId"/>
+            <result column="cpu" property="cpu"/>
+            <result column="memory" property="memory"/>
+            <result column="storage" property="storage"/>
+            <result column="display" property="display"/>
+            <result column="battery" property="battery"/>
+            <result column="connectivity" property="connectivity" typeHandler="com.yxrobot.handler.JsonListTypeHandler"/>
+            <result column="spec_created_at" property="createdAt"/>
+            <result column="spec_updated_at" property="updatedAt"/>
+        </association>
+        
+        <!-- 使用统计 -->
+        <association property="usageStats" javaType="com.yxrobot.entity.ManagedDeviceUsageStats">
+            <id column="stats_id" property="id"/>
+            <result column="stats_device_id" property="deviceId"/>
+            <result column="total_runtime" property="totalRuntime"/>
+            <result column="usage_count" property="usageCount"/>
+            <result column="last_used_at" property="lastUsedAt"/>
+            <result column="average_session_time" property="averageSessionTime"/>
+            <result column="stats_created_at" property="createdAt"/>
+            <result column="stats_updated_at" property="updatedAt"/>
+        </association>
+        
+        <!-- 设备配置 -->
+        <association property="configuration" javaType="com.yxrobot.entity.ManagedDeviceConfiguration">
+            <id column="config_id" property="id"/>
+            <result column="config_device_id" property="deviceId"/>
+            <result column="language" property="language"/>
+            <result column="timezone" property="timezone"/>
+            <result column="auto_update" property="autoUpdate"/>
+            <result column="debug_mode" property="debugMode"/>
+            <result column="custom_settings" property="customSettings" typeHandler="com.yxrobot.handler.JsonMapTypeHandler"/>
+            <result column="config_created_at" property="createdAt"/>
+            <result column="config_updated_at" property="updatedAt"/>
+        </association>
+        
+        <!-- 位置信息 -->
+        <association property="location" javaType="com.yxrobot.entity.ManagedDeviceLocation">
+            <id column="location_id" property="id"/>
+            <result column="location_device_id" property="deviceId"/>
+            <result column="latitude" property="latitude"/>
+            <result column="longitude" property="longitude"/>
+            <result column="address" property="address"/>
+            <result column="last_updated" property="lastUpdated"/>
+            <result column="location_created_at" property="createdAt"/>
+            <result column="location_updated_at" property="updatedAt"/>
+        </association>
+        
+        <!-- 维护记录列表 -->
+        <collection property="maintenanceRecords" ofType="com.yxrobot.entity.ManagedDeviceMaintenanceRecord">
+            <id column="maintenance_id" property="id"/>
+            <result column="maintenance_device_id" property="deviceId"/>
+            <result column="maintenance_type" property="type" typeHandler="org.apache.ibatis.type.EnumTypeHandler"/>
+            <result column="description" property="description"/>
+            <result column="technician" property="technician"/>
+            <result column="start_time" property="startTime"/>
+            <result column="end_time" property="endTime"/>
+            <result column="maintenance_status" property="status" typeHandler="org.apache.ibatis.type.EnumTypeHandler"/>
+            <result column="cost" property="cost"/>
+            <result column="parts" property="parts" typeHandler="com.yxrobot.handler.JsonListTypeHandler"/>
+            <result column="maintenance_notes" property="notes"/>
+            <result column="maintenance_created_at" property="createdAt"/>
+            <result column="maintenance_updated_at" property="updatedAt"/>
+        </collection>
+    </resultMap>
+
+    <!-- 基础字段 -->
+    <sql id="Base_Column_List">
+        id, serial_number, model, status, firmware_version, customer_id, customer_name, 
+        customer_phone, last_online_at, activated_at, created_at, updated_at, created_by, 
+        notes, is_deleted
+    </sql>
+
+    <!-- 关联查询字段 -->
+    <sql id="With_Associations_Column_List">
+        d.id, d.serial_number, d.model, d.status, d.firmware_version, d.customer_id, 
+        d.customer_name, d.customer_phone, d.last_online_at, d.activated_at, 
+        d.created_at, d.updated_at, d.created_by, d.notes, d.is_deleted,
+        
+        s.id as spec_id, s.device_id as spec_device_id, s.cpu, s.memory, s.storage, 
+        s.display, s.battery, s.connectivity, s.created_at as spec_created_at, 
+        s.updated_at as spec_updated_at,
+        
+        us.id as stats_id, us.device_id as stats_device_id, us.total_runtime, 
+        us.usage_count, us.last_used_at, us.average_session_time, 
+        us.created_at as stats_created_at, us.updated_at as stats_updated_at,
+        
+        c.id as config_id, c.device_id as config_device_id, c.language, c.timezone, 
+        c.auto_update, c.debug_mode, c.custom_settings, c.created_at as config_created_at, 
+        c.updated_at as config_updated_at,
+        
+        l.id as location_id, l.device_id as location_device_id, l.latitude, l.longitude, 
+        l.address, l.last_updated, l.created_at as location_created_at, 
+        l.updated_at as location_updated_at,
+        
+        m.id as maintenance_id, m.device_id as maintenance_device_id, m.type as maintenance_type, 
+        m.description, m.technician, m.start_time, m.end_time, m.status as maintenance_status, 
+        m.cost, m.parts, m.notes as maintenance_notes, m.created_at as maintenance_created_at, 
+        m.updated_at as maintenance_updated_at
+    </sql>
+
+    <!-- 搜索条件 -->
+    <sql id="Search_Conditions">
+        <where>
+            d.is_deleted = 0
+            <if test="keyword != null and keyword != ''">
+                AND (d.serial_number LIKE CONCAT('%', #{keyword}, '%') 
+                OR d.customer_name LIKE CONCAT('%', #{keyword}, '%')
+                OR d.model LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="status != null and status != ''">
+                AND d.status = #{status}
+            </if>
+            <if test="model != null and model != ''">
+                AND d.model = #{model}
+            </if>
+            <if test="customerId != null">
+                AND d.customer_id = #{customerId}
+            </if>
+            <if test="startDate != null">
+                AND d.created_at >= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND d.created_at &lt;= #{endDate}
+            </if>
+        </where>
+    </sql>
+
+    <!-- 根据ID查询设备（包含关联信息） -->
+    <select id="selectByIdWithAssociations" resultMap="WithAssociationsResultMap">
+        SELECT 
+        <include refid="With_Associations_Column_List"/>
+        FROM managed_devices d
+        LEFT JOIN managed_device_specifications s ON d.id = s.device_id
+        LEFT JOIN managed_device_usage_stats us ON d.id = us.device_id
+        LEFT JOIN managed_device_configurations c ON d.id = c.device_id
+        LEFT JOIN managed_device_locations l ON d.id = l.device_id
+        LEFT JOIN managed_device_maintenance_records m ON d.id = m.device_id
+        WHERE d.id = #{id} AND d.is_deleted = 0
+    </select>
+
+    <!-- 根据ID查询设备（基本信息） -->
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM managed_devices
+        WHERE id = #{id} AND is_deleted = 0
+    </select>
+
+    <!-- 分页查询设备列表 -->
+    <select id="selectByPage" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM managed_devices d
+        <include refid="Search_Conditions"/>
+        <if test="sortBy != null and sortBy != ''">
+            ORDER BY ${sortBy} 
+            <if test="sortOrder != null and sortOrder != ''">
+                ${sortOrder}
+            </if>
+        </if>
+        <if test="sortBy == null or sortBy == ''">
+            ORDER BY d.created_at DESC
+        </if>
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 统计设备总数 -->
+    <select id="countByConditions" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM managed_devices d
+        <include refid="Search_Conditions"/>
+    </select>
+
+    <!-- 统计设备状态分布 -->
+    <select id="countByStatus" resultType="com.yxrobot.mapper.ManagedDeviceMapper$StatusCountDTO">
+        SELECT status, COUNT(*) as count
+        FROM managed_devices
+        WHERE is_deleted = 0
+        GROUP BY status
+    </select>
+
+    <!-- 统计设备型号分布 -->
+    <select id="countByModel" resultType="com.yxrobot.mapper.ManagedDeviceMapper$ModelCountDTO">
+        SELECT model, COUNT(*) as count
+        FROM managed_devices
+        WHERE is_deleted = 0
+        GROUP BY model
+    </select>
+
+    <!-- 插入设备 -->
+    <insert id="insert" parameterType="com.yxrobot.entity.ManagedDevice" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO managed_devices (
+            serial_number, model, status, firmware_version, customer_id, customer_name, 
+            customer_phone, last_online_at, activated_at, created_by, notes, is_deleted
+        ) VALUES (
+            #{serialNumber}, #{model}, #{status}, #{firmwareVersion}, #{customerId}, 
+            #{customerName}, #{customerPhone}, #{lastOnlineAt}, #{activatedAt}, 
+            #{createdBy}, #{notes}, 0
+        )
+    </insert>
+
+    <!-- 更新设备 -->
+    <update id="updateById" parameterType="com.yxrobot.entity.ManagedDevice">
+        UPDATE managed_devices
+        SET serial_number = #{serialNumber},
+            model = #{model},
+            status = #{status},
+            firmware_version = #{firmwareVersion},
+            customer_id = #{customerId},
+            customer_name = #{customerName},
+            customer_phone = #{customerPhone},
+            last_online_at = #{lastOnlineAt},
+            activated_at = #{activatedAt},
+            notes = #{notes},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <!-- 软删除设备 -->
+    <update id="deleteById">
+        UPDATE managed_devices
+        SET is_deleted = 1, updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <!-- 批量软删除设备 -->
+    <update id="deleteBatchByIds">
+        UPDATE managed_devices
+        SET is_deleted = 1, updated_at = CURRENT_TIMESTAMP
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <!-- 更新设备状态 -->
+    <update id="updateStatus">
+        UPDATE managed_devices
+        SET status = #{status}, updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <!-- 批量更新设备状态 -->
+    <update id="updateStatusBatch">
+        UPDATE managed_devices
+        SET status = #{status}, updated_at = CURRENT_TIMESTAMP
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        AND is_deleted = 0
+    </update>
+
+    <!-- 根据序列号查询设备 -->
+    <select id="selectBySerialNumber" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM managed_devices
+        WHERE serial_number = #{serialNumber} AND is_deleted = 0
+    </select>
+
+    <!-- 根据客户ID查询设备列表 -->
+    <select id="selectByCustomerId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM managed_devices
+        WHERE customer_id = #{customerId} AND is_deleted = 0
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 检查序列号是否存在 -->
+    <select id="existsSerialNumber" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM managed_devices
+        WHERE serial_number = #{serialNumber} 
+        AND is_deleted = 0
+        <if test="excludeId != null">
+            AND id != #{excludeId}
+        </if>
+    </select>
+
+    <!-- 获取设备状态 -->
+    <select id="getDeviceStatus" resultType="string">
+        SELECT status
+        FROM managed_devices
+        WHERE id = #{id}
+          AND is_deleted = 0
+    </select>
+
+    <!-- 高级搜索条件 -->
+    <sql id="Advanced_Search_Conditions">
+        <where>
+            d.is_deleted = 0
+            <if test="params.includeDeleted != null and params.includeDeleted == true">
+                OR d.is_deleted = 1
+            </if>
+            <if test="params.keyword != null and params.keyword != ''">
+                <choose>
+                    <when test="params.searchScope == 'serialNumber'">
+                        AND d.serial_number LIKE CONCAT('%', #{params.keyword}, '%')
+                    </when>
+                    <when test="params.searchScope == 'customerName'">
+                        AND d.customer_name LIKE CONCAT('%', #{params.keyword}, '%')
+                    </when>
+                    <otherwise>
+                        AND (d.serial_number LIKE CONCAT('%', #{params.keyword}, '%') 
+                        OR d.customer_name LIKE CONCAT('%', #{params.keyword}, '%')
+                        OR d.model LIKE CONCAT('%', #{params.keyword}, '%')
+                        OR d.notes LIKE CONCAT('%', #{params.keyword}, '%'))
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.statuses != null and params.statuses.size() > 0">
+                AND d.status IN
+                <foreach collection="params.statuses" item="status" open="(" separator="," close=")">
+                    #{status}
+                </foreach>
+            </if>
+            <if test="params.models != null and params.models.size() > 0">
+                AND d.model IN
+                <foreach collection="params.models" item="model" open="(" separator="," close=")">
+                    #{model}
+                </foreach>
+            </if>
+            <if test="params.customerIds != null and params.customerIds.size() > 0">
+                AND d.customer_id IN
+                <foreach collection="params.customerIds" item="customerId" open="(" separator="," close=")">
+                    #{customerId}
+                </foreach>
+            </if>
+            <if test="params.startDate != null">
+                <choose>
+                    <when test="params.dateField == 'updated'">
+                        AND d.updated_at >= #{params.startDate}
+                    </when>
+                    <when test="params.dateField == 'activated'">
+                        AND d.activated_at >= #{params.startDate}
+                    </when>
+                    <when test="params.dateField == 'lastOnline'">
+                        AND d.last_online_at >= #{params.startDate}
+                    </when>
+                    <otherwise>
+                        AND d.created_at >= #{params.startDate}
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.endDate != null">
+                <choose>
+                    <when test="params.dateField == 'updated'">
+                        AND d.updated_at &lt;= #{params.endDate}
+                    </when>
+                    <when test="params.dateField == 'activated'">
+                        AND d.activated_at &lt;= #{params.endDate}
+                    </when>
+                    <when test="params.dateField == 'lastOnline'">
+                        AND d.last_online_at &lt;= #{params.endDate}
+                    </when>
+                    <otherwise>
+                        AND d.created_at &lt;= #{params.endDate}
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.minFirmwareVersion != null and params.minFirmwareVersion != ''">
+                AND d.firmware_version >= #{params.minFirmwareVersion}
+            </if>
+            <if test="params.maxFirmwareVersion != null and params.maxFirmwareVersion != ''">
+                AND d.firmware_version &lt;= #{params.maxFirmwareVersion}
+            </if>
+            <if test="params.isOnline != null">
+                <choose>
+                    <when test="params.isOnline == true">
+                        AND d.status = 'online'
+                    </when>
+                    <otherwise>
+                        AND d.status != 'online'
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.isActivated != null">
+                <choose>
+                    <when test="params.isActivated == true">
+                        AND d.activated_at IS NOT NULL
+                    </when>
+                    <otherwise>
+                        AND d.activated_at IS NULL
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.createdBy != null and params.createdBy != ''">
+                AND d.created_by LIKE CONCAT('%', #{params.createdBy}, '%')
+            </if>
+            <if test="params.notes != null and params.notes != ''">
+                AND d.notes LIKE CONCAT('%', #{params.notes}, '%')
+            </if>
+        </where>
+    </sql>
+
+    <!-- 高级搜索设备 -->
+    <select id="advancedSearch" parameterType="com.yxrobot.dto.ManagedDeviceSearchCriteria" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM managed_devices d
+        <include refid="Advanced_Search_Conditions"/>
+        <choose>
+            <when test="sortBy != null and sortBy != ''">
+                ORDER BY 
+                <choose>
+                    <when test="sortBy == 'serialNumber'">d.serial_number</when>
+                    <when test="sortBy == 'model'">d.model</when>
+                    <when test="sortBy == 'status'">d.status</when>
+                    <when test="sortBy == 'firmwareVersion'">d.firmware_version</when>
+                    <when test="sortBy == 'customerName'">d.customer_name</when>
+                    <when test="sortBy == 'lastOnlineAt'">d.last_online_at</when>
+                    <when test="sortBy == 'activatedAt'">d.activated_at</when>
+                    <when test="sortBy == 'updatedAt'">d.updated_at</when>
+                    <otherwise>d.created_at</otherwise>
+                </choose>
+                <choose>
+                    <when test="sortOrder != null and sortOrder.toUpperCase() == 'ASC'">ASC</when>
+                    <otherwise>DESC</otherwise>
+                </choose>
+            </when>
+            <otherwise>
+                ORDER BY d.created_at DESC
+            </otherwise>
+        </choose>
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 统计高级搜索结果数量 -->
+    <select id="countAdvancedSearch" parameterType="com.yxrobot.dto.ManagedDeviceSearchCriteria" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM managed_devices d
+        <include refid="Advanced_Search_Conditions"/>
+    </select>
+
+    <!-- 获取搜索建议 -->
+    <select id="getSearchSuggestions" resultType="java.lang.String">
+        SELECT DISTINCT 
+        <choose>
+            <when test="field == 'serialNumber'">serial_number</when>
+            <when test="field == 'customerName'">customer_name</when>
+            <when test="field == 'model'">model</when>
+            <when test="field == 'status'">status</when>
+            <when test="field == 'firmwareVersion'">firmware_version</when>
+            <when test="field == 'createdBy'">created_by</when>
+            <otherwise>serial_number</otherwise>
+        </choose> as suggestion
+        FROM managed_devices
+        WHERE is_deleted = 0
+        <choose>
+            <when test="field == 'serialNumber'">
+                AND serial_number LIKE CONCAT('%', #{query}, '%')
+            </when>
+            <when test="field == 'customerName'">
+                AND customer_name LIKE CONCAT('%', #{query}, '%')
+            </when>
+            <when test="field == 'model'">
+                AND model LIKE CONCAT('%', #{query}, '%')
+            </when>
+            <when test="field == 'status'">
+                AND status LIKE CONCAT('%', #{query}, '%')
+            </when>
+            <when test="field == 'firmwareVersion'">
+                AND firmware_version LIKE CONCAT('%', #{query}, '%')
+            </when>
+            <when test="field == 'createdBy'">
+                AND created_by LIKE CONCAT('%', #{query}, '%')
+            </when>
+            <otherwise>
+                AND serial_number LIKE CONCAT('%', #{query}, '%')
+            </otherwise>
+        </choose>
+        AND suggestion IS NOT NULL
+        AND suggestion != ''
+        ORDER BY suggestion ASC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 搜索条件映射 - 用于高级搜索 -->
+    <sql id="Search_Criteria_Mapping">
+        <where>
+            d.is_deleted = 0
+            <if test="keyword != null and keyword != ''">
+                AND (d.serial_number LIKE CONCAT('%', #{keyword}, '%') 
+                OR d.customer_name LIKE CONCAT('%', #{keyword}, '%')
+                OR d.model LIKE CONCAT('%', #{keyword}, '%')
+                OR d.notes LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="status != null and status != ''">
+                AND d.status = #{status}
+            </if>
+            <if test="statusList != null and statusList.size() > 0">
+                AND d.status IN
+                <foreach collection="statusList" item="status" open="(" separator="," close=")">
+                    #{status}
+                </foreach>
+            </if>
+            <if test="model != null and model != ''">
+                AND d.model = #{model}
+            </if>
+            <if test="modelList != null and modelList.size() > 0">
+                AND d.model IN
+                <foreach collection="modelList" item="model" open="(" separator="," close=")">
+                    #{model}
+                </foreach>
+            </if>
+            <if test="customerId != null">
+                AND d.customer_id = #{customerId}
+            </if>
+            <if test="customerName != null and customerName != ''">
+                AND d.customer_name LIKE CONCAT('%', #{customerName}, '%')
+            </if>
+            <if test="createdStartDate != null">
+                AND d.created_at >= #{createdStartDate}
+            </if>
+            <if test="createdEndDate != null">
+                AND d.created_at &lt;= #{createdEndDate}
+            </if>
+            <if test="lastOnlineStartDate != null">
+                AND d.last_online_at >= #{lastOnlineStartDate}
+            </if>
+            <if test="lastOnlineEndDate != null">
+                AND d.last_online_at &lt;= #{lastOnlineEndDate}
+            </if>
+            <if test="activatedStartDate != null">
+                AND d.activated_at >= #{activatedStartDate}
+            </if>
+            <if test="activatedEndDate != null">
+                AND d.activated_at &lt;= #{activatedEndDate}
+            </if>
+            <if test="firmwareVersion != null and firmwareVersion != ''">
+                AND d.firmware_version = #{firmwareVersion}
+            </if>
+            <if test="firmwareVersionList != null and firmwareVersionList.size() > 0">
+                AND d.firmware_version IN
+                <foreach collection="firmwareVersionList" item="version" open="(" separator="," close=")">
+                    #{version}
+                </foreach>
+            </if>
+            <if test="isOnline != null">
+                <choose>
+                    <when test="isOnline == true">
+                        AND d.status = 'online'
+                    </when>
+                    <otherwise>
+                        AND d.status != 'online'
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="isActivated != null">
+                <choose>
+                    <when test="isActivated == true">
+                        AND d.activated_at IS NOT NULL
+                    </when>
+                    <otherwise>
+                        AND d.activated_at IS NULL
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="notes != null and notes != ''">
+                AND d.notes LIKE CONCAT('%', #{notes}, '%')
+            </if>
+            <if test="createdBy != null and createdBy != ''">
+                AND d.created_by LIKE CONCAT('%', #{createdBy}, '%')
+            </if>
+            <if test="includeDeleted != null and includeDeleted == false">
+                <!-- 已经在开头添加了 is_deleted = 0 条件 -->
+            </if>
+        </where>
+    </sql>
+
+    <!-- 优化的高级搜索 - 使用新的搜索条件映射 -->
+    <select id="advancedSearchOptimized" parameterType="com.yxrobot.dto.ManagedDeviceSearchCriteria" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM managed_devices d
+        <include refid="Search_Criteria_Mapping"/>
+        <choose>
+            <when test="sortBy != null and sortBy != ''">
+                ORDER BY 
+                <choose>
+                    <when test="sortBy == 'serialNumber'">d.serial_number</when>
+                    <when test="sortBy == 'model'">d.model</when>
+                    <when test="sortBy == 'status'">d.status</when>
+                    <when test="sortBy == 'firmwareVersion'">d.firmware_version</when>
+                    <when test="sortBy == 'customerName'">d.customer_name</when>
+                    <when test="sortBy == 'lastOnlineAt'">d.last_online_at</when>
+                    <when test="sortBy == 'activatedAt'">d.activated_at</when>
+                    <when test="sortBy == 'updatedAt'">d.updated_at</when>
+                    <otherwise>d.created_at</otherwise>
+                </choose>
+                <choose>
+                    <when test="sortOrder != null and sortOrder.toUpperCase() == 'ASC'">ASC</when>
+                    <otherwise>DESC</otherwise>
+                </choose>
+            </when>
+            <otherwise>
+                ORDER BY d.created_at DESC
+            </otherwise>
+        </choose>
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 优化的搜索结果统计 -->
+    <select id="countAdvancedSearchOptimized" parameterType="com.yxrobot.dto.ManagedDeviceSearchCriteria" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM managed_devices d
+        <include refid="Search_Criteria_Mapping"/>
+    </select>
+
+    <!-- 多条件组合搜索 -->
+    <select id="multiConditionSearch" parameterType="com.yxrobot.dto.ManagedDeviceSearchCriteria" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM managed_devices d
+        <include refid="Search_Criteria_Mapping"/>
+        <choose>
+            <when test="criteria.sortBy != null and criteria.sortBy != ''">
+                ORDER BY 
+                <choose>
+                    <when test="criteria.sortBy == 'serialNumber'">d.serial_number</when>
+                    <when test="criteria.sortBy == 'model'">d.model</when>
+                    <when test="criteria.sortBy == 'status'">d.status</when>
+                    <when test="criteria.sortBy == 'firmwareVersion'">d.firmware_version</when>
+                    <when test="criteria.sortBy == 'customerName'">d.customer_name</when>
+                    <when test="criteria.sortBy == 'lastOnlineAt'">d.last_online_at</when>
+                    <when test="criteria.sortBy == 'activatedAt'">d.activated_at</when>
+                    <when test="criteria.sortBy == 'updatedAt'">d.updated_at</when>
+                    <otherwise>d.created_at</otherwise>
+                </choose>
+                <choose>
+                    <when test="criteria.sortOrder != null and criteria.sortOrder.toUpperCase() == 'ASC'">ASC</when>
+                    <otherwise>DESC</otherwise>
+                </choose>
+            </when>
+            <otherwise>
+                ORDER BY d.created_at DESC
+            </otherwise>
+        </choose>
+        LIMIT #{criteria.offset}, #{criteria.limit}
+    </select>
+
+    <!-- 多条件组合搜索统计 -->
+    <select id="countMultiConditionSearch" parameterType="com.yxrobot.dto.ManagedDeviceSearchCriteria" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM managed_devices d
+        <include refid="Search_Criteria_Mapping"/>
+    </select>
+
+    <!-- 智能搜索（支持模糊匹配和权重排序） -->
+    <select id="intelligentSearch" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>,
+               CASE 
+                   WHEN d.serial_number = #{keyword} THEN 100
+                   WHEN d.serial_number LIKE CONCAT(#{keyword}, '%') THEN 90
+                   WHEN d.customer_name = #{keyword} THEN 85
+                   WHEN d.customer_name LIKE CONCAT(#{keyword}, '%') THEN 80
+                   WHEN d.model LIKE CONCAT('%', #{keyword}, '%') THEN 70
+                   WHEN d.serial_number LIKE CONCAT('%', #{keyword}, '%') THEN 60
+                   WHEN d.customer_name LIKE CONCAT('%', #{keyword}, '%') THEN 50
+                   WHEN d.notes LIKE CONCAT('%', #{keyword}, '%') THEN 40
+                   ELSE 30
+               END as relevance_score
+        FROM managed_devices d
+        WHERE d.is_deleted = 0
+        AND (d.serial_number LIKE CONCAT('%', #{keyword}, '%') 
+             OR d.customer_name LIKE CONCAT('%', #{keyword}, '%')
+             OR d.model LIKE CONCAT('%', #{keyword}, '%')
+             OR d.notes LIKE CONCAT('%', #{keyword}, '%'))
+        ORDER BY relevance_score DESC, d.created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 智能搜索统计 -->
+    <select id="countIntelligentSearch" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM managed_devices d
+        WHERE d.is_deleted = 0
+        AND (d.serial_number LIKE CONCAT('%', #{keyword}, '%') 
+             OR d.customer_name LIKE CONCAT('%', #{keyword}, '%')
+             OR d.model LIKE CONCAT('%', #{keyword}, '%')
+             OR d.notes LIKE CONCAT('%', #{keyword}, '%'))
+    </select>
+
+    <!-- 快速搜索设备 -->
+    <select id="quickSearch" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM managed_devices d
+        WHERE d.is_deleted = 0
+        AND (d.serial_number LIKE CONCAT('%', #{keyword}, '%') 
+             OR d.customer_name LIKE CONCAT('%', #{keyword}, '%')
+             OR d.model LIKE CONCAT('%', #{keyword}, '%'))
+        ORDER BY 
+            CASE 
+                WHEN d.serial_number LIKE CONCAT(#{keyword}, '%') THEN 1
+                WHEN d.customer_name LIKE CONCAT(#{keyword}, '%') THEN 2
+                ELSE 3
+            END,
+            d.created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 快速搜索设备总数 -->
+    <select id="countQuickSearch" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM managed_devices d
+        WHERE d.is_deleted = 0
+        AND (d.serial_number LIKE CONCAT('%', #{keyword}, '%') 
+             OR d.customer_name LIKE CONCAT('%', #{keyword}, '%')
+             OR d.model LIKE CONCAT('%', #{keyword}, '%'))
+    </select>
+
+    <!-- 按状态筛选设备 -->
+    <select id="filterByStatus" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM managed_devices d
+        WHERE d.is_deleted = 0
+        AND d.status IN
+        <foreach collection="statuses" item="status" open="(" separator="," close=")">
+            #{status}
+        </foreach>
+        ORDER BY d.created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 按状态统计设备数量 -->
+    <select id="countByStatus" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM managed_devices d
+        WHERE d.is_deleted = 0
+        AND d.status IN
+        <foreach collection="statuses" item="status" open="(" separator="," close=")">
+            #{status}
+        </foreach>
+    </select>
+
+    <!-- 按型号筛选设备 -->
+    <select id="filterByModel" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM managed_devices d
+        WHERE d.is_deleted = 0
+        AND d.model IN
+        <foreach collection="models" item="model" open="(" separator="," close=")">
+            #{model}
+        </foreach>
+        ORDER BY d.created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 按型号统计设备数量 -->
+    <select id="countByModel" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM managed_devices d
+        WHERE d.is_deleted = 0
+        AND d.model IN
+        <foreach collection="models" item="model" open="(" separator="," close=")">
+            #{model}
+        </foreach>
+    </select>
+
+    <!-- 按客户筛选设备 -->
+    <select id="filterByCustomer" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM managed_devices d
+        WHERE d.is_deleted = 0
+        AND d.customer_id IN
+        <foreach collection="customerIds" item="customerId" open="(" separator="," close=")">
+            #{customerId}
+        </foreach>
+        ORDER BY d.created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 按客户统计设备数量 -->
+    <select id="countByCustomer" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM managed_devices d
+        WHERE d.is_deleted = 0
+        AND d.customer_id IN
+        <foreach collection="customerIds" item="customerId" open="(" separator="," close=")">
+            #{customerId}
+        </foreach>
+    </select>
+
+    <!-- 按时间范围筛选设备 -->
+    <select id="filterByDateRange" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM managed_devices d
+        WHERE d.is_deleted = 0
+        <if test="startDate != null">
+            <choose>
+                <when test="dateField == 'updated'">
+                    AND d.updated_at >= #{startDate}
+                </when>
+                <when test="dateField == 'activated'">
+                    AND d.activated_at >= #{startDate}
+                </when>
+                <when test="dateField == 'lastOnline'">
+                    AND d.last_online_at >= #{startDate}
+                </when>
+                <otherwise>
+                    AND d.created_at >= #{startDate}
+                </otherwise>
+            </choose>
+        </if>
+        <if test="endDate != null">
+            <choose>
+                <when test="dateField == 'updated'">
+                    AND d.updated_at &lt;= #{endDate}
+                </when>
+                <when test="dateField == 'activated'">
+                    AND d.activated_at &lt;= #{endDate}
+                </when>
+                <when test="dateField == 'lastOnline'">
+                    AND d.last_online_at &lt;= #{endDate}
+                </when>
+                <otherwise>
+                    AND d.created_at &lt;= #{endDate}
+                </otherwise>
+            </choose>
+        </if>
+        ORDER BY d.created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 按时间范围统计设备数量 -->
+    <select id="countByDateRange" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM managed_devices d
+        WHERE d.is_deleted = 0
+        <if test="startDate != null">
+            <choose>
+                <when test="dateField == 'updated'">
+                    AND d.updated_at >= #{startDate}
+                </when>
+                <when test="dateField == 'activated'">
+                    AND d.activated_at >= #{startDate}
+                </when>
+                <when test="dateField == 'lastOnline'">
+                    AND d.last_online_at >= #{startDate}
+                </when>
+                <otherwise>
+                    AND d.created_at >= #{startDate}
+                </otherwise>
+            </choose>
+        </if>
+        <if test="endDate != null">
+            <choose>
+                <when test="dateField == 'updated'">
+                    AND d.updated_at &lt;= #{endDate}
+                </when>
+                <when test="dateField == 'activated'">
+                    AND d.activated_at &lt;= #{endDate}
+                </when>
+                <when test="dateField == 'lastOnline'">
+                    AND d.last_online_at &lt;= #{endDate}
+                </when>
+                <otherwise>
+                    AND d.created_at &lt;= #{endDate}
+                </otherwise>
+            </choose>
+        </if>
+    </select>
+
+    <!-- 按固件版本范围筛选设备 -->
+    <select id="filterByFirmwareVersionRange" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM managed_devices d
+        WHERE d.is_deleted = 0
+        <if test="minVersion != null and minVersion != ''">
+            AND d.firmware_version >= #{minVersion}
+        </if>
+        <if test="maxVersion != null and maxVersion != ''">
+            AND d.firmware_version &lt;= #{maxVersion}
+        </if>
+        ORDER BY d.firmware_version DESC, d.created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 按固件版本范围统计设备数量 -->
+    <select id="countByFirmwareVersionRange" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM managed_devices d
+        WHERE d.is_deleted = 0
+        <if test="minVersion != null and minVersion != ''">
+            AND d.firmware_version >= #{minVersion}
+        </if>
+        <if test="maxVersion != null and maxVersion != ''">
+            AND d.firmware_version &lt;= #{maxVersion}
+        </if>
+    </select>
+
+    <!-- 获取在线设备列表 -->
+    <select id="getOnlineDevices" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM managed_devices d
+        WHERE d.is_deleted = 0 AND d.status = 'online'
+        ORDER BY d.last_online_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 统计在线设备数量 -->
+    <select id="countOnlineDevices" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM managed_devices d
+        WHERE d.is_deleted = 0 AND d.status = 'online'
+    </select>
+
+    <!-- 获取离线设备列表 -->
+    <select id="getOfflineDevices" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM managed_devices d
+        WHERE d.is_deleted = 0 AND d.status = 'offline'
+        ORDER BY d.last_online_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 统计离线设备数量 -->
+    <select id="countOfflineDevices" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM managed_devices d
+        WHERE d.is_deleted = 0 AND d.status = 'offline'
+    </select>
+
+    <!-- 获取故障设备列表 -->
+    <select id="getFaultDevices" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM managed_devices d
+        WHERE d.is_deleted = 0 AND d.status = 'fault'
+        ORDER BY d.updated_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 统计故障设备数量 -->
+    <select id="countFaultDevices" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM managed_devices d
+        WHERE d.is_deleted = 0 AND d.status = 'fault'
+    </select>
+
+    <!-- 获取维护中设备列表 -->
+    <select id="getMaintenanceDevices" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM managed_devices d
+        WHERE d.is_deleted = 0 AND d.status = 'maintenance'
+        ORDER BY d.updated_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 统计维护中设备数量 -->
+    <select id="countMaintenanceDevices" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM managed_devices d
+        WHERE d.is_deleted = 0 AND d.status = 'maintenance'
+    </select>
+
+    <!-- 获取未激活设备列表 -->
+    <select id="getUnactivatedDevices" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM managed_devices d
+        WHERE d.is_deleted = 0 AND d.activated_at IS NULL
+        ORDER BY d.created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 统计未激活设备数量 -->
+    <select id="countUnactivatedDevices" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM managed_devices d
+        WHERE d.is_deleted = 0 AND d.activated_at IS NULL
+    </select>
+
+    <!-- 获取最近在线设备列表 -->
+    <select id="getRecentlyOnlineDevices" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM managed_devices d
+        WHERE d.is_deleted = 0 
+        AND d.last_online_at >= DATE_SUB(NOW(), INTERVAL #{hours} HOUR)
+        ORDER BY d.last_online_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 统计最近在线设备数量 -->
+    <select id="countRecentlyOnlineDevices" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM managed_devices d
+        WHERE d.is_deleted = 0 
+        AND d.last_online_at >= DATE_SUB(NOW(), INTERVAL #{hours} HOUR)
+    </select>
+
+    <!-- 获取搜索过滤器选项 -->
+    <select id="getSearchFilterOptions" resultType="java.util.Map">
+        SELECT 
+            'statuses' as filterType,
+            GROUP_CONCAT(DISTINCT status) as options
+        FROM managed_devices 
+        WHERE is_deleted = 0
+        UNION ALL
+        SELECT 
+            'models' as filterType,
+            GROUP_CONCAT(DISTINCT model) as options
+        FROM managed_devices 
+        WHERE is_deleted = 0
+        UNION ALL
+        SELECT 
+            'firmwareVersions' as filterType,
+            GROUP_CONCAT(DISTINCT firmware_version ORDER BY firmware_version DESC) as options
+        FROM managed_devices 
+        WHERE is_deleted = 0 AND firmware_version IS NOT NULL
+    </select>
+
+    <!-- 获取热门搜索关键词 -->
+    <select id="getPopularSearchKeywords" resultType="java.lang.String">
+        SELECT DISTINCT 
+            CASE 
+                WHEN status = 'online' THEN '在线'
+                WHEN status = 'offline' THEN '离线'
+                WHEN status = 'fault' THEN '故障'
+                WHEN status = 'maintenance' THEN '维护中'
+                WHEN model = 'education' THEN '教育版'
+                WHEN model = 'home' THEN '家庭版'
+                WHEN model = 'professional' THEN '专业版'
+                ELSE status
+            END as keyword
+        FROM managed_devices 
+        WHERE is_deleted = 0
+        AND status IS NOT NULL
+        LIMIT #{limit}
+    </select>
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.isActivated != null">
+                <choose>
+                    <when test="params.isActivated == true">
+                        AND d.activated_at IS NOT NULL
+                    </when>
+                    <otherwise>
+                        AND d.activated_at IS NULL
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.lastOnlineHours != null">
+                AND d.last_online_at >= DATE_SUB(NOW(), INTERVAL #{params.lastOnlineHours} HOUR)
+            </if>
+        </where>
+    </sql>
+
+    <!-- 高级搜索设备 -->
+    <select id="advancedSearch" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM managed_devices d
+        <include refid="Advanced_Search_Conditions"/>
+        <if test="params.sortBy != null and params.sortBy != ''">
+            ORDER BY d.${params.sortBy}
+            <if test="params.sortOrder != null and params.sortOrder != ''">
+                ${params.sortOrder}
+            </if>
+        </if>
+        <if test="params.sortBy == null or params.sortBy == ''">
+            ORDER BY d.created_at DESC
+        </if>
+        LIMIT #{params.offset}, #{params.limit}
+    </select>
+
+    <!-- 高级搜索设备总数 -->
+    <select id="countAdvancedSearch" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM managed_devices d
+        <include refid="Advanced_Search_Conditions"/>
+    </select>
+
+    <!-- 快速搜索设备 -->
+    <select id="quickSearch" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM managed_devices
+        <where>
+            is_deleted = 0
+            <if test="keyword != null and keyword != ''">
+                AND (serial_number LIKE CONCAT('%', #{keyword}, '%') 
+                OR customer_name LIKE CONCAT('%', #{keyword}, '%')
+                OR model LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+        ORDER BY 
+            CASE 
+                WHEN serial_number = #{keyword} THEN 1
+                WHEN serial_number LIKE CONCAT(#{keyword}, '%') THEN 2
+                WHEN customer_name = #{keyword} THEN 3
+                WHEN customer_name LIKE CONCAT(#{keyword}, '%') THEN 4
+                ELSE 5
+            END,
+            created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 快速搜索设备总数 -->
+    <select id="countQuickSearch" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM managed_devices
+        <where>
+            is_deleted = 0
+            <if test="keyword != null and keyword != ''">
+                AND (serial_number LIKE CONCAT('%', #{keyword}, '%') 
+                OR customer_name LIKE CONCAT('%', #{keyword}, '%')
+                OR model LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+    </select>
+
+    <!-- 按状态筛选设备 -->
+    <select id="filterByStatus" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM managed_devices
+        WHERE is_deleted = 0
+        <if test="statuses != null and statuses.size() > 0">
+            AND status IN
+            <foreach collection="statuses" item="status" open="(" separator="," close=")">
+                #{status}
+            </foreach>
+        </if>
+        ORDER BY created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 按状态统计设备数量 -->
+    <select id="countByStatus" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM managed_devices
+        WHERE is_deleted = 0
+        <if test="statuses != null and statuses.size() > 0">
+            AND status IN
+            <foreach collection="statuses" item="status" open="(" separator="," close=")">
+                #{status}
+            </foreach>
+        </if>
+    </select>
+
+    <!-- 按型号筛选设备 -->
+    <select id="filterByModel" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM managed_devices
+        WHERE is_deleted = 0
+        <if test="models != null and models.size() > 0">
+            AND model IN
+            <foreach collection="models" item="model" open="(" separator="," close=")">
+                #{model}
+            </foreach>
+        </if>
+        ORDER BY created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 按型号统计设备数量 -->
+    <select id="countByModel" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM managed_devices
+        WHERE is_deleted = 0
+        <if test="models != null and models.size() > 0">
+            AND model IN
+            <foreach collection="models" item="model" open="(" separator="," close=")">
+                #{model}
+            </foreach>
+        </if>
+    </select>
+
+    <!-- 按客户筛选设备 -->
+    <select id="filterByCustomer" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM managed_devices
+        WHERE is_deleted = 0
+        <if test="customerIds != null and customerIds.size() > 0">
+            AND customer_id IN
+            <foreach collection="customerIds" item="customerId" open="(" separator="," close=")">
+                #{customerId}
+            </foreach>
+        </if>
+        ORDER BY created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 按客户统计设备数量 -->
+    <select id="countByCustomer" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM managed_devices
+        WHERE is_deleted = 0
+        <if test="customerIds != null and customerIds.size() > 0">
+            AND customer_id IN
+            <foreach collection="customerIds" item="customerId" open="(" separator="," close=")">
+                #{customerId}
+            </foreach>
+        </if>
+    </select>
+
+    <!-- 按时间范围筛选设备 -->
+    <select id="filterByDateRange" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM managed_devices
+        <where>
+            is_deleted = 0
+            <if test="startDate != null">
+                <choose>
+                    <when test="dateField == 'updated'">
+                        AND updated_at >= #{startDate}
+                    </when>
+                    <when test="dateField == 'activated'">
+                        AND activated_at >= #{startDate}
+                    </when>
+                    <when test="dateField == 'lastOnline'">
+                        AND last_online_at >= #{startDate}
+                    </when>
+                    <otherwise>
+                        AND created_at >= #{startDate}
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="endDate != null">
+                <choose>
+                    <when test="dateField == 'updated'">
+                        AND updated_at &lt;= #{endDate}
+                    </when>
+                    <when test="dateField == 'activated'">
+                        AND activated_at &lt;= #{endDate}
+                    </when>
+                    <when test="dateField == 'lastOnline'">
+                        AND last_online_at &lt;= #{endDate}
+                    </when>
+                    <otherwise>
+                        AND created_at &lt;= #{endDate}
+                    </otherwise>
+                </choose>
+            </if>
+        </where>
+        ORDER BY created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 按时间范围统计设备数量 -->
+    <select id="countByDateRange" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM managed_devices
+        <where>
+            is_deleted = 0
+            <if test="startDate != null">
+                <choose>
+                    <when test="dateField == 'updated'">
+                        AND updated_at >= #{startDate}
+                    </when>
+                    <when test="dateField == 'activated'">
+                        AND activated_at >= #{startDate}
+                    </when>
+                    <when test="dateField == 'lastOnline'">
+                        AND last_online_at >= #{startDate}
+                    </when>
+                    <otherwise>
+                        AND created_at >= #{startDate}
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="endDate != null">
+                <choose>
+                    <when test="dateField == 'updated'">
+                        AND updated_at &lt;= #{endDate}
+                    </when>
+                    <when test="dateField == 'activated'">
+                        AND activated_at &lt;= #{endDate}
+                    </when>
+                    <when test="dateField == 'lastOnline'">
+                        AND last_online_at &lt;= #{endDate}
+                    </when>
+                    <otherwise>
+                        AND created_at &lt;= #{endDate}
+                    </otherwise>
+                </choose>
+            </if>
+        </where>
+    </select>
+
+    <!-- 获取搜索建议 -->
+    <select id="getSearchSuggestions" resultType="string">
+        <choose>
+            <when test="type == 'serialNumber'">
+                SELECT DISTINCT serial_number
+                FROM managed_devices
+                WHERE is_deleted = 0
+                AND serial_number LIKE CONCAT('%', #{input}, '%')
+                ORDER BY serial_number
+                LIMIT #{limit}
+            </when>
+            <when test="type == 'customerName'">
+                SELECT DISTINCT customer_name
+                FROM managed_devices
+                WHERE is_deleted = 0
+                AND customer_name LIKE CONCAT('%', #{input}, '%')
+                ORDER BY customer_name
+                LIMIT #{limit}
+            </when>
+            <when test="type == 'model'">
+                SELECT DISTINCT model
+                FROM managed_devices
+                WHERE is_deleted = 0
+                AND model LIKE CONCAT('%', #{input}, '%')
+                ORDER BY model
+                LIMIT #{limit}
+            </when>
+            <otherwise>
+                SELECT DISTINCT serial_number as suggestion
+                FROM managed_devices
+                WHERE is_deleted = 0
+                AND serial_number LIKE CONCAT('%', #{input}, '%')
+                UNION
+                SELECT DISTINCT customer_name as suggestion
+                FROM managed_devices
+                WHERE is_deleted = 0
+                AND customer_name LIKE CONCAT('%', #{input}, '%')
+                ORDER BY suggestion
+                LIMIT #{limit}
+            </otherwise>
+        </choose>
+    </select>
+
+    <!-- 获取客户选项 -->
+    <select id="getCustomerOptions" resultType="map">
+        SELECT DISTINCT 
+            customer_id as value,
+            customer_name as label,
+            COUNT(*) as deviceCount
+        FROM managed_devices
+        WHERE is_deleted = 0
+        AND customer_id IS NOT NULL
+        AND customer_name IS NOT NULL
+        GROUP BY customer_id, customer_name
+        ORDER BY customer_name
+    </select>
+
+</mapper>

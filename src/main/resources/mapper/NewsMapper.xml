@@ -10,7 +10,7 @@
         <result column="content" property="content" jdbcType="LONGVARCHAR"/>
         <result column="category_id" property="categoryId" jdbcType="BIGINT"/>
         <result column="author" property="author" jdbcType="VARCHAR"/>
-        <result column="status" property="status" jdbcType="VARCHAR" typeHandler="com.yxrobot.handler.NewsStatusTypeHandler"/>
+        <result column="status" property="status" jdbcType="VARCHAR"/>
         <result column="cover_image" property="coverImage" jdbcType="VARCHAR"/>
         <result column="publish_time" property="publishTime" jdbcType="TIMESTAMP"/>
         <result column="views" property="views" jdbcType="INTEGER"/>
@@ -23,7 +23,7 @@
         <result column="is_deleted" property="isDeleted" jdbcType="TINYINT"/>
     </resultMap>
 
-    <!-- 包含分类信息的结果映射 -->
+    <!-- 包含分类信息的结果映射-->
     <resultMap id="NewsWithCategoryResultMap" type="com.yxrobot.entity.News" extends="NewsResultMap">
         <association property="category" javaType="com.yxrobot.entity.NewsCategory">
             <id column="category_id" property="id" jdbcType="BIGINT"/>
@@ -34,7 +34,7 @@
 
     <!-- 包含分类和标签信息的结果映射 -->
     <resultMap id="NewsWithDetailsResultMap" type="com.yxrobot.entity.News" extends="NewsWithCategoryResultMap">
-        <collection property="tags" ofType="com.yxrobot.entity.NewsTag">
+        <collection property="tags" javaType="java.util.List" ofType="com.yxrobot.entity.NewsTag">
             <id column="tag_id" property="id" jdbcType="BIGINT"/>
             <result column="tag_name" property="name" jdbcType="VARCHAR"/>
             <result column="tag_color" property="color" jdbcType="VARCHAR"/>
@@ -48,7 +48,7 @@
         created_at, updated_at, is_deleted
     </sql>
 
-    <!-- 包含分类信息的字段 -->
+    <!-- 包含分类信息的字射?-->
     <sql id="News_With_Category_Column_List">
         n.id, n.title, n.excerpt, n.content, n.category_id, n.author, n.status, n.cover_image,
         n.publish_time, n.views, n.comments, n.likes, n.is_featured, n.sort_order,
@@ -106,7 +106,7 @@
         DELETE FROM news WHERE id = #{id}
     </delete>
 
-    <!-- 根据ID软删除新闻 -->
+    <!-- 根据ID软删除新射?-->
     <update id="softDeleteById" parameterType="java.lang.Long">
         UPDATE news SET is_deleted = 1, updated_at = NOW() WHERE id = #{id}
     </update>
@@ -140,7 +140,7 @@
         WHERE id = #{id} AND is_deleted = 0
     </select>
 
-    <!-- 根据ID查询新闻（包含分类和标签信息） -->
+    <!-- 根据ID查询新闻（包含分类和标签信息射?-->
     <select id="selectByIdWithDetails" parameterType="java.lang.Long" resultMap="NewsWithDetailsResultMap">
         SELECT 
             <include refid="News_With_Category_Column_List"/>,
@@ -172,7 +172,7 @@
         LIMIT #{offset}, #{limit}
     </select>
 
-    <!-- 根据状态查询新闻列表 -->
+    <!-- 根据状态查询新闻列射?-->
     <select id="selectByStatus" resultMap="NewsWithCategoryResultMap">
         SELECT <include refid="News_With_Category_Column_List"/>
         FROM news n
@@ -192,7 +192,7 @@
         LIMIT #{offset}, #{limit}
     </select>
 
-    <!-- 根据作者查询新闻列表 -->
+    <!-- 根据作者查询新闻列射?-->
     <select id="selectByAuthor" resultMap="NewsWithCategoryResultMap">
         SELECT <include refid="News_With_Category_Column_List"/>
         FROM news n
@@ -202,7 +202,7 @@
         LIMIT #{offset}, #{limit}
     </select>
 
-    <!-- 搜索新闻（标题和内容） -->
+    <!-- 搜索新闻（标题和内容射?-->
     <select id="searchByKeyword" resultMap="NewsWithCategoryResultMap">
         SELECT <include refid="News_With_Category_Column_List"/>
         FROM news n
@@ -244,7 +244,7 @@
         LIMIT #{limit}
     </select>
 
-    <!-- 查询相关新闻（同分类） -->
+    <!-- 查询相关新闻（同分类射?-->
     <select id="selectRelatedNews" resultMap="NewsWithCategoryResultMap">
         SELECT <include refid="News_With_Category_Column_List"/>
         FROM news n
@@ -268,7 +268,7 @@
         <include refid="Common_Where_Clause"/>
     </select>
 
-    <!-- 根据状态统计新闻数量 -->
+    <!-- 根据状态统计新闻数射?-->
     <select id="countByStatus" resultType="java.lang.Integer">
         SELECT COUNT(*) FROM news 
         WHERE status = #{status} AND is_deleted = 0
@@ -280,7 +280,7 @@
         WHERE category_id = #{categoryId} AND is_deleted = 0
     </select>
 
-    <!-- 根据作者统计新闻数量 -->
+    <!-- 根据作者统计新闻数射?-->
     <select id="countByAuthor" resultType="java.lang.Integer">
         SELECT COUNT(*) FROM news 
         WHERE author = #{author} AND is_deleted = 0
@@ -294,7 +294,7 @@
               AND is_deleted = 0
     </select>
 
-    <!-- 更新新闻状态 -->
+    <!-- 更新新闻状射?-->
     <update id="updateStatus">
         UPDATE news 
         SET status = #{status}, 
@@ -305,7 +305,7 @@
         WHERE id = #{id}
     </update>
 
-    <!-- 批量更新新闻状态 -->
+    <!-- 批量更新新闻状射?-->
     <update id="batchUpdateStatus">
         UPDATE news 
         SET status = #{status}, updated_at = NOW()
@@ -322,42 +322,42 @@
         WHERE id = #{id}
     </update>
 
-    <!-- 增加浏览量 -->
+    <!-- 增加浏览射?-->
     <update id="incrementViews" parameterType="java.lang.Long">
         UPDATE news 
         SET views = views + 1, updated_at = NOW()
         WHERE id = #{id}
     </update>
 
-    <!-- 增加评论数 -->
+    <!-- 增加评论射?-->
     <update id="incrementComments" parameterType="java.lang.Long">
         UPDATE news 
         SET comments = comments + 1, updated_at = NOW()
         WHERE id = #{id}
     </update>
 
-    <!-- 增加点赞数 -->
+    <!-- 增加点赞射?-->
     <update id="incrementLikes" parameterType="java.lang.Long">
         UPDATE news 
         SET likes = likes + 1, updated_at = NOW()
         WHERE id = #{id}
     </update>
 
-    <!-- 减少点赞数 -->
+    <!-- 减少点赞射?-->
     <update id="decrementLikes" parameterType="java.lang.Long">
         UPDATE news 
         SET likes = GREATEST(0, likes - 1), updated_at = NOW()
         WHERE id = #{id}
     </update>
 
-    <!-- 更新推荐状态 -->
+    <!-- 更新推荐状射?-->
     <update id="updateFeaturedStatus">
         UPDATE news 
         SET is_featured = #{isFeatured}, updated_at = NOW()
         WHERE id = #{id}
     </update>
 
-    <!-- 批量更新推荐状态 -->
+    <!-- 批量更新推荐状射?-->
     <update id="batchUpdateFeaturedStatus">
         UPDATE news 
         SET is_featured = #{isFeatured}, updated_at = NOW()

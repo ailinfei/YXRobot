@@ -1,457 +1,334 @@
 <!--
-  设备详情对话框
-  显示设备的完整信息，包括基本信息、技术参数、使用统计、维护记录等
+  设备详情对话框组件
+  功能：显示设备完整详细信息
 -->
 <template>
   <el-dialog
-    v-model="dialogVisible"
+    v-model="visible"
     :title="`设备详情 - ${device?.serialNumber || ''}`"
-    width="90%"
+    width="900px"
     :before-close="handleClose"
-    class="device-detail-dialog"
   >
-    <div v-if="device" class="device-detail-content">
-      <!-- 设备状态和操作 -->
-      <div class="device-header">
-        <div class="device-status">
-          <el-tag :type="getStatusTagType(device.status)" size="large">
-            <el-icon>
-              <CircleCheckFilled v-if="device.status === 'online'" />
-              <CircleCloseFilled v-else-if="device.status === 'offline'" />
-              <WarningFilled v-else-if="device.status === 'error'" />
-              <Tools v-else />
-            </el-icon>
-            {{ getStatusText(device.status) }}
-          </el-tag>
-          <span class="firmware-version">固件版本: {{ device.firmwareVersion }}</span>
-        </div>
-        <div class="device-actions">
-          <el-button type="primary" @click="handleEdit">
-            <el-icon><Edit /></el-icon>
-            编辑设备
-          </el-button>
-          <el-dropdown @command="handleDeviceAction" trigger="click">
-            <el-button type="success">
-              设备操作<el-icon class="el-icon--right"><ArrowDown /></el-icon>
-            </el-button>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="reboot" v-if="device.status === 'online'">
-                  重启设备
-                </el-dropdown-item>
-                <el-dropdown-item command="maintenance" v-if="device.status !== 'maintenance'">
-                  进入维护
-                </el-dropdown-item>
-                <el-dropdown-item command="activate" v-if="device.status === 'offline'">
-                  激活设备
-                </el-dropdown-item>
-                <el-dropdown-item command="firmware">
-                  推送固件
-                </el-dropdown-item>
-                <el-dropdown-item command="logs">
-                  查看日志
-                </el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
+    <div v-if="device" class="device-detail">
+      <!-- 基本信息 -->
+      <div class="detail-section">
+        <h3 class="section-title">基本信息</h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <label>设备序列号</label>
+            <span>{{ device.serialNumber }}</span>
+          </div>
+          <div class="info-item">
+            <label>设备型号</label>
+            <el-tag :type="getModelTagType(device.model)" size="small">
+              {{ getModelName(device.model) }}
+            </el-tag>
+          </div>
+          <div class="info-item">
+            <label>设备状态</label>
+            <div class="status-display">
+              <el-icon :class="getStatusIconClass(device.status)">
+                <CircleCheckFilled v-if="device.status === 'online'" />
+                <CircleCloseFilled v-else-if="device.status === 'offline'" />
+                <WarningFilled v-else-if="device.status === 'error'" />
+                <Tools v-else />
+              </el-icon>
+              <span>{{ getStatusText(device.status) }}</span>
+            </div>
+          </div>
+          <div class="info-item">
+            <label>固件版本</label>
+            <span>{{ device.firmwareVersion }}</span>
+          </div>
+          <div class="info-item">
+            <label>所属客户</label>
+            <div>
+              <div class="customer-name">{{ device.customerName }}</div>
+              <div class="customer-phone">{{ device.customerPhone }}</div>
+            </div>
+          </div>
+          <div class="info-item">
+            <label>激活时间</label>
+            <span>{{ formatDateTime(device.activatedAt) }}</span>
+          </div>
+          <div class="info-item">
+            <label>最后在线</label>
+            <span>{{ formatDateTime(device.lastOnlineAt) }}</span>
+          </div>
+          <div class="info-item">
+            <label>创建时间</label>
+            <span>{{ formatDateTime(device.createdAt) }}</span>
+          </div>
         </div>
       </div>
 
-      <!-- 设备信息标签页 -->
-      <el-tabs v-model="activeTab" type="border-card" class="device-tabs">
-        <!-- 基本信息 -->
-        <el-tab-pane label="基本信息" name="basic">
-          <div class="tab-content">
-            <el-row :gutter="24">
-              <el-col :span="12">
-                <div class="info-section">
-                  <h3>设备信息</h3>
-                  <el-descriptions :column="1" border>
-                    <el-descriptions-item label="设备序列号">
-                      {{ device.serialNumber }}
-                    </el-descriptions-item>
-                    <el-descriptions-item label="设备型号">
-                      <el-tag :type="getModelTagType(device.model)">
-                        {{ getModelName(device.model) }}
-                      </el-tag>
-                    </el-descriptions-item>
-                    <el-descriptions-item label="设备状态">
-                      <el-tag :type="getStatusTagType(device.status)">
-                        {{ getStatusText(device.status) }}
-                      </el-tag>
-                    </el-descriptions-item>
-                    <el-descriptions-item label="固件版本">
-                      {{ device.firmwareVersion }}
-                    </el-descriptions-item>
-                    <el-descriptions-item label="创建时间">
-                      {{ formatDateTime(device.createdAt) }}
-                    </el-descriptions-item>
-                    <el-descriptions-item label="激活时间">
-                      {{ formatDateTime(device.activatedAt) }}
-                    </el-descriptions-item>
-                    <el-descriptions-item label="最后在线">
-                      {{ formatDateTime(device.lastOnlineAt) }}
-                    </el-descriptions-item>
-                  </el-descriptions>
-                </div>
-              </el-col>
-              <el-col :span="12">
-                <div class="info-section">
-                  <h3>客户信息</h3>
-                  <el-descriptions :column="1" border>
-                    <el-descriptions-item label="客户姓名">
-                      {{ device.customerName }}
-                    </el-descriptions-item>
-                    <el-descriptions-item label="联系电话">
-                      {{ device.customerPhone }}
-                    </el-descriptions-item>
-                    <el-descriptions-item label="客户ID">
-                      {{ device.customerId }}
-                    </el-descriptions-item>
-                  </el-descriptions>
-                </div>
-              </el-col>
-            </el-row>
-
-            <!-- 位置信息 -->
-            <el-row v-if="device.location" :gutter="24" style="margin-top: 24px;">
-              <el-col :span="24">
-                <div class="info-section">
-                  <h3>位置信息</h3>
-                  <el-descriptions :column="2" border>
-                    <el-descriptions-item label="地址">
-                      {{ device.location.address }}
-                    </el-descriptions-item>
-                    <el-descriptions-item label="坐标">
-                      {{ device.location.latitude.toFixed(6) }}, {{ device.location.longitude.toFixed(6) }}
-                    </el-descriptions-item>
-                    <el-descriptions-item label="位置更新时间" :span="2">
-                      {{ formatDateTime(device.location.lastUpdated) }}
-                    </el-descriptions-item>
-                  </el-descriptions>
-                </div>
-              </el-col>
-            </el-row>
-
-            <!-- 备注信息 -->
-            <el-row v-if="device.notes" :gutter="24" style="margin-top: 24px;">
-              <el-col :span="24">
-                <div class="info-section">
-                  <h3>备注信息</h3>
-                  <div class="notes-content">
-                    {{ device.notes }}
-                  </div>
-                </div>
-              </el-col>
-            </el-row>
+      <!-- 技术参数 -->
+      <div class="detail-section" v-if="device.specifications">
+        <h3 class="section-title">技术参数</h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <label>处理器</label>
+            <span>{{ device.specifications.cpu }}</span>
           </div>
-        </el-tab-pane>
-
-        <!-- 技术参数 -->
-        <el-tab-pane label="技术参数" name="specs">
-          <div class="tab-content">
-            <div class="specs-section">
-              <el-descriptions :column="2" border>
-                <el-descriptions-item label="处理器">
-                  {{ device.specifications.cpu }}
-                </el-descriptions-item>
-                <el-descriptions-item label="内存">
-                  {{ device.specifications.memory }}
-                </el-descriptions-item>
-                <el-descriptions-item label="存储">
-                  {{ device.specifications.storage }}
-                </el-descriptions-item>
-                <el-descriptions-item label="显示屏">
-                  {{ device.specifications.display }}
-                </el-descriptions-item>
-                <el-descriptions-item label="电池">
-                  {{ device.specifications.battery }}
-                </el-descriptions-item>
-                <el-descriptions-item label="连接方式">
-                  <div class="connectivity-tags">
-                    <el-tag
-                      v-for="conn in device.specifications.connectivity"
-                      :key="conn"
-                      size="small"
-                      style="margin: 2px;"
-                    >
-                      {{ conn }}
-                    </el-tag>
-                  </div>
-                </el-descriptions-item>
-              </el-descriptions>
+          <div class="info-item">
+            <label>内存</label>
+            <span>{{ device.specifications.memory }}</span>
+          </div>
+          <div class="info-item">
+            <label>存储</label>
+            <span>{{ device.specifications.storage }}</span>
+          </div>
+          <div class="info-item">
+            <label>显示屏</label>
+            <span>{{ device.specifications.display }}</span>
+          </div>
+          <div class="info-item">
+            <label>电池</label>
+            <span>{{ device.specifications.battery }}</span>
+          </div>
+          <div class="info-item">
+            <label>连接性</label>
+            <div class="connectivity-tags">
+              <el-tag 
+                v-for="conn in device.specifications.connectivity" 
+                :key="conn" 
+                size="small"
+                class="connectivity-tag"
+              >
+                {{ conn }}
+              </el-tag>
             </div>
           </div>
-        </el-tab-pane>
+        </div>
+      </div>
 
-        <!-- 使用统计 -->
-        <el-tab-pane label="使用统计" name="usage">
-          <div class="tab-content">
-            <div class="usage-section">
-              <el-row :gutter="24">
-                <el-col :span="12">
-                  <div class="usage-card">
-                    <div class="usage-icon">
-                      <el-icon><Clock /></el-icon>
-                    </div>
-                    <div class="usage-info">
-                      <div class="usage-value">{{ formatDuration(device.usageStats.totalRuntime) }}</div>
-                      <div class="usage-label">总运行时间</div>
-                    </div>
-                  </div>
-                </el-col>
-                <el-col :span="12">
-                  <div class="usage-card">
-                    <div class="usage-icon">
-                      <el-icon><DataLine /></el-icon>
-                    </div>
-                    <div class="usage-info">
-                      <div class="usage-value">{{ device.usageStats.usageCount }}</div>
-                      <div class="usage-label">使用次数</div>
-                    </div>
-                  </div>
-                </el-col>
-              </el-row>
-              <el-row :gutter="24" style="margin-top: 16px;">
-                <el-col :span="12">
-                  <div class="usage-card">
-                    <div class="usage-icon">
-                      <el-icon><Timer /></el-icon>
-                    </div>
-                    <div class="usage-info">
-                      <div class="usage-value">{{ formatDuration(device.usageStats.averageSessionTime) }}</div>
-                      <div class="usage-label">平均使用时长</div>
-                    </div>
-                  </div>
-                </el-col>
-                <el-col :span="12">
-                  <div class="usage-card">
-                    <div class="usage-icon">
-                      <el-icon><Calendar /></el-icon>
-                    </div>
-                    <div class="usage-info">
-                      <div class="usage-value">{{ formatDateTime(device.usageStats.lastUsedAt) }}</div>
-                      <div class="usage-label">最后使用时间</div>
-                    </div>
-                  </div>
-                </el-col>
-              </el-row>
-            </div>
+      <!-- 使用统计 -->
+      <div class="detail-section" v-if="device.usageStats">
+        <h3 class="section-title">使用统计</h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <label>总运行时长</label>
+            <span>{{ formatDuration(device.usageStats.totalRuntime) }}</span>
           </div>
-        </el-tab-pane>
-
-        <!-- 维护记录 -->
-        <el-tab-pane label="维护记录" name="maintenance">
-          <div class="tab-content">
-            <div class="maintenance-section">
-              <el-table :data="device.maintenanceRecords" border>
-                <el-table-column prop="type" label="维护类型" width="100">
-                  <template #default="{ row }">
-                    <el-tag :type="getMaintenanceTypeTagType(row.type)" size="small">
-                      {{ getMaintenanceTypeText(row.type) }}
-                    </el-tag>
-                  </template>
-                </el-table-column>
-                <el-table-column prop="description" label="描述" min-width="150" />
-                <el-table-column prop="technician" label="技术员" width="100" />
-                <el-table-column prop="status" label="状态" width="100">
-                  <template #default="{ row }">
-                    <el-tag :type="getMaintenanceStatusTagType(row.status)" size="small">
-                      {{ getMaintenanceStatusText(row.status) }}
-                    </el-tag>
-                  </template>
-                </el-table-column>
-                <el-table-column prop="startTime" label="开始时间" width="150">
-                  <template #default="{ row }">
-                    {{ formatDateTime(row.startTime) }}
-                  </template>
-                </el-table-column>
-                <el-table-column prop="endTime" label="结束时间" width="150">
-                  <template #default="{ row }">
-                    {{ formatDateTime(row.endTime) }}
-                  </template>
-                </el-table-column>
-                <el-table-column prop="cost" label="费用" width="100">
-                  <template #default="{ row }">
-                    {{ row.cost ? `¥${row.cost}` : '-' }}
-                  </template>
-                </el-table-column>
-                <el-table-column prop="parts" label="更换配件" min-width="120">
-                  <template #default="{ row }">
-                    <div v-if="row.parts && row.parts.length > 0">
-                      <el-tag
-                        v-for="part in row.parts"
-                        :key="part"
-                        size="small"
-                        style="margin: 1px;"
-                      >
-                        {{ part }}
-                      </el-tag>
-                    </div>
-                    <span v-else>-</span>
-                  </template>
-                </el-table-column>
-              </el-table>
-            </div>
+          <div class="info-item">
+            <label>使用次数</label>
+            <span>{{ device.usageStats.usageCount }}次</span>
           </div>
-        </el-tab-pane>
+          <div class="info-item">
+            <label>平均使用时长</label>
+            <span>{{ formatDuration(device.usageStats.averageSessionTime) }}</span>
+          </div>
+          <div class="info-item">
+            <label>最后使用时间</label>
+            <span>{{ formatDateTime(device.usageStats.lastUsedAt) }}</span>
+          </div>
+        </div>
+      </div>
 
-        <!-- 设备配置 -->
-        <el-tab-pane label="设备配置" name="config">
-          <div class="tab-content">
-            <div class="config-section">
-              <el-descriptions :column="2" border>
-                <el-descriptions-item label="系统语言">
-                  {{ getLanguageName(device.configuration.language) }}
-                </el-descriptions-item>
-                <el-descriptions-item label="时区">
-                  {{ device.configuration.timezone }}
-                </el-descriptions-item>
-                <el-descriptions-item label="自动更新">
-                  <el-tag :type="device.configuration.autoUpdate ? 'success' : 'info'" size="small">
-                    {{ device.configuration.autoUpdate ? '已启用' : '已禁用' }}
-                  </el-tag>
-                </el-descriptions-item>
-                <el-descriptions-item label="调试模式">
-                  <el-tag :type="device.configuration.debugMode ? 'warning' : 'info'" size="small">
-                    {{ device.configuration.debugMode ? '已启用' : '已禁用' }}
-                  </el-tag>
-                </el-descriptions-item>
-              </el-descriptions>
-
-              <div class="custom-settings" style="margin-top: 24px;">
-                <h4>自定义设置</h4>
-                <el-descriptions :column="3" border>
-                  <el-descriptions-item
-                    v-for="(value, key) in device.configuration.customSettings"
-                    :key="key"
-                    :label="getSettingLabel(key)"
-                  >
-                    {{ getSettingValue(key, value) }}
-                  </el-descriptions-item>
-                </el-descriptions>
+      <!-- 维护记录 -->
+      <div class="detail-section" v-if="device.maintenanceRecords && device.maintenanceRecords.length > 0">
+        <h3 class="section-title">维护记录</h3>
+        <div class="maintenance-list">
+          <div 
+            v-for="record in device.maintenanceRecords" 
+            :key="record.id"
+            class="maintenance-item"
+          >
+            <div class="maintenance-header">
+              <el-tag :type="getMaintenanceTypeTag(record.type)" size="small">
+                {{ getMaintenanceTypeText(record.type) }}
+              </el-tag>
+              <span class="maintenance-time">{{ formatDateTime(record.startTime) }}</span>
+              <el-tag 
+                :type="getMaintenanceStatusTag(record.status)" 
+                size="small"
+              >
+                {{ getMaintenanceStatusText(record.status) }}
+              </el-tag>
+            </div>
+            <div class="maintenance-content">
+              <p class="maintenance-desc">{{ record.description }}</p>
+              <div class="maintenance-details">
+                <span class="technician">技术员：{{ record.technician }}</span>
+                <span v-if="record.cost" class="cost">费用：¥{{ record.cost }}</span>
+              </div>
+              <div v-if="record.parts && record.parts.length > 0" class="parts">
+                <span class="parts-label">更换部件：</span>
+                <el-tag 
+                  v-for="part in record.parts" 
+                  :key="part" 
+                  size="small"
+                  class="part-tag"
+                >
+                  {{ part }}
+                </el-tag>
               </div>
             </div>
           </div>
-        </el-tab-pane>
-      </el-tabs>
+        </div>
+      </div>
+
+      <!-- 设备配置 -->
+      <div class="detail-section" v-if="device.configuration">
+        <h3 class="section-title">设备配置</h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <label>语言</label>
+            <span>{{ device.configuration.language }}</span>
+          </div>
+          <div class="info-item">
+            <label>时区</label>
+            <span>{{ device.configuration.timezone }}</span>
+          </div>
+          <div class="info-item">
+            <label>自动更新</label>
+            <el-tag :type="device.configuration.autoUpdate ? 'success' : 'info'" size="small">
+              {{ device.configuration.autoUpdate ? '已启用' : '已禁用' }}
+            </el-tag>
+          </div>
+          <div class="info-item">
+            <label>调试模式</label>
+            <el-tag :type="device.configuration.debugMode ? 'warning' : 'info'" size="small">
+              {{ device.configuration.debugMode ? '已启用' : '已禁用' }}
+            </el-tag>
+          </div>
+        </div>
+      </div>
+
+      <!-- 位置信息 -->
+      <div class="detail-section" v-if="device.location">
+        <h3 class="section-title">位置信息</h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <label>地址</label>
+            <span>{{ device.location.address }}</span>
+          </div>
+          <div class="info-item">
+            <label>坐标</label>
+            <span>{{ device.location.latitude }}, {{ device.location.longitude }}</span>
+          </div>
+          <div class="info-item">
+            <label>最后更新</label>
+            <span>{{ formatDateTime(device.location.lastUpdated) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 备注信息 -->
+      <div class="detail-section" v-if="device.notes">
+        <h3 class="section-title">备注信息</h3>
+        <div class="notes-content">
+          {{ device.notes }}
+        </div>
+      </div>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="handleClose">关闭</el-button>
         <el-button type="primary" @click="handleEdit">编辑设备</el-button>
+        <el-dropdown @command="handleAction" trigger="click">
+          <el-button type="primary">
+            设备操作<el-icon class="el-icon--right"><ArrowDown /></el-icon>
+          </el-button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="reboot" v-if="device?.status === 'online'">
+                重启设备
+              </el-dropdown-item>
+              <el-dropdown-item command="maintenance" v-if="device?.status !== 'maintenance'">
+                进入维护
+              </el-dropdown-item>
+              <el-dropdown-item command="activate" v-if="device?.status === 'offline'">
+                激活设备
+              </el-dropdown-item>
+              <el-dropdown-item command="firmware">
+                推送固件
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
       </div>
     </template>
   </el-dialog>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import {
-  Edit,
-  ArrowDown,
-  CircleCheckFilled,
-  CircleCloseFilled,
-  WarningFilled,
+import { computed } from 'vue'
+import { 
+  CircleCheckFilled, 
+  CircleCloseFilled, 
+  WarningFilled, 
   Tools,
-  Clock,
-  DataLine,
-  Timer,
-  Calendar
+  ArrowDown
 } from '@element-plus/icons-vue'
-import type { Device } from '@/types/device'
-import { DEVICE_STATUS_TEXT, DEVICE_MODEL_TEXT, MAINTENANCE_TYPE_TEXT } from '@/types/device'
-import { mockDeviceAPI } from '@/api/mock/device'
+import { ElMessage } from 'element-plus'
+import type { ManagedDevice } from '@/types/managedDevice'
+import { managedDeviceAPI } from '@/api/managedDevice'
 
-// Props
 interface Props {
   modelValue: boolean
-  device?: Device | null
+  device: ManagedDevice | null
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  device: null
-})
+interface Emits {
+  (e: 'update:modelValue', value: boolean): void
+  (e: 'edit', device: ManagedDevice): void
+  (e: 'status-change'): void
+}
 
-// Emits
-const emit = defineEmits<{
-  'update:modelValue': [value: boolean]
-  edit: [device: Device]
-  'status-change': []
-}>()
+const props = defineProps<Props>()
+const emit = defineEmits<Emits>()
 
-// 响应式数据
-const dialogVisible = computed({
+const visible = computed({
   get: () => props.modelValue,
   set: (value) => emit('update:modelValue', value)
 })
 
-const activeTab = ref('basic')
+// 关闭对话框
+const handleClose = () => {
+  visible.value = false
+}
 
-// 方法
+// 编辑设备
 const handleEdit = () => {
   if (props.device) {
     emit('edit', props.device)
   }
 }
 
-const handleDeviceAction = async (command: string) => {
+// 设备操作
+const handleAction = async (command: string) => {
   if (!props.device) return
-
+  
   try {
-    let message = ''
-
     switch (command) {
       case 'reboot':
-        await mockDeviceAPI.rebootDevice(props.device.id)
-        message = '设备重启指令已发送'
+        await managedDeviceAPI.rebootDevice(props.device.id)
+        ElMessage.success('设备重启指令已发送')
         break
       case 'maintenance':
-        await mockDeviceAPI.updateDeviceStatus(props.device.id, 'maintenance')
-        message = '设备已进入维护模式'
+        await managedDeviceAPI.updateDeviceStatus(props.device.id, 'maintenance' as any)
+        ElMessage.success('设备已进入维护模式')
+        emit('status-change')
         break
       case 'activate':
-        await mockDeviceAPI.activateDevice(props.device.id)
-        message = '设备激活指令已发送'
+        await managedDeviceAPI.activateDevice(props.device.id)
+        ElMessage.success('设备激活指令已发送')
+        emit('status-change')
         break
       case 'firmware':
-        await mockDeviceAPI.pushFirmware(props.device.id)
-        message = '固件推送已启动'
+        await managedDeviceAPI.pushFirmware(props.device.id)
+        ElMessage.success('固件推送已启动')
         break
-      case 'logs':
-        ElMessage.info('查看设备日志功能开发中')
-        return
     }
-
-    ElMessage.success(message)
-    emit('status-change')
-  } catch (error) {
+  } catch (error: any) {
     console.error('设备操作失败:', error)
-    ElMessage.error('操作失败')
+    ElMessage.error(error?.message || '操作失败')
   }
-}
-
-const handleClose = () => {
-  emit('update:modelValue', false)
 }
 
 // 工具方法
-const getStatusTagType = (status: string) => {
-  const types: Record<string, any> = {
-    online: 'success',
-    offline: 'info',
-    error: 'danger',
-    maintenance: 'warning'
-  }
-  return types[status] || 'info'
-}
-
-const getStatusText = (status: string) => {
-  return DEVICE_STATUS_TEXT[status as keyof typeof DEVICE_STATUS_TEXT] || status
-}
-
 const getModelTagType = (model: string) => {
   const types: Record<string, any> = {
     'YX-EDU-2024': 'primary',
@@ -462,13 +339,38 @@ const getModelTagType = (model: string) => {
 }
 
 const getModelName = (model: string) => {
-  return DEVICE_MODEL_TEXT[model as keyof typeof DEVICE_MODEL_TEXT] || model
+  const names: Record<string, string> = {
+    'YX-EDU-2024': '教育版',
+    'YX-HOME-2024': '家庭版',
+    'YX-PRO-2024': '专业版'
+  }
+  return names[model] || model
 }
 
-const getMaintenanceTypeTagType = (type: string) => {
+const getStatusIconClass = (status: string) => {
+  const classes: Record<string, string> = {
+    online: 'online',
+    offline: 'offline',
+    error: 'error',
+    maintenance: 'maintenance'
+  }
+  return classes[status] || 'offline'
+}
+
+const getStatusText = (status: string) => {
+  const texts: Record<string, string> = {
+    online: '在线',
+    offline: '离线',
+    error: '故障',
+    maintenance: '维护中'
+  }
+  return texts[status] || status
+}
+
+const getMaintenanceTypeTag = (type: string) => {
   const types: Record<string, any> = {
     repair: 'danger',
-    upgrade: 'primary',
+    upgrade: 'success',
     inspection: 'info',
     replacement: 'warning'
   }
@@ -476,15 +378,21 @@ const getMaintenanceTypeTagType = (type: string) => {
 }
 
 const getMaintenanceTypeText = (type: string) => {
-  return MAINTENANCE_TYPE_TEXT[type as keyof typeof MAINTENANCE_TYPE_TEXT] || type
+  const texts: Record<string, string> = {
+    repair: '维修',
+    upgrade: '升级',
+    inspection: '检查',
+    replacement: '更换'
+  }
+  return texts[type] || type
 }
 
-const getMaintenanceStatusTagType = (status: string) => {
+const getMaintenanceStatusTag = (status: string) => {
   const types: Record<string, any> = {
-    pending: 'warning',
-    in_progress: 'primary',
+    pending: 'info',
+    in_progress: 'warning',
     completed: 'success',
-    cancelled: 'info'
+    cancelled: 'danger'
   }
   return types[status] || 'info'
 }
@@ -497,34 +405,6 @@ const getMaintenanceStatusText = (status: string) => {
     cancelled: '已取消'
   }
   return texts[status] || status
-}
-
-const getLanguageName = (code: string) => {
-  const names: Record<string, string> = {
-    'zh-CN': '简体中文',
-    'en-US': 'English',
-    'ja-JP': '日本語',
-    'ko-KR': '한국어'
-  }
-  return names[code] || code
-}
-
-const getSettingLabel = (key: string) => {
-  const labels: Record<string, string> = {
-    brightness: '屏幕亮度',
-    volume: '音量',
-    sleepTimeout: '休眠时间'
-  }
-  return labels[key] || key
-}
-
-const getSettingValue = (key: string, value: any) => {
-  if (key === 'brightness' || key === 'volume') {
-    return `${value}%`
-  } else if (key === 'sleepTimeout') {
-    return `${value}分钟`
-  }
-  return value
 }
 
 const formatDateTime = (dateStr?: string) => {
@@ -541,143 +421,151 @@ const formatDuration = (minutes?: number) => {
 </script>
 
 <style lang="scss" scoped>
-.device-detail-dialog {
-  .device-detail-content {
-    .device-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 24px;
-      padding: 20px;
-      background: #f8f9fa;
-      border-radius: 8px;
-
-      .device-status {
+.device-detail {
+  .detail-section {
+    margin-bottom: 24px;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+    
+    .section-title {
+      margin: 0 0 16px 0;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #e6f7ff;
+      color: #1890ff;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 16px;
+      
+      .info-item {
         display: flex;
-        align-items: center;
-        gap: 16px;
-
-        .firmware-version {
-          color: #666;
-          font-size: 14px;
+        flex-direction: column;
+        gap: 4px;
+        
+        label {
+          font-size: 12px;
+          color: #8c8c8c;
+          font-weight: 500;
         }
-      }
-
-      .device-actions {
-        display: flex;
-        gap: 12px;
+        
+        span {
+          font-size: 14px;
+          color: #262626;
+        }
+        
+        .customer-name {
+          font-weight: 500;
+          color: #262626;
+        }
+        
+        .customer-phone {
+          font-size: 12px;
+          color: #8c8c8c;
+        }
+        
+        .status-display {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          
+          .el-icon {
+            &.online { color: #67C23A; }
+            &.offline { color: #909399; }
+            &.error { color: #F56C6C; }
+            &.maintenance { color: #E6A23C; }
+          }
+        }
+        
+        .connectivity-tags {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 4px;
+          
+          .connectivity-tag {
+            margin: 0;
+          }
+        }
       }
     }
-
-    .device-tabs {
-      .tab-content {
-        padding: 20px;
-
-        .info-section {
-          margin-bottom: 24px;
-
-          h3 {
-            margin: 0 0 16px 0;
-            font-size: 16px;
-            font-weight: 600;
+    
+    .maintenance-list {
+      .maintenance-item {
+        border: 1px solid #f0f0f0;
+        border-radius: 6px;
+        padding: 16px;
+        margin-bottom: 12px;
+        
+        &:last-child {
+          margin-bottom: 0;
+        }
+        
+        .maintenance-header {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 8px;
+          
+          .maintenance-time {
+            font-size: 12px;
+            color: #8c8c8c;
+            flex: 1;
+          }
+        }
+        
+        .maintenance-content {
+          .maintenance-desc {
+            margin: 0 0 8px 0;
             color: #262626;
+            font-size: 14px;
           }
-
-          .notes-content {
-            padding: 12px;
-            background: #f8f9fa;
-            border-radius: 6px;
-            color: #666;
-            line-height: 1.6;
-          }
-        }
-
-        .specs-section {
-          .connectivity-tags {
+          
+          .maintenance-details {
             display: flex;
-            flex-wrap: wrap;
-            gap: 4px;
+            gap: 16px;
+            margin-bottom: 8px;
+            font-size: 12px;
+            color: #8c8c8c;
           }
-        }
-
-        .usage-section {
-          .usage-card {
+          
+          .parts {
             display: flex;
             align-items: center;
-            gap: 16px;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            border: 1px solid #e8e8e8;
-
-            .usage-icon {
-              width: 48px;
-              height: 48px;
-              border-radius: 8px;
-              background: linear-gradient(135deg, #409EFF, #66B1FF);
-              color: white;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              font-size: 20px;
+            gap: 8px;
+            flex-wrap: wrap;
+            
+            .parts-label {
+              font-size: 12px;
+              color: #8c8c8c;
             }
-
-            .usage-info {
-              flex: 1;
-
-              .usage-value {
-                font-size: 20px;
-                font-weight: 600;
-                color: #262626;
-                margin-bottom: 4px;
-              }
-
-              .usage-label {
-                font-size: 14px;
-                color: #666;
-              }
-            }
-          }
-        }
-
-        .maintenance-section {
-          // 维护记录表格样式
-        }
-
-        .config-section {
-          .custom-settings {
-            h4 {
-              margin: 0 0 16px 0;
-              font-size: 14px;
-              font-weight: 600;
-              color: #262626;
+            
+            .part-tag {
+              margin: 0;
             }
           }
         }
       }
     }
-  }
-
-  .dialog-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
+    
+    .notes-content {
+      padding: 12px;
+      background: #fafafa;
+      border-radius: 6px;
+      color: #262626;
+      font-size: 14px;
+      line-height: 1.5;
+    }
   }
 }
 
-@media (max-width: 768px) {
-  .device-detail-dialog {
-    .device-detail-content {
-      .device-header {
-        flex-direction: column;
-        gap: 16px;
-        align-items: stretch;
-
-        .device-actions {
-          justify-content: center;
-        }
-      }
-    }
-  }
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
 }
 </style>

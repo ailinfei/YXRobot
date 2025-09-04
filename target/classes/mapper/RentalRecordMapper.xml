@@ -81,7 +81,7 @@
         WHERE id = #{id} AND is_deleted = 0
     </select>
 
-    <!-- 根据订单号查询 -->
+    <!-- 根据订单号查射?-->
     <select id="selectByOrderNumber" resultMap="RentalRecordResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM rental_records
@@ -146,14 +146,14 @@
         WHERE id = #{id} AND is_deleted = 0
     </update>
 
-    <!-- 软删除 -->
+    <!-- 软删射?-->
     <update id="deleteById">
         UPDATE rental_records
         SET is_deleted = 1, updated_at = NOW()
         WHERE id = #{id}
     </update>
 
-    <!-- 批量软删除 -->
+    <!-- 批量软删射?-->
     <update id="deleteBatchByIds">
         UPDATE rental_records
         SET is_deleted = 1, updated_at = NOW()
@@ -293,7 +293,7 @@
         ORDER BY revenue DESC
     </select>
 
-    <!-- 查询收入增长率 -->
+    <!-- 查询收入增长射?-->
     <select id="selectRevenueGrowthRate" resultType="java.util.Map">
         SELECT 
             COALESCE(

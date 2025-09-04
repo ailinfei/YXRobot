@@ -107,6 +107,71 @@ public class RealDataValidator {
     }
     
     /**
+     * 验证订单数据是否为真实数据
+     * 
+     * @param customerName 客户姓名
+     * @param productName 产品名称
+     * @param orderAmount 订单金额
+     * @return 验证结果
+     */
+    public ValidationResult validateOrderData(String customerName, String productName, String orderAmount) {
+        ValidationResult result = new ValidationResult();
+        result.setValid(true);
+        
+        List<String> warnings = new ArrayList<>();
+        List<String> errors = new ArrayList<>();
+        
+        // 验证客户姓名
+        if (customerName != null && SUSPICIOUS_NAME_PATTERN.matcher(customerName).matches()) {
+            errors.add("客户姓名包含可疑的测试关键词: " + customerName);
+            result.setValid(false);
+        }
+        
+        // 验证产品名称
+        if (productName != null && productName.matches(".*(测试|示例|test|demo|mock|sample|example).*")) {
+            errors.add("产品名称疑似测试数据: " + productName);
+            result.setValid(false);
+        }
+        
+        // 验证订单金额
+        if (orderAmount != null) {
+            try {
+                double amount = Double.parseDouble(orderAmount);
+                if (amount <= 0) {
+                    errors.add("订单金额必须大于0: " + orderAmount);
+                    result.setValid(false);
+                } else if (amount == 1.0 || amount == 100.0 || amount == 1000.0) {
+                    warnings.add("订单金额可能是测试数据: " + orderAmount);
+                }
+            } catch (NumberFormatException e) {
+                errors.add("订单金额格式不正确: " + orderAmount);
+                result.setValid(false);
+            }
+        }
+        
+        // 检查数据完整性
+        if (customerName == null || customerName.trim().isEmpty()) {
+            errors.add("客户姓名不能为空");
+            result.setValid(false);
+        }
+        
+        if (productName == null || productName.trim().isEmpty()) {
+            errors.add("产品名称不能为空");
+            result.setValid(false);
+        }
+        
+        if (orderAmount == null || orderAmount.trim().isEmpty()) {
+            errors.add("订单金额不能为空");
+            result.setValid(false);
+        }
+        
+        result.setWarnings(warnings);
+        result.setErrors(errors);
+        
+        return result;
+    }
+    
+    /**
      * 扫描数据库中的可疑数据
      * 
      * @return 扫描结果
@@ -277,6 +342,27 @@ public class RealDataValidator {
         
         public boolean hasErrors() {
             return errors != null && !errors.isEmpty();
+        }
+        
+        /**
+         * 获取违规消息
+         * @return 违规消息字符串
+         */
+        public String getViolationMessage() {
+            StringBuilder message = new StringBuilder();
+            
+            if (hasErrors()) {
+                message.append("错误: ").append(String.join("; ", errors));
+            }
+            
+            if (hasWarnings()) {
+                if (message.length() > 0) {
+                    message.append(" | ");
+                }
+                message.append("警告: ").append(String.join("; ", warnings));
+            }
+            
+            return message.toString();
         }
     }
     

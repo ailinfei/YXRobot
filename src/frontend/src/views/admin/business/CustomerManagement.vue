@@ -285,8 +285,8 @@ import {
   UserFilled
 } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { mockCustomerAPI } from '@/api/mock'
-import type { Customer, CustomerDevice } from '@/api/mock/customer'
+import { customerApi, customerRelationApi } from '@/api/customer'
+import type { Customer, CustomerDevice } from '@/types/customer'
 import CustomerFormDialog from '@/components/customer/CustomerFormDialog.vue'
 
 // 响应式数据
@@ -346,7 +346,7 @@ const handleSelectionChange = (selection: Customer[]) => {
 const loadCustomerData = async () => {
   tableLoading.value = true
   try {
-    const response = await mockCustomerAPI.getCustomers({
+    const response = await customerApi.getCustomers({
       page: currentPage.value,
       pageSize: pageSize.value,
       keyword: searchKeyword.value,
@@ -370,8 +370,8 @@ const viewCustomerDetail = async (customer: Customer) => {
   selectedCustomer.value = customer
   
   try {
-    const response = await mockCustomerAPI.getCustomerDevices(customer.id)
-    customerDevices.value = response.data
+    const response = await customerRelationApi.getCustomerDevices(customer.id)
+    customerDevices.value = response.data.list
     detailDialogVisible.value = true
   } catch (error) {
     console.error('加载客户设备失败:', error)
@@ -398,7 +398,7 @@ const deleteCustomer = async (customer: Customer) => {
       }
     )
     
-    await mockCustomerAPI.deleteCustomer(customer.id)
+    await customerApi.deleteCustomer(customer.id)
     ElMessage.success('删除成功')
     loadCustomerData()
   } catch (error) {

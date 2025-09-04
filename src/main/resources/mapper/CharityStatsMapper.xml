@@ -109,14 +109,14 @@
         </if>
     </select>
 
-    <!-- 检查统计数据是否存在 -->
+    <!-- 检查统计数据是否存射?-->
     <select id="existsStats" resultType="java.lang.Boolean">
-        SELECT COUNT(*) > 0
+        SELECT COUNT(*) &gt; 0
         FROM charity_stats
         WHERE (deleted = 0 OR deleted IS NULL)
     </select>
 
-    <!-- 计算统计数据汇总 -->
+    <!-- 计算统计数据汇射?-->
     <select id="calculateStatsFromSource" resultMap="CharityStatsResultMap">
         SELECT 
             -- 受益人数统计
@@ -124,7 +124,7 @@
             -- 机构统计
             (SELECT COUNT(*) FROM charity_institutions WHERE is_deleted = 0) as total_institutions,
             (SELECT COUNT(*) FROM charity_institutions WHERE is_deleted = 0 AND status = 'active') as cooperating_institutions,
-            -- 志愿者统计
+            -- 志愿者统射?
             COALESCE(SUM(ca.participants), 0) as total_volunteers,
             -- 资金统计
             COALESCE(SUM(cp.target_amount), 0) as total_raised,
@@ -145,9 +145,9 @@
         WHERE cp.is_deleted = 0
     </select>
 
-    <!-- 软删除相关查询方法 -->
+    <!-- 软删除相关查询方射?-->
     
-    <!-- 获取未删除的最新统计数据 -->
+    <!-- 获取未删除的最新统计数射?-->
     <select id="selectLatestNotDeleted" resultMap="CharityStatsResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM charity_stats
@@ -156,7 +156,7 @@
         LIMIT 1
     </select>
 
-    <!-- 获取所有未删除的统计数据 -->
+    <!-- 获取所有未删除的统计数射?-->
     <select id="selectAllNotDeleted" resultMap="CharityStatsResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM charity_stats
@@ -164,7 +164,7 @@
         ORDER BY created_at DESC
     </select>
 
-    <!-- 软删除统计数据 -->
+    <!-- 软删除统计数射?-->
     <update id="softDeleteById">
         UPDATE charity_stats
         SET deleted = 1,
@@ -187,7 +187,7 @@
         WHERE id = #{id} AND (deleted = 0 OR deleted IS NULL)
     </select>
 
-    <!-- 统计未删除记录数量 -->
+    <!-- 统计未删除记录数射?-->
     <select id="countNotDeleted" resultType="java.lang.Integer">
         SELECT COUNT(*)
         FROM charity_stats
@@ -196,13 +196,13 @@
 
     <!-- 图表数据查询方法 -->
     
-    <!-- 获取项目状态分布数据 -->
+    <!-- 获取项目状态分布数射?-->
     <select id="selectProjectStatusDistribution" resultType="java.util.Map">
         SELECT 
             CASE 
-                WHEN status = 'active' THEN '进行中'
-                WHEN status = 'completed' THEN '已完成'
-                WHEN status = 'planning' THEN '规划中'
+                WHEN status = 'active' THEN '进行射?
+                WHEN status = 'completed' THEN '已完射?
+                WHEN status = 'planning' THEN '规划射?
                 WHEN status = 'suspended' THEN '暂停'
                 ELSE '其他'
             END as statusName,
@@ -221,7 +221,7 @@
             SUM(raised_amount) as donated_amount
         FROM charity_projects 
         WHERE is_deleted = 0 
-            AND created_at >= DATE_SUB(NOW(), INTERVAL #{months} MONTH)
+            AND created_at &gt;= DATE_SUB(NOW(), INTERVAL #{months} MONTH)
         GROUP BY DATE_FORMAT(created_at, '%Y-%m')
         ORDER BY month ASC
     </select>
@@ -230,13 +230,13 @@
     <select id="selectRegionDistribution" resultType="java.util.Map">
         SELECT 
             CASE 
-                WHEN location LIKE '%北京%' OR location LIKE '%天津%' OR location LIKE '%河北%' OR location LIKE '%山西%' OR location LIKE '%内蒙古%' THEN '华北'
+                WHEN location LIKE '%北京%' OR location LIKE '%天津%' OR location LIKE '%河北%' OR location LIKE '%山西%' OR location LIKE '%内蒙射?' THEN '华北'
                 WHEN location LIKE '%上海%' OR location LIKE '%江苏%' OR location LIKE '%浙江%' OR location LIKE '%安徽%' OR location LIKE '%福建%' OR location LIKE '%江西%' OR location LIKE '%山东%' THEN '华东'
                 WHEN location LIKE '%广东%' OR location LIKE '%广西%' OR location LIKE '%海南%' THEN '华南'
                 WHEN location LIKE '%河南%' OR location LIKE '%湖北%' OR location LIKE '%湖南%' THEN '华中'
                 WHEN location LIKE '%重庆%' OR location LIKE '%四川%' OR location LIKE '%贵州%' OR location LIKE '%云南%' OR location LIKE '%西藏%' THEN '西南'
                 WHEN location LIKE '%陕西%' OR location LIKE '%甘肃%' OR location LIKE '%青海%' OR location LIKE '%宁夏%' OR location LIKE '%新疆%' THEN '西北'
-                WHEN location LIKE '%辽宁%' OR location LIKE '%吉林%' OR location LIKE '%黑龙江%' THEN '东北'
+                WHEN location LIKE '%辽宁%' OR location LIKE '%吉林%' OR location LIKE '%黑龙射?' THEN '东北'
                 ELSE '其他'
             END as regionName,
             COUNT(*) as count
@@ -246,7 +246,7 @@
         ORDER BY count DESC
     </select>
 
-    <!-- 获取志愿者活动统计数据 -->
+    <!-- 获取志愿者活动统计数射?-->
     <select id="selectVolunteerActivityStats" resultType="java.util.Map">
         SELECT 
             DATE_FORMAT(date, '%Y-%m') as month,
@@ -254,7 +254,7 @@
             SUM(participants) as volunteer_count
         FROM charity_activities 
         WHERE deleted = 0 
-            AND date >= DATE_SUB(NOW(), INTERVAL #{months} MONTH)
+            AND date &gt;= DATE_SUB(NOW(), INTERVAL #{months} MONTH)
         GROUP BY DATE_FORMAT(date, '%Y-%m')
         ORDER BY month ASC
     </select>
@@ -263,8 +263,8 @@
     <select id="selectInstitutionTypeDistribution" resultType="java.util.Map">
         SELECT 
             CASE 
-                WHEN type = 'foundation' THEN '基金会'
-                WHEN type = 'ngo' THEN '非营利组织'
+                WHEN type = 'foundation' THEN '基金射?
+                WHEN type = 'ngo' THEN '非营利组射?
                 WHEN type = 'government' THEN '政府机构'
                 WHEN type = 'enterprise' THEN '企业'
                 WHEN type = 'school' THEN '学校'
@@ -286,7 +286,7 @@
                 WHEN type = 'environment' THEN '环境保护'
                 WHEN type = 'poverty' THEN '扶贫济困'
                 WHEN type = 'disaster' THEN '灾害救助'
-                WHEN type = 'elderly' THEN '养老助老'
+                WHEN type = 'elderly' THEN '养老助射?
                 WHEN type = 'children' THEN '儿童关爱'
                 ELSE '其他'
             END as typeName,

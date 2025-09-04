@@ -498,7 +498,7 @@ const handleStatusChange = () => {
 const exportOrders = async () => {
   exportLoading.value = true
   try {
-    await mockOrderAPI.exportOrders({
+    await orderApi.exportOrders({
       keyword: searchKeyword.value,
       type: typeFilter.value as any,
       status: statusFilter.value as any,

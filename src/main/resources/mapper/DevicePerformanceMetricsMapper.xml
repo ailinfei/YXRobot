@@ -1,0 +1,325 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yxrobot.mapper.DevicePerformanceMetricsMapper">
+
+    <!-- 基础结果映射 -->
+    <resultMap id="BaseResultMap" type="com.yxrobot.entity.DevicePerformanceMetrics">
+        <id column="id" property="id"/>
+        <result column="device_id" property="deviceId"/>
+        <result column="cpu_usage" property="cpuUsage"/>
+        <result column="memory_usage" property="memoryUsage"/>
+        <result column="disk_usage" property="diskUsage"/>
+        <result column="temperature" property="temperature"/>
+        <result column="battery_level" property="batteryLevel"/>
+        <result column="network_latency" property="networkLatency"/>
+        <result column="network_bandwidth" property="networkBandwidth"/>
+        <result column="metric_timestamp" property="metricTimestamp"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <!-- 基础列定义 -->
+    <sql id="Base_Column_List">
+        id, device_id, cpu_usage, memory_usage, disk_usage, temperature,
+        battery_level, network_latency, network_bandwidth, metric_timestamp, created_at
+    </sql>
+
+    <!-- 动态查询条件 -->
+    <sql id="Where_Clause">
+        <where>
+            <if test="params.deviceId != null">
+                AND device_id = #{params.deviceId}
+            </if>
+            <if test="params.startTime != null">
+                AND metric_timestamp &gt;= #{params.startTime}
+            </if>
+            <if test="params.endTime != null">
+                AND metric_timestamp &lt;= #{params.endTime}
+            </if>
+            <if test="params.cpuThreshold != null">
+                AND cpu_usage &gt;= #{params.cpuThreshold}
+            </if>
+            <if test="params.memoryThreshold != null">
+                AND memory_usage &gt;= #{params.memoryThreshold}
+            </if>
+            <if test="params.temperatureThreshold != null">
+                AND temperature &gt;= #{params.temperatureThreshold}
+            </if>
+            <if test="params.batteryThreshold != null">
+                AND battery_level &lt;= #{params.batteryThreshold}
+            </if>
+        </where>
+    </sql>
+
+    <!-- 插入设备性能指标 -->
+    <insert id="insert" parameterType="com.yxrobot.entity.DevicePerformanceMetrics" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO device_performance_metrics (
+            device_id, cpu_usage, memory_usage, disk_usage, temperature,
+            battery_level, network_latency, network_bandwidth, metric_timestamp, created_at
+        ) VALUES (
+            #{deviceId}, #{cpuUsage}, #{memoryUsage}, #{diskUsage}, #{temperature},
+            #{batteryLevel}, #{networkLatency}, #{networkBandwidth}, #{metricTimestamp}, NOW()
+        )
+    </insert>
+
+    <!-- 根据ID查询设备性能指标 -->
+    <select id="selectById" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_performance_metrics
+        WHERE id = #{id}
+    </select>
+
+    <!-- 根据设备ID查询最新性能指标 -->
+    <select id="selectLatestByDeviceId" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_performance_metrics
+        WHERE device_id = #{deviceId}
+        ORDER BY metric_timestamp DESC
+        LIMIT 1
+    </select>
+
+    <!-- 根据设备ID查询性能指标历史记录 -->
+    <select id="selectHistoryByDeviceId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_performance_metrics
+        WHERE device_id = #{deviceId}
+        <if test="startTime != null">
+            AND metric_timestamp &gt;= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND metric_timestamp &lt;= #{endTime}
+        </if>
+        ORDER BY metric_timestamp DESC
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 分页查询设备性能指标列表 -->
+    <select id="selectWithPagination" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_performance_metrics
+        <include refid="Where_Clause"/>
+        <if test="params.orderBy != null and params.orderBy != ''">
+            ORDER BY ${params.orderBy}
+        </if>
+        <if test="params.orderBy == null or params.orderBy == ''">
+            ORDER BY metric_timestamp DESC
+        </if>
+        <if test="params.offset != null and params.limit != null">
+            LIMIT #{params.offset}, #{params.limit}
+        </if>
+    </select>
+
+    <!-- 统计设备性能指标总数 -->
+    <select id="countWithConditions" resultType="int">
+        SELECT COUNT(*)
+        FROM device_performance_metrics
+        <include refid="Where_Clause"/>
+    </select>
+
+    <!-- 查询高CPU使用率的设备 -->
+    <select id="selectHighCpuUsage" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_performance_metrics
+        WHERE cpu_usage &gt;= #{cpuThreshold}
+        ORDER BY cpu_usage DESC, metric_timestamp DESC
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 查询高内存使用率的设备 -->
+    <select id="selectHighMemoryUsage" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_performance_metrics
+        WHERE memory_usage &gt;= #{memoryThreshold}
+        ORDER BY memory_usage DESC, metric_timestamp DESC
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 查询低电池电量的设备 -->
+    <select id="selectLowBattery" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_performance_metrics
+        WHERE battery_level IS NOT NULL 
+          AND battery_level &lt;= #{batteryThreshold}
+        ORDER BY battery_level ASC, metric_timestamp DESC
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 查询高温设备 -->
+    <select id="selectHighTemperature" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_performance_metrics
+        WHERE temperature IS NOT NULL 
+          AND temperature &gt;= #{temperatureThreshold}
+        ORDER BY temperature DESC, metric_timestamp DESC
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 更新设备性能指标 -->
+    <update id="updateById" parameterType="com.yxrobot.entity.DevicePerformanceMetrics">
+        UPDATE device_performance_metrics
+        SET device_id = #{deviceId},
+            cpu_usage = #{cpuUsage},
+            memory_usage = #{memoryUsage},
+            disk_usage = #{diskUsage},
+            temperature = #{temperature},
+            battery_level = #{batteryLevel},
+            network_latency = #{networkLatency},
+            network_bandwidth = #{networkBandwidth},
+            metric_timestamp = #{metricTimestamp}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 删除设备性能指标 -->
+    <delete id="deleteById" parameterType="java.lang.Long">
+        DELETE FROM device_performance_metrics WHERE id = #{id}
+    </delete>
+
+    <!-- 根据设备ID删除所有性能指标 -->
+    <delete id="deleteByDeviceId" parameterType="java.lang.Long">
+        DELETE FROM device_performance_metrics WHERE device_id = #{deviceId}
+    </delete>
+
+    <!-- 批量插入设备性能指标 -->
+    <insert id="batchInsert" parameterType="java.util.List">
+        INSERT INTO device_performance_metrics (
+            device_id, cpu_usage, memory_usage, disk_usage, temperature,
+            battery_level, network_latency, network_bandwidth, metric_timestamp, created_at
+        ) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.deviceId}, #{item.cpuUsage}, #{item.memoryUsage}, #{item.diskUsage}, #{item.temperature},
+             #{item.batteryLevel}, #{item.networkLatency}, #{item.networkBandwidth}, #{item.metricTimestamp}, NOW())
+        </foreach>
+    </insert>
+
+    <!-- 计算设备平均性能指标 -->
+    <select id="calculateAverageMetrics" resultType="map">
+        SELECT 
+            AVG(cpu_usage) as avgCpuUsage,
+            AVG(memory_usage) as avgMemoryUsage,
+            AVG(disk_usage) as avgDiskUsage,
+            AVG(temperature) as avgTemperature,
+            AVG(battery_level) as avgBatteryLevel,
+            AVG(network_latency) as avgNetworkLatency,
+            AVG(network_bandwidth) as avgNetworkBandwidth
+        FROM device_performance_metrics
+        WHERE device_id = #{deviceId}
+        <if test="startTime != null">
+            AND metric_timestamp &gt;= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND metric_timestamp &lt;= #{endTime}
+        </if>
+    </select>
+
+    <!-- 计算所有设备的平均性能 -->
+    <select id="calculateOverallAveragePerformance" resultType="java.math.BigDecimal">
+        SELECT AVG(100 - (cpu_usage + memory_usage) / 2) as avgPerformance
+        FROM device_performance_metrics
+        WHERE cpu_usage IS NOT NULL 
+          AND memory_usage IS NOT NULL
+        <if test="startTime != null">
+            AND metric_timestamp &gt;= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND metric_timestamp &lt;= #{endTime}
+        </if>
+    </select>
+
+    <!-- 查询性能图表数据 -->
+    <select id="selectChartData" resultType="map">
+        SELECT 
+            DATE_FORMAT(
+                FROM_UNIXTIME(
+                    FLOOR(UNIX_TIMESTAMP(metric_timestamp) / (#{intervalMinutes} * 60)) * (#{intervalMinutes} * 60)
+                ), 
+                '%Y-%m-%d %H:%i:00'
+            ) as timePoint,
+            AVG(cpu_usage) as avgCpuUsage,
+            AVG(memory_usage) as avgMemoryUsage,
+            AVG(disk_usage) as avgDiskUsage,
+            AVG(temperature) as avgTemperature,
+            AVG(battery_level) as avgBatteryLevel
+        FROM device_performance_metrics
+        WHERE device_id = #{deviceId}
+          AND metric_timestamp BETWEEN #{startTime} AND #{endTime}
+        GROUP BY timePoint
+        ORDER BY timePoint ASC
+    </select>
+
+    <!-- 查询多设备性能对比数据 -->
+    <select id="selectComparisonData" resultType="map">
+        SELECT 
+            device_id as deviceId,
+            AVG(cpu_usage) as avgCpuUsage,
+            AVG(memory_usage) as avgMemoryUsage,
+            AVG(disk_usage) as avgDiskUsage,
+            MAX(cpu_usage) as maxCpuUsage,
+            MAX(memory_usage) as maxMemoryUsage,
+            COUNT(*) as dataPoints
+        FROM device_performance_metrics
+        WHERE device_id IN
+        <foreach collection="deviceIds" item="deviceId" open="(" separator="," close=")">
+            #{deviceId}
+        </foreach>
+        AND metric_timestamp BETWEEN #{startTime} AND #{endTime}
+        GROUP BY device_id
+    </select>
+
+    <!-- 清理过期的性能指标数据 -->
+    <delete id="deleteExpiredMetrics">
+        DELETE FROM device_performance_metrics 
+        WHERE metric_timestamp &lt; #{beforeTime}
+    </delete>
+
+    <!-- 查询性能异常的设备 -->
+    <select id="selectAbnormalPerformance" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_performance_metrics
+        WHERE (cpu_usage &gt;= #{cpuThreshold} OR memory_usage &gt;= #{memoryThreshold})
+          AND metric_timestamp &gt;= DATE_SUB(NOW(), INTERVAL #{recentMinutes} MINUTE)
+        ORDER BY metric_timestamp DESC
+    </select>
+
+    <!-- 统计性能指标分布 -->
+    <select id="countMetricsDistribution" resultType="map">
+        <choose>
+            <when test="metricType == 'cpu'">
+                SELECT 
+                    CASE 
+                        WHEN cpu_usage &lt; 30 THEN 'low'
+                        WHEN cpu_usage &lt; 70 THEN 'medium'
+                        ELSE 'high'
+                    END as level,
+                    COUNT(*) as count
+                FROM device_performance_metrics
+                WHERE cpu_usage IS NOT NULL
+                GROUP BY level
+            </when>
+            <when test="metricType == 'memory'">
+                SELECT 
+                    CASE 
+                        WHEN memory_usage &lt; 30 THEN 'low'
+                        WHEN memory_usage &lt; 70 THEN 'medium'
+                        ELSE 'high'
+                    END as level,
+                    COUNT(*) as count
+                FROM device_performance_metrics
+                WHERE memory_usage IS NOT NULL
+                GROUP BY level
+            </when>
+            <otherwise>
+                SELECT 'unknown' as level, 0 as count
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

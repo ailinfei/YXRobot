@@ -1,136 +1,68 @@
--- 测试环境初始数据
--- 用于单元测试的基础数据
-
--- 清理现有测试数据
-DELETE FROM customer_service_relation WHERE 1=1;
-DELETE FROM customer_order_relation WHERE 1=1;
-DELETE FROM customer_device_relation WHERE 1=1;
-DELETE FROM service_records WHERE 1=1;
-DELETE FROM orders WHERE 1=1;
-DELETE FROM devices WHERE 1=1;
-DELETE FROM customer_addresses WHERE 1=1;
-DELETE FROM customers WHERE 1=1;
-
--- 重置自增ID
-ALTER TABLE customers ALTER COLUMN id RESTART WITH 1;
-ALTER TABLE customer_addresses ALTER COLUMN id RESTART WITH 1;
-ALTER TABLE devices ALTER COLUMN id RESTART WITH 1;
-ALTER TABLE orders ALTER COLUMN id RESTART WITH 1;
-ALTER TABLE service_records ALTER COLUMN id RESTART WITH 1;
+-- 测试数据初始化
+-- 设备管理模块测试数据
 
 -- 插入测试客户数据
-INSERT INTO customers (
-    customer_name, customer_type, customer_level, customer_status,
-    contact_person, phone, email, avatar_url, customer_tags, notes,
-    address, region, industry, credit_level, total_spent, customer_value,
-    registered_at, last_active_at, is_active, is_deleted
-) VALUES 
--- VIP客户
-('测试VIP客户1', 'ENTERPRISE', 'VIP', 'ACTIVE', '张经理', '13800138001', 'vip1@test.com', '/avatar1.jpg',
- '["VIP", "重要客户"]', 'VIP重要客户', '朝阳区建国门外大街1号', '北京-朝阳区', '科技', 'EXCELLENT', 
- 50000.00, 9.5, '2023-01-15 10:00:00', '2024-08-30 15:30:00', TRUE, FALSE),
+INSERT INTO customers (id, name, phone, email) VALUES
+(1, '[测试客户1]', '[测试电话1]', '[测试邮箱1]'),
+(2, '[测试客户2]', '[测试电话2]', '[测试邮箱2]'),
+(3, '[测试客户3]', '[测试电话3]', '[测试邮箱3]');
 
-('测试VIP客户2', 'INDIVIDUAL', 'VIP', 'ACTIVE', '李总', '13800138002', 'vip2@test.com', '/avatar2.jpg',
- '["VIP", "长期合作"]', 'VIP个人客户', '海淀区中关村大街2号', '北京-海淀区', '教育', 'GOOD',
- 80000.00, 9.8, '2023-02-20 14:00:00', '2024-08-29 09:15:00', TRUE, FALSE),
+-- 插入测试设备数据
+INSERT INTO managed_devices (id, serial_number, model, status, firmware_version, customer_id, customer_name, customer_phone, created_by, notes, is_deleted) VALUES
+(1, 'YX-TEST-001', 'YX-EDU-2024', 'online', '1.0.0', 1, '[测试客户1]', '[测试电话1]', 'test-admin', '测试设备1', 0),
+(2, 'YX-TEST-002', 'YX-HOME-2024', 'offline', '1.0.0', 2, '[测试客户2]', '[测试电话2]', 'test-admin', '测试设备2', 0),
+(3, 'YX-TEST-003', 'YX-PRO-2024', 'error', '1.1.0', 3, '[测试客户3]', '[测试电话3]', 'test-admin', '测试设备3', 0),
+(4, 'YX-TEST-004', 'YX-EDU-2024', 'maintenance', '1.0.0', 1, '[测试客户1]', '[测试电话1]', 'test-admin', '测试设备4', 0),
+(5, 'YX-TEST-005', 'YX-HOME-2024', 'online', '1.1.0', 2, '[测试客户2]', '[测试电话2]', 'test-admin', '测试设备5', 0);
 
--- 高级客户
-('测试高级客户1', 'ENTERPRISE', 'PREMIUM', 'ACTIVE', '王总', '13800138003', 'premium1@test.com', '/avatar3.jpg',
- '["高级客户", "制造业"]', '制造业高级客户', '浦东新区陆家嘴5号', '上海-浦东新区', '制造', 'EXCELLENT',
- 120000.00, 9.9, '2023-03-10 16:30:00', '2024-08-31 16:00:00', TRUE, FALSE),
+-- 插入设备技术参数数据
+INSERT INTO managed_device_specifications (device_id, cpu, memory, storage, display, battery, connectivity) VALUES
+(1, 'ARM Cortex-A72', '4GB DDR4', '64GB eMMC', '10.1" IPS 1920x1200', '8000mAh', '{"wifi": "802.11ac", "bluetooth": "5.0", "ethernet": "10/100M"}'),
+(2, 'ARM Cortex-A53', '2GB DDR3', '32GB eMMC', '8" IPS 1280x800', '5000mAh', '{"wifi": "802.11n", "bluetooth": "4.2"}'),
+(3, 'ARM Cortex-A76', '8GB DDR4', '128GB eMMC', '12.3" IPS 2560x1600', '10000mAh', '{"wifi": "802.11ax", "bluetooth": "5.2", "ethernet": "1000M", "4g": "LTE"}'),
+(4, 'ARM Cortex-A72', '4GB DDR4', '64GB eMMC', '10.1" IPS 1920x1200', '8000mAh', '{"wifi": "802.11ac", "bluetooth": "5.0", "ethernet": "10/100M"}'),
+(5, 'ARM Cortex-A53', '2GB DDR3', '32GB eMMC', '8" IPS 1280x800', '5000mAh', '{"wifi": "802.11n", "bluetooth": "4.2"}');
 
--- 普通客户
-('测试普通客户1', 'INDIVIDUAL', 'REGULAR', 'ACTIVE', '赵先生', '13800138004', 'regular1@test.com', '/avatar4.jpg',
- '["普通客户"]', '普通个人客户', '西城区西单大街3号', '北京-西城区', '零售', 'FAIR',
- 15000.00, 7.2, '2023-04-05 08:20:00', '2024-08-28 11:45:00', TRUE, FALSE),
+-- 插入设备使用统计数据
+INSERT INTO managed_device_usage_stats (device_id, total_runtime, usage_count, average_session_time) VALUES
+(1, 1200, 45, 27),
+(2, 800, 32, 25),
+(3, 2400, 78, 31),
+(4, 600, 20, 30),
+(5, 1500, 55, 27);
 
-('测试普通客户2', 'INDIVIDUAL', 'REGULAR', 'INACTIVE', '钱女士', '13800138005', 'regular2@test.com', '/avatar5.jpg',
- '["普通客户", "待激活"]', '待激活客户', '天河区珠江新城7号', '广州-天河区', '服务', 'POOR',
- 8000.00, 6.5, '2023-05-12 12:10:00', '2024-07-15 14:20:00', FALSE, FALSE),
+-- 插入设备维护记录数据
+INSERT INTO managed_device_maintenance_records (device_id, type, description, technician, start_time, end_time, status, cost) VALUES
+(1, 'inspection', '定期检查', '[技术员1]', '2024-01-01 10:00:00', '2024-01-01 11:00:00', 'completed', 100.00),
+(2, 'repair', '屏幕更换', '[技术员2]', '2024-01-02 14:00:00', '2024-01-02 16:00:00', 'completed', 300.00),
+(3, 'upgrade', '固件升级', '[技术员1]', '2024-01-03 09:00:00', NULL, 'in_progress', 0.00),
+(4, 'maintenance', '清洁保养', '[技术员3]', '2024-01-04 15:00:00', '2024-01-04 15:30:00', 'completed', 50.00);
 
--- 上海地区客户
-('测试上海客户1', 'ENTERPRISE', 'VIP', 'ACTIVE', '孙总', '13800138006', 'shanghai1@test.com', '/avatar6.jpg',
- '["VIP", "上海客户"]', '上海VIP企业客户', '徐汇区淮海中路6号', '上海-徐汇区', '金融', 'EXCELLENT',
- 95000.00, 8.8, '2023-06-18 09:45:00', '2024-08-30 13:25:00', TRUE, FALSE),
+-- 插入设备配置数据
+INSERT INTO managed_device_configurations (device_id, language, timezone, auto_update, debug_mode) VALUES
+(1, 'zh-CN', 'Asia/Shanghai', 1, 0),
+(2, 'en-US', 'America/New_York', 1, 0),
+(3, 'ja-JP', 'Asia/Tokyo', 0, 1),
+(4, 'zh-CN', 'Asia/Shanghai', 1, 0),
+(5, 'ko-KR', 'Asia/Seoul', 1, 0);
 
--- 广州地区客户
-('测试广州客户1', 'INDIVIDUAL', 'REGULAR', 'ACTIVE', '周先生', '13800138007', 'guangzhou1@test.com', '/avatar7.jpg',
- '["普通客户", "广州"]', '广州普通客户', '越秀区中山五路8号', '广州-越秀区', '贸易', 'FAIR',
- 25000.00, 7.8, '2023-07-22 15:15:00', '2024-08-27 10:30:00', TRUE, FALSE),
+-- 插入设备位置信息数据
+INSERT INTO managed_device_locations (device_id, latitude, longitude, address) VALUES
+(1, 39.9042, 116.4074, '北京市朝阳区测试地址1'),
+(2, 31.2304, 121.4737, '上海市浦东新区测试地址2'),
+(3, 22.3193, 114.1694, '深圳市南山区测试地址3'),
+(4, 30.5728, 104.0668, '成都市高新区测试地址4'),
+(5, 32.0603, 118.7969, '南京市鼓楼区测试地址5');
 
--- 暂停服务客户
-('测试暂停客户1', 'ENTERPRISE', 'VIP', 'SUSPENDED', '吴总', '13800138008', 'suspended1@test.com', '/avatar8.jpg',
- '["VIP", "暂停服务"]', 'VIP客户暂停服务', '南山区科技园9号', '深圳-南山区', '科技', 'POOR',
- 60000.00, 8.5, '2023-08-30 11:00:00', '2024-06-10 08:45:00', FALSE, FALSE);
-
--- 插入客户地址数据
-INSERT INTO customer_addresses (
-    customer_id, address_type, province, city, district, street, postal_code, is_default, is_deleted
-) VALUES 
-(1, 'OFFICE', '北京市', '朝阳区', '建国门外', '建国门外大街1号', '100020', TRUE, FALSE),
-(2, 'HOME', '北京市', '海淀区', '中关村', '中关村大街2号', '100080', TRUE, FALSE),
-(3, 'OFFICE', '上海市', '浦东新区', '陆家嘴', '陆家嘴金融区5号', '200120', TRUE, FALSE),
-(4, 'HOME', '北京市', '西城区', '西单', '西单大街3号', '100032', TRUE, FALSE),
-(5, 'HOME', '广东省', '广州市', '天河区', '珠江新城7号', '510623', TRUE, FALSE);
-
--- 插入设备数据
-INSERT INTO devices (
-    device_name, device_type, device_model, device_status, purchase_date, warranty_period, is_deleted
-) VALUES 
-('清洁机器人A1', 'CLEANING_ROBOT', 'Model-A1', 'ACTIVE', '2023-01-20', 24, FALSE),
-('服务机器人B1', 'SERVICE_ROBOT', 'Model-B1', 'ACTIVE', '2023-02-25', 36, FALSE),
-('清洁机器人C1', 'CLEANING_ROBOT', 'Model-C1', 'MAINTENANCE', '2023-03-15', 24, FALSE),
-('安防机器人D1', 'SECURITY_ROBOT', 'Model-D1', 'ACTIVE', '2023-04-10', 48, FALSE),
-('配送机器人E1', 'DELIVERY_ROBOT', 'Model-E1', 'ACTIVE', '2023-05-20', 24, FALSE);
-
--- 插入客户设备关联数据
-INSERT INTO customer_device_relation (
-    customer_id, device_id, relation_type, start_date, status
-) VALUES 
-(1, 1, 'PURCHASED', '2023-01-20', 1),
-(2, 2, 'RENTAL', '2023-02-25', 1),
-(3, 3, 'PURCHASED', '2023-03-15', 1),
-(3, 4, 'PURCHASED', '2023-04-10', 1),
-(6, 5, 'RENTAL', '2023-05-20', 1);
-
--- 插入订单数据
-INSERT INTO orders (
-    order_number, order_status, total_amount, order_date, is_deleted
-) VALUES 
-('ORD-2023-001', 'COMPLETED', 50000.00, '2023-01-20 10:00:00', FALSE),
-('ORD-2023-002', 'COMPLETED', 80000.00, '2023-02-25 14:00:00', FALSE),
-('ORD-2023-003', 'COMPLETED', 120000.00, '2023-03-15 16:00:00', FALSE),
-('ORD-2023-004', 'PENDING', 15000.00, '2023-04-05 08:00:00', FALSE),
-('ORD-2023-005', 'CANCELLED', 8000.00, '2023-05-12 12:00:00', FALSE);
-
--- 插入客户订单关联数据
-INSERT INTO customer_order_relation (customer_id, order_id) VALUES 
-(1, 1),
-(2, 2),
-(3, 3),
-(4, 4),
-(5, 5);
-
--- 插入服务记录数据
-INSERT INTO service_records (
-    service_type, service_description, status, service_date, is_deleted
-) VALUES 
-('MAINTENANCE', '设备定期维护', 'COMPLETED', '2023-06-01 09:00:00', FALSE),
-('REPAIR', '设备故障维修', 'COMPLETED', '2023-06-15 14:00:00', FALSE),
-('UPGRADE', '设备软件升级', 'IN_PROGRESS', '2023-07-01 10:00:00', FALSE),
-('TRAINING', '客户培训服务', 'COMPLETED', '2023-07-15 15:00:00', FALSE),
-('CONSULTATION', '技术咨询服务', 'PENDING', '2023-08-01 11:00:00', FALSE);
-
--- 插入客户服务关联数据
-INSERT INTO customer_service_relation (customer_id, service_record_id) VALUES 
-(1, 1),
-(2, 2),
-(3, 3),
-(4, 4),
-(5, 5);
-
--- 验证数据插入
-SELECT 'Test data initialization completed' as status;
-SELECT COUNT(*) as customer_count FROM customers WHERE is_deleted = FALSE;
-SELECT COUNT(*) as device_count FROM devices WHERE is_deleted = FALSE;
-SELECT COUNT(*) as order_count FROM orders WHERE is_deleted = FALSE;
+-- 插入设备日志数据
+INSERT INTO managed_device_logs (device_id, timestamp, level, category, message, details) VALUES
+(1, '2024-01-01 08:00:00', 'info', 'system', '设备启动', '{"boot_time": "15s", "version": "1.0.0"}'),
+(1, '2024-01-01 08:01:00', 'info', 'user', '用户登录', '{"user": "[用户1]", "login_time": "2024-01-01 08:01:00"}'),
+(1, '2024-01-01 10:30:00', 'warning', 'hardware', '温度过高', '{"temperature": "65°C", "threshold": "60°C"}'),
+(2, '2024-01-02 09:00:00', 'info', 'system', '设备启动', '{"boot_time": "18s", "version": "1.0.0"}'),
+(2, '2024-01-02 14:30:00', 'error', 'network', '网络连接失败', '{"error": "timeout", "retry_count": 3}'),
+(3, '2024-01-03 07:45:00', 'info', 'system', '设备启动', '{"boot_time": "12s", "version": "1.1.0"}'),
+(3, '2024-01-03 09:15:00', 'error', 'hardware', 'CPU过载', '{"cpu_usage": "95%", "threshold": "80%"}'),
+(4, '2024-01-04 11:00:00', 'info', 'system', '进入维护模式', '{"maintenance_type": "scheduled", "duration": "2h"}'),
+(5, '2024-01-05 13:20:00', 'info', 'software', '应用更新', '{"app": "练字助手", "version": "2.1.0"}'),
+(5, '2024-01-05 15:45:00', 'debug', 'system', '性能监控', '{"cpu": "25%", "memory": "60%", "disk": "45%"}');

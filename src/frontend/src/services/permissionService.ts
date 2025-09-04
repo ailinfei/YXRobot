@@ -37,6 +37,7 @@ class PermissionService {
     { code: 'business:sales:manage', name: '管理销售数据', description: '管理销售订单和数据分析', category: 'business' },
     { code: 'business:rental:manage', name: '管理租赁数据', description: '管理租赁订单和数据分析', category: 'business' },
     { code: 'business:customer:manage', name: '管理客户数据', description: '管理客户信息和设备关联', category: 'business' },
+    { code: 'business:order:manage', name: '管理订单数据', description: '管理销售和租赁订单信息', category: 'business' },
     
     // 系统管理权限
     { code: 'system:view', name: '查看系统设置', description: '查看系统管理相关页面', category: 'system' },
@@ -62,6 +63,7 @@ class PermissionService {
     { path: '/admin/business/sales', permissions: ['business:sales:manage', 'business:manage', 'admin:all'] },
     { path: '/admin/business/rental-analytics', permissions: ['business:rental:manage', 'business:manage', 'admin:all'] },
     { path: '/admin/business/customers', permissions: ['business:customer:manage', 'business:manage', 'admin:all'] },
+    { path: '/admin/business/orders', permissions: ['business:order:manage', 'business:manage', 'admin:all'] },
     
     // 系统管理
     { path: '/admin/system/courses', permissions: ['system:course:manage', 'system:manage', 'admin:all'] },

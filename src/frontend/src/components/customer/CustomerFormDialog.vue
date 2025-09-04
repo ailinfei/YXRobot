@@ -215,7 +215,7 @@
 import { ref, computed, watch, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { Customer } from '@/types/customer'
-import { mockCustomerAPI } from '@/api/mock/customer'
+import { customerApi } from '@/api/customer'
 
 // Props
 interface Props {
@@ -373,11 +373,11 @@ const handleSubmit = async () => {
     
     if (isEdit.value) {
       // 更新客户
-      await mockCustomerAPI.updateCustomer(props.customer!.id, formData.value)
+      await customerApi.updateCustomer(props.customer!.id, formData.value)
       ElMessage.success('客户更新成功')
     } else {
       // 创建客户
-      await mockCustomerAPI.createCustomer(formData.value)
+      await customerApi.createCustomer(formData.value)
       ElMessage.success('客户创建成功')
     }
     

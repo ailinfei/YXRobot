@@ -110,14 +110,14 @@
         WHERE id = #{id} AND is_deleted = 0
     </update>
 
-    <!-- 根据ID软删除机构 -->
+    <!-- 根据ID软删除机射-->
     <update id="deleteById">
         UPDATE charity_institutions
         SET is_deleted = 1, updated_at = NOW()
         WHERE id = #{id} AND is_deleted = 0
     </update>
 
-    <!-- 批量软删除机构 -->
+    <!-- 批量软删除机射-->
     <update id="batchDeleteByIds">
         UPDATE charity_institutions
         SET is_deleted = 1, updated_at = NOW()
@@ -128,21 +128,21 @@
         AND is_deleted = 0
     </update>
 
-    <!-- 检查机构名称是否存在 -->
+    <!-- 检查机构名称是否存射-->
     <select id="existsByName" resultType="java.lang.Boolean">
-        SELECT COUNT(*) > 0
+        SELECT COUNT(*) &gt; 0
         FROM charity_institutions
         WHERE name = #{name} AND is_deleted = 0
     </select>
 
-    <!-- 检查机构名称是否存在（排除指定ID） -->
+    <!-- 检查机构名称是否存在（排除指定ID射-->
     <select id="existsByNameExcludeId" resultType="java.lang.Boolean">
-        SELECT COUNT(*) > 0
+        SELECT COUNT(*) &gt; 0
         FROM charity_institutions
         WHERE name = #{name} AND id != #{excludeId} AND is_deleted = 0
     </select>
 
-    <!-- 根据状态统计机构数量 -->
+    <!-- 根据状态统计机构数射-->
     <select id="countByStatus" resultType="java.lang.Long">
         SELECT COUNT(*)
         FROM charity_institutions
@@ -156,14 +156,14 @@
         WHERE type = #{type} AND is_deleted = 0
     </select>
 
-    <!-- 获取所有机构状态统计 -->
+    <!-- 获取所有机构状态统射-->
     <select id="getStatusStatistics" resultType="java.util.Map">
         SELECT 
             status,
             COUNT(*) as count,
             CASE status
                 WHEN 'active' THEN '活跃'
-                WHEN 'inactive' THEN '非活跃'
+                WHEN 'inactive' THEN '非活射
                 WHEN 'suspended' THEN '暂停合作'
                 ELSE status
             END as statusName
@@ -179,7 +179,7 @@
             END
     </select>
 
-    <!-- 获取所有机构类型统计 -->
+    <!-- 获取所有机构类型统射-->
     <select id="getTypeStatistics" resultType="java.util.Map">
         SELECT 
             type,
@@ -188,7 +188,7 @@
                 WHEN 'school' THEN '学校'
                 WHEN 'hospital' THEN '医院'
                 WHEN 'community' THEN '社区'
-                WHEN 'ngo' THEN '非政府组织'
+                WHEN 'ngo' THEN '非政府组射
                 WHEN 'other' THEN '其他'
                 ELSE type
             END as typeName
@@ -229,7 +229,7 @@
         </if>
     </select>
 
-    <!-- 更新机构最后访问日期 -->
+    <!-- 更新机构最后访问日射-->
     <update id="updateLastVisitDate">
         UPDATE charity_institutions
         SET last_visit_date = #{lastVisitDate},
@@ -237,7 +237,7 @@
         WHERE id = #{id} AND is_deleted = 0
     </update>
 
-    <!-- 批量更新机构状态 -->
+    <!-- 批量更新机构状射-->
     <update id="batchUpdateStatus">
         UPDATE charity_institutions
         SET status = #{status},
@@ -257,8 +257,8 @@
             cooperation_date,
             DATEDIFF(COALESCE(last_visit_date, NOW()), cooperation_date) as cooperation_days,
             CASE 
-                WHEN DATEDIFF(COALESCE(last_visit_date, NOW()), cooperation_date) >= 365 THEN '长期合作'
-                WHEN DATEDIFF(COALESCE(last_visit_date, NOW()), cooperation_date) >= 90 THEN '中期合作'
+                WHEN DATEDIFF(COALESCE(last_visit_date, NOW()), cooperation_date) &gt;= 365 THEN '长期合作'
+                WHEN DATEDIFF(COALESCE(last_visit_date, NOW()), cooperation_date) &gt;= 90 THEN '中期合作'
                 ELSE '短期合作'
             END as cooperation_type
         FROM charity_institutions

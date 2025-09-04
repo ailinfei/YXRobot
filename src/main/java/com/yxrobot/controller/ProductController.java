@@ -198,14 +198,10 @@ public class ProductController {
         Map<String, Object> response = new HashMap<>();
         
         try {
-            boolean success = productService.delete(id);
-            if (success) {
-                response.put("code", 200);
-                response.put("message", "删除成功");
-            } else {
-                response.put("code", 400);
-                response.put("message", "删除失败");
-            }
+            productService.delete(id);
+            // 如果没有抛出异常，说明删除成功
+            response.put("code", 200);
+            response.put("message", "删除成功");
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             response.put("code", 400);
@@ -228,14 +224,10 @@ public class ProductController {
         Map<String, Object> response = new HashMap<>();
         
         try {
-            boolean success = productService.publish(id);
-            if (success) {
-                response.put("code", 200);
-                response.put("message", "发布成功");
-            } else {
-                response.put("code", 400);
-                response.put("message", "发布失败");
-            }
+            productService.publish(id);
+            // 如果没有抛出异常，说明发布成功
+            response.put("code", 200);
+            response.put("message", "发布成功");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             response.put("code", 500);

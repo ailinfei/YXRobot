@@ -158,7 +158,7 @@ public class SalesRecordDTO {
     public SalesRecordDTO() {
         this.discountAmount = BigDecimal.ZERO;
         this.status = SalesStatus.PENDING;
-        this.paymentStatus = PaymentStatus.UNPAID;
+        this.paymentStatus = PaymentStatus.PENDING;
     }
     
     // Getter和Setter方法

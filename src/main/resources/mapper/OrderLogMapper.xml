@@ -1,0 +1,405 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yxrobot.mapper.OrderLogMapper">
+
+    <!-- 订单操作日志结果映射 -->
+    <resultMap id="OrderLogResultMap" type="com.yxrobot.entity.OrderLog">
+        <id column="id" property="id"/>
+        <result column="order_id" property="orderId"/>
+        <result column="action" property="action"/>
+        <result column="operator" property="operator"/>
+        <result column="notes" property="notes"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <!-- 基础查询字段 -->
+    <sql id="Base_Column_List">
+        id, order_id, action, operator, notes, created_at
+    </sql>
+
+    <!-- 根据ID查询订单日志 -->
+    <select id="selectById" resultMap="OrderLogResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM order_logs
+        WHERE id = #{id}
+    </select>
+
+    <!-- 插入订单日志 -->
+    <insert id="insert" parameterType="com.yxrobot.entity.OrderLog" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO order_logs (
+            order_id, action, operator, notes, created_at
+        ) VALUES (
+            #{orderId}, #{action}, #{operator}, #{notes}, NOW()
+        )
+    </insert>
+
+    <!-- 批量插入订单日志 -->
+    <insert id="batchInsert" parameterType="java.util.List">
+        INSERT INTO order_logs (
+            order_id, action, operator, notes, created_at
+        ) VALUES
+        <foreach collection="orderLogs" item="log" separator=",">
+            (#{log.orderId}, #{log.action}, #{log.operator}, #{log.notes}, NOW())
+        </foreach>
+    </insert>
+
+    <!-- 根据ID删除订单日志 -->
+    <delete id="deleteById">
+        DELETE FROM order_logs WHERE id = #{id}
+    </delete>
+
+    <!-- 根据订单ID删除所有日志 -->
+    <delete id="deleteByOrderId">
+        DELETE FROM order_logs WHERE order_id = #{orderId}
+    </delete>
+
+    <!-- 根据订单ID查询日志列表 -->
+    <select id="selectByOrderId" resultMap="OrderLogResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM order_logs
+        WHERE order_id = #{orderId}
+        ORDER BY created_at ASC
+    </select>
+
+    <!-- 根据订单ID查询日志列表（按时间倒序） -->
+    <select id="selectByOrderIdOrderByTimeDesc" resultMap="OrderLogResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM order_logs
+        WHERE order_id = #{orderId}
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 根据操作人查询日志列表 -->
+    <select id="selectByOperator" resultMap="OrderLogResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM order_logs
+        WHERE operator = #{operator}
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 根据操作动作查询日志列表 -->
+    <select id="selectByAction" resultMap="OrderLogResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM order_logs
+        WHERE action = #{action}
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 根据订单ID列表查询日志 -->
+    <select id="selectByOrderIds" resultMap="OrderLogResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM order_logs
+        WHERE order_id IN
+        <foreach collection="orderIds" item="orderId" open="(" separator="," close=")">
+            #{orderId}
+        </foreach>
+        ORDER BY order_id, created_at ASC
+    </select>
+
+    <!-- 根据时间范围查询日志 -->
+    <select id="selectByTimeRange" resultMap="OrderLogResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM order_logs
+        WHERE created_at BETWEEN #{startTime} AND #{endTime}
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 根据订单ID和时间范围查询日志 -->
+    <select id="selectByOrderIdAndTimeRange" resultMap="OrderLogResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM order_logs
+        WHERE order_id = #{orderId}
+        AND created_at BETWEEN #{startTime} AND #{endTime}
+        ORDER BY created_at ASC
+    </select>
+
+    <!-- 查询订单日志统计信息 -->
+    <select id="selectLogStats" resultType="java.util.Map">
+        SELECT 
+            COUNT(*) as total_logs,
+            COUNT(DISTINCT order_id) as unique_orders,
+            COUNT(DISTINCT operator) as unique_operators,
+            COUNT(DISTINCT action) as unique_actions
+        FROM order_logs
+    </select>
+
+    <!-- 查询按操作动作分组的统计信息 -->
+    <select id="selectStatsByAction" resultType="java.util.Map">
+        SELECT 
+            action,
+            COUNT(*) as log_count,
+            COUNT(DISTINCT order_id) as order_count,
+            COUNT(DISTINCT operator) as operator_count
+        FROM order_logs
+        GROUP BY action
+        ORDER BY log_count DESC
+    </select>
+
+    <!-- 查询按操作人分组的统计信息 -->
+    <select id="selectStatsByOperator" resultType="java.util.Map">
+        SELECT 
+            operator,
+            COUNT(*) as log_count,
+            COUNT(DISTINCT order_id) as order_count,
+            COUNT(DISTINCT action) as action_count
+        FROM order_logs
+        GROUP BY operator
+        ORDER BY log_count DESC
+    </select>
+
+    <!-- 查询月度操作统计 -->
+    <select id="selectMonthlyOperationStats" resultType="java.util.Map">
+        SELECT 
+            DATE_FORMAT(created_at, '%Y-%m') as month,
+            COUNT(*) as log_count,
+            COUNT(DISTINCT order_id) as order_count,
+            COUNT(DISTINCT operator) as operator_count
+        FROM order_logs
+        <if test="months != null">
+            WHERE created_at >= DATE_SUB(NOW(), INTERVAL #{months} MONTH)
+        </if>
+        GROUP BY DATE_FORMAT(created_at, '%Y-%m')
+        ORDER BY month DESC
+    </select>
+
+    <!-- 查询日度操作统计 -->
+    <select id="selectDailyOperationStats" resultType="java.util.Map">
+        SELECT 
+            DATE(created_at) as date,
+            COUNT(*) as log_count,
+            COUNT(DISTINCT order_id) as order_count,
+            COUNT(DISTINCT operator) as operator_count
+        FROM order_logs
+        <if test="days != null">
+            WHERE created_at >= DATE_SUB(NOW(), INTERVAL #{days} DAY)
+        </if>
+        GROUP BY DATE(created_at)
+        ORDER BY date DESC
+    </select>
+
+    <!-- 查询操作频率统计 -->
+    <select id="selectOperationFrequencyStats" resultType="java.util.Map">
+        SELECT 
+            HOUR(created_at) as hour,
+            COUNT(*) as log_count
+        FROM order_logs
+        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+        GROUP BY HOUR(created_at)
+        ORDER BY hour ASC
+    </select>
+
+    <!-- 查询订单的最新操作日志 -->
+    <select id="selectLatestByOrderId" resultMap="OrderLogResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM order_logs
+        WHERE order_id = #{orderId}
+        ORDER BY created_at DESC
+        LIMIT 1
+    </select>
+
+    <!-- 查询订单的第一条操作日志 -->
+    <select id="selectFirstByOrderId" resultMap="OrderLogResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM order_logs
+        WHERE order_id = #{orderId}
+        ORDER BY created_at ASC
+        LIMIT 1
+    </select>
+
+    <!-- 查询指定操作的日志 -->
+    <select id="selectByOrderIdAndAction" resultMap="OrderLogResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM order_logs
+        WHERE order_id = #{orderId} AND action = #{action}
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 查询操作人的最近操作 -->
+    <select id="selectRecentOperationsByOperator" resultMap="OrderLogResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM order_logs
+        WHERE operator = #{operator}
+        ORDER BY created_at DESC
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 查询异常操作日志 -->
+    <select id="selectAbnormalOperations" resultMap="OrderLogResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM order_logs
+        WHERE 1=1
+        <if test="keywords != null and keywords.size() > 0">
+            AND (
+            <foreach collection="keywords" item="keyword" separator=" OR ">
+                notes LIKE CONCAT('%', #{keyword}, '%')
+            </foreach>
+            )
+        </if>
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 查询频繁操作的订单 -->
+    <select id="selectFrequentlyOperatedOrders" resultType="java.util.Map">
+        SELECT 
+            order_id,
+            COUNT(*) as operation_count,
+            COUNT(DISTINCT action) as action_types,
+            COUNT(DISTINCT operator) as operator_count,
+            MAX(created_at) as last_operation_time
+        FROM order_logs
+        GROUP BY order_id
+        HAVING operation_count >= #{minCount}
+        ORDER BY operation_count DESC
+    </select>
+
+    <!-- 查询订单状态变更历史 -->
+    <select id="selectStatusChangeHistory" resultMap="OrderLogResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM order_logs
+        WHERE order_id = #{orderId}
+        AND (action LIKE '%状态%' OR action LIKE '%status%' OR action LIKE '%更新%' OR action LIKE '%变更%')
+        ORDER BY created_at ASC
+    </select>
+
+    <!-- 查询订单的完整操作轨迹 -->
+    <select id="selectOrderOperationTrail" resultMap="OrderLogResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM order_logs
+        WHERE order_id = #{orderId}
+        ORDER BY created_at ASC
+    </select>
+
+    <!-- 查询操作人的操作历史 -->
+    <select id="selectOperatorHistory" resultMap="OrderLogResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM order_logs
+        WHERE operator = #{operator}
+        <if test="startTime != null">
+            AND created_at >= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND created_at <= #{endTime}
+        </if>
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 查询可疑操作日志 -->
+    <select id="selectSuspiciousOperations" resultMap="OrderLogResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM order_logs ol1
+        WHERE EXISTS (
+            SELECT 1 FROM order_logs ol2 
+            WHERE ol1.order_id = ol2.order_id 
+            AND ol1.operator = ol2.operator
+            AND ol1.id != ol2.id
+            AND ABS(TIMESTAMPDIFF(MINUTE, ol1.created_at, ol2.created_at)) <= #{timeWindow}
+        )
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 查询批量操作日志 -->
+    <select id="selectBatchOperations" resultMap="OrderLogResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM order_logs
+        WHERE operator = #{operator}
+        AND action = #{action}
+        AND created_at >= DATE_SUB(NOW(), INTERVAL #{timeWindow} MINUTE)
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 查询订单的日志数量 -->
+    <select id="countByOrderId" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM order_logs
+        WHERE order_id = #{orderId}
+    </select>
+
+    <!-- 查询操作人的操作次数 -->
+    <select id="countByOperator" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM order_logs
+        WHERE operator = #{operator}
+    </select>
+
+    <!-- 查询指定动作的操作次数 -->
+    <select id="countByAction" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM order_logs
+        WHERE action = #{action}
+    </select>
+
+    <!-- 查询时间范围内的日志数量 -->
+    <select id="countByTimeRange" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM order_logs
+        WHERE created_at BETWEEN #{startTime} AND #{endTime}
+    </select>
+
+    <!-- 搜索订单日志 -->
+    <select id="searchOrderLogs" resultMap="OrderLogResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM order_logs
+        WHERE action LIKE CONCAT('%', #{keyword}, '%')
+        OR operator LIKE CONCAT('%', #{keyword}, '%')
+        OR notes LIKE CONCAT('%', #{keyword}, '%')
+        ORDER BY created_at DESC
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 查询订单处理时长统计 -->
+    <select id="selectOrderProcessingTimeStats" resultType="java.util.Map">
+        SELECT 
+            MIN(created_at) as start_time,
+            MAX(created_at) as end_time,
+            TIMESTAMPDIFF(HOUR, MIN(created_at), MAX(created_at)) as processing_hours,
+            COUNT(*) as operation_count,
+            COUNT(DISTINCT action) as action_types
+        FROM order_logs
+        WHERE order_id = #{orderId}
+    </select>
+
+    <!-- 查询操作效率分析 -->
+    <select id="selectOperationEfficiencyAnalysis" resultType="java.util.Map">
+        SELECT 
+            action,
+            COUNT(*) as operation_count,
+            AVG(TIMESTAMPDIFF(MINUTE, 
+                LAG(created_at) OVER (PARTITION BY order_id ORDER BY created_at), 
+                created_at)) as avg_interval_minutes
+        FROM order_logs
+        WHERE operator = #{operator}
+        GROUP BY action
+        ORDER BY operation_count DESC
+    </select>
+
+    <!-- 查询订单生命周期分析 -->
+    <select id="selectOrderLifecycleAnalysis" resultType="java.util.Map">
+        SELECT 
+            COUNT(*) as total_operations,
+            COUNT(DISTINCT action) as action_types,
+            MIN(created_at) as start_time,
+            MAX(created_at) as end_time,
+            TIMESTAMPDIFF(HOUR, MIN(created_at), MAX(created_at)) as lifecycle_hours,
+            GROUP_CONCAT(DISTINCT action ORDER BY created_at SEPARATOR ' -> ') as action_flow
+        FROM order_logs
+        WHERE order_id = #{orderId}
+    </select>
+
+    <!-- 查询系统操作负载分析 -->
+    <select id="selectSystemLoadAnalysis" resultType="java.util.Map">
+        SELECT 
+            DATE_FORMAT(created_at, '%Y-%m-%d %H:00:00') as hour,
+            COUNT(*) as operation_count,
+            COUNT(DISTINCT order_id) as order_count,
+            COUNT(DISTINCT operator) as operator_count
+        FROM order_logs
+        WHERE created_at >= DATE_SUB(NOW(), INTERVAL #{hours} HOUR)
+        GROUP BY DATE_FORMAT(created_at, '%Y-%m-%d %H:00:00')
+        ORDER BY hour DESC
+    </select>
+
+</mapper>

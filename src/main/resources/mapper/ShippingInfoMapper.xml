@@ -1,0 +1,326 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yxrobot.mapper.ShippingInfoMapper">
+
+    <!-- 物流信息结果映射 -->
+    <resultMap id="ShippingInfoResultMap" type="com.yxrobot.entity.ShippingInfo">
+        <id column="id" property="id"/>
+        <result column="order_id" property="orderId"/>
+        <result column="company" property="company"/>
+        <result column="tracking_number" property="trackingNumber"/>
+        <result column="shipped_at" property="shippedAt"/>
+        <result column="delivered_at" property="deliveredAt"/>
+        <result column="notes" property="notes"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <!-- 基础查询字段 -->
+    <sql id="Base_Column_List">
+        id, order_id, company, tracking_number, shipped_at, delivered_at, notes, created_at, updated_at
+    </sql>
+
+    <!-- 根据ID查询物流信息 -->
+    <select id="selectById" resultMap="ShippingInfoResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shipping_info
+        WHERE id = #{id}
+    </select>
+
+    <!-- 根据订单ID查询物流信息 -->
+    <select id="selectByOrderId" resultMap="ShippingInfoResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shipping_info
+        WHERE order_id = #{orderId}
+    </select>
+
+    <!-- 根据运单号查询物流信息 -->
+    <select id="selectByTrackingNumber" resultMap="ShippingInfoResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shipping_info
+        WHERE tracking_number = #{trackingNumber}
+    </select>
+
+    <!-- 插入物流信息 -->
+    <insert id="insert" parameterType="com.yxrobot.entity.ShippingInfo" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO shipping_info (
+            order_id, company, tracking_number, shipped_at, delivered_at, notes, created_at, updated_at
+        ) VALUES (
+            #{orderId}, #{company}, #{trackingNumber}, #{shippedAt}, #{deliveredAt}, #{notes}, NOW(), NOW()
+        )
+    </insert>
+
+    <!-- 更新物流信息 -->
+    <update id="updateById" parameterType="com.yxrobot.entity.ShippingInfo">
+        UPDATE shipping_info SET
+            company = #{company},
+            tracking_number = #{trackingNumber},
+            shipped_at = #{shippedAt},
+            delivered_at = #{deliveredAt},
+            notes = #{notes},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据ID删除物流信息 -->
+    <delete id="deleteById">
+        DELETE FROM shipping_info WHERE id = #{id}
+    </delete>
+
+    <!-- 根据订单ID删除物流信息 -->
+    <delete id="deleteByOrderId">
+        DELETE FROM shipping_info WHERE order_id = #{orderId}
+    </delete>
+
+    <!-- 根据物流公司查询物流信息列表 -->
+    <select id="selectByCompany" resultMap="ShippingInfoResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shipping_info
+        WHERE company = #{company}
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 根据订单ID列表查询物流信息 -->
+    <select id="selectByOrderIds" resultMap="ShippingInfoResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shipping_info
+        WHERE order_id IN
+        <foreach collection="orderIds" item="orderId" open="(" separator="," close=")">
+            #{orderId}
+        </foreach>
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 查询已发货但未送达的物流信息 -->
+    <select id="selectShippedButNotDelivered" resultMap="ShippingInfoResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shipping_info
+        WHERE shipped_at IS NOT NULL AND delivered_at IS NULL
+        ORDER BY shipped_at ASC
+    </select>
+
+    <!-- 查询指定日期范围内发货的物流信息 -->
+    <select id="selectByShippedDateRange" resultMap="ShippingInfoResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shipping_info
+        WHERE shipped_at BETWEEN #{startDate} AND #{endDate}
+        ORDER BY shipped_at DESC
+    </select>
+
+    <!-- 查询指定日期范围内送达的物流信息 -->
+    <select id="selectByDeliveredDateRange" resultMap="ShippingInfoResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shipping_info
+        WHERE delivered_at BETWEEN #{startDate} AND #{endDate}
+        ORDER BY delivered_at DESC
+    </select>
+
+    <!-- 更新发货信息 -->
+    <update id="updateShippingInfo">
+        UPDATE shipping_info SET
+            company = #{company},
+            tracking_number = #{trackingNumber},
+            shipped_at = #{shippedAt},
+            updated_at = NOW()
+        WHERE order_id = #{orderId}
+    </update>
+
+    <!-- 更新送达信息 -->
+    <update id="updateDeliveryInfo">
+        UPDATE shipping_info SET
+            delivered_at = #{deliveredAt},
+            updated_at = NOW()
+        WHERE order_id = #{orderId}
+    </update>
+
+    <!-- 批量更新发货状态 -->
+    <update id="batchUpdateShippingStatus">
+        UPDATE shipping_info SET
+            company = #{company},
+            shipped_at = #{shippedAt},
+            updated_at = NOW()
+        WHERE order_id IN
+        <foreach collection="orderIds" item="orderId" open="(" separator="," close=")">
+            #{orderId}
+        </foreach>
+    </update>
+
+    <!-- 查询物流统计信息 -->
+    <select id="selectShippingStats" resultType="java.util.Map">
+        SELECT 
+            COUNT(*) as total_shipments,
+            COUNT(CASE WHEN shipped_at IS NOT NULL THEN 1 END) as shipped_count,
+            COUNT(CASE WHEN delivered_at IS NOT NULL THEN 1 END) as delivered_count,
+            COUNT(CASE WHEN shipped_at IS NOT NULL AND delivered_at IS NULL THEN 1 END) as in_transit_count,
+            AVG(CASE WHEN shipped_at IS NOT NULL AND delivered_at IS NOT NULL 
+                THEN TIMESTAMPDIFF(HOUR, shipped_at, delivered_at) END) as avg_delivery_hours
+        FROM shipping_info
+    </select>
+
+    <!-- 查询按物流公司分组的统计信息 -->
+    <select id="selectStatsByCompany" resultType="java.util.Map">
+        SELECT 
+            company,
+            COUNT(*) as shipment_count,
+            COUNT(CASE WHEN shipped_at IS NOT NULL THEN 1 END) as shipped_count,
+            COUNT(CASE WHEN delivered_at IS NOT NULL THEN 1 END) as delivered_count,
+            AVG(CASE WHEN shipped_at IS NOT NULL AND delivered_at IS NOT NULL 
+                THEN TIMESTAMPDIFF(HOUR, shipped_at, delivered_at) END) as avg_delivery_hours
+        FROM shipping_info
+        WHERE company IS NOT NULL
+        GROUP BY company
+        ORDER BY shipment_count DESC
+    </select>
+
+    <!-- 查询物流时效统计 -->
+    <select id="selectDeliveryTimeStats" resultType="java.util.Map">
+        SELECT 
+            COUNT(CASE WHEN TIMESTAMPDIFF(HOUR, shipped_at, delivered_at) <= 24 THEN 1 END) as within_24h,
+            COUNT(CASE WHEN TIMESTAMPDIFF(HOUR, shipped_at, delivered_at) BETWEEN 25 AND 48 THEN 1 END) as within_48h,
+            COUNT(CASE WHEN TIMESTAMPDIFF(HOUR, shipped_at, delivered_at) BETWEEN 49 AND 72 THEN 1 END) as within_72h,
+            COUNT(CASE WHEN TIMESTAMPDIFF(HOUR, shipped_at, delivered_at) > 72 THEN 1 END) as over_72h,
+            AVG(TIMESTAMPDIFF(HOUR, shipped_at, delivered_at)) as avg_delivery_hours,
+            MAX(TIMESTAMPDIFF(HOUR, shipped_at, delivered_at)) as max_delivery_hours,
+            MIN(TIMESTAMPDIFF(HOUR, shipped_at, delivered_at)) as min_delivery_hours
+        FROM shipping_info
+        WHERE shipped_at IS NOT NULL AND delivered_at IS NOT NULL
+    </select>
+
+    <!-- 查询月度物流统计 -->
+    <select id="selectMonthlyShippingStats" resultType="java.util.Map">
+        SELECT 
+            DATE_FORMAT(shipped_at, '%Y-%m') as month,
+            COUNT(*) as shipment_count,
+            COUNT(CASE WHEN delivered_at IS NOT NULL THEN 1 END) as delivered_count,
+            AVG(CASE WHEN delivered_at IS NOT NULL 
+                THEN TIMESTAMPDIFF(HOUR, shipped_at, delivered_at) END) as avg_delivery_hours
+        FROM shipping_info
+        WHERE shipped_at IS NOT NULL
+        <if test="months != null">
+            AND shipped_at >= DATE_SUB(NOW(), INTERVAL #{months} MONTH)
+        </if>
+        GROUP BY DATE_FORMAT(shipped_at, '%Y-%m')
+        ORDER BY month DESC
+    </select>
+
+    <!-- 查询超期未送达的物流信息 -->
+    <select id="selectOverdueDeliveries" resultMap="ShippingInfoResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shipping_info
+        WHERE shipped_at IS NOT NULL 
+        AND delivered_at IS NULL
+        AND shipped_at <= DATE_SUB(NOW(), INTERVAL #{days} DAY)
+        ORDER BY shipped_at ASC
+    </select>
+
+    <!-- 查询需要跟进的物流信息 -->
+    <select id="selectShippingNeedingFollowUp" resultMap="ShippingInfoResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shipping_info
+        WHERE (shipped_at IS NOT NULL AND delivered_at IS NULL AND shipped_at <= DATE_SUB(NOW(), INTERVAL 3 DAY))
+        OR (shipped_at IS NULL AND created_at <= DATE_SUB(NOW(), INTERVAL 1 DAY))
+        ORDER BY created_at ASC
+    </select>
+
+    <!-- 查询物流异常信息 -->
+    <select id="selectAbnormalShipping" resultMap="ShippingInfoResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shipping_info
+        WHERE shipped_at IS NOT NULL 
+        AND delivered_at IS NULL
+        AND shipped_at <= DATE_SUB(NOW(), INTERVAL #{days} DAY)
+        ORDER BY shipped_at ASC
+    </select>
+
+    <!-- 查询快速配送的物流信息 -->
+    <select id="selectFastDeliveries" resultMap="ShippingInfoResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shipping_info
+        WHERE shipped_at IS NOT NULL 
+        AND delivered_at IS NOT NULL
+        AND TIMESTAMPDIFF(HOUR, shipped_at, delivered_at) <= #{hours}
+        ORDER BY TIMESTAMPDIFF(HOUR, shipped_at, delivered_at) ASC
+    </select>
+
+    <!-- 查询慢速配送的物流信息 -->
+    <select id="selectSlowDeliveries" resultMap="ShippingInfoResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shipping_info
+        WHERE shipped_at IS NOT NULL 
+        AND delivered_at IS NOT NULL
+        AND TIMESTAMPDIFF(DAY, shipped_at, delivered_at) >= #{days}
+        ORDER BY TIMESTAMPDIFF(DAY, shipped_at, delivered_at) DESC
+    </select>
+
+    <!-- 检查运单号是否存在 -->
+    <select id="existsByTrackingNumber" resultType="boolean">
+        SELECT COUNT(*) > 0 FROM shipping_info 
+        WHERE tracking_number = #{trackingNumber}
+    </select>
+
+    <!-- 检查订单是否已有物流信息 -->
+    <select id="existsByOrderId" resultType="boolean">
+        SELECT COUNT(*) > 0 FROM shipping_info 
+        WHERE order_id = #{orderId}
+    </select>
+
+    <!-- 查询物流公司的订单数量 -->
+    <select id="countByCompany" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM shipping_info
+        WHERE company = #{company}
+    </select>
+
+    <!-- 查询已发货订单数量 -->
+    <select id="countShippedOrders" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM shipping_info
+        WHERE shipped_at IS NOT NULL
+    </select>
+
+    <!-- 查询已送达订单数量 -->
+    <select id="countDeliveredOrders" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM shipping_info
+        WHERE delivered_at IS NOT NULL
+    </select>
+
+    <!-- 搜索物流信息 -->
+    <select id="searchShippingInfo" resultMap="ShippingInfoResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shipping_info
+        WHERE tracking_number LIKE CONCAT('%', #{keyword}, '%')
+        OR company LIKE CONCAT('%', #{keyword}, '%')
+        OR notes LIKE CONCAT('%', #{keyword}, '%')
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 查询配送区域统计 -->
+    <select id="selectDeliveryAreaStats" resultType="java.util.Map">
+        SELECT 
+            o.delivery_address as area,
+            COUNT(*) as delivery_count,
+            AVG(CASE WHEN si.shipped_at IS NOT NULL AND si.delivered_at IS NOT NULL 
+                THEN TIMESTAMPDIFF(HOUR, si.shipped_at, si.delivered_at) END) as avg_delivery_hours
+        FROM shipping_info si
+        JOIN orders o ON si.order_id = o.id
+        WHERE si.delivered_at IS NOT NULL
+        GROUP BY o.delivery_address
+        ORDER BY delivery_count DESC
+    </select>
+
+    <!-- 查询物流成本分析 -->
+    <select id="selectShippingCostAnalysis" resultType="java.util.Map">
+        SELECT 
+            COUNT(*) as shipment_count,
+            AVG(o.shipping_fee) as avg_shipping_fee,
+            SUM(o.shipping_fee) as total_shipping_fee,
+            AVG(CASE WHEN si.shipped_at IS NOT NULL AND si.delivered_at IS NOT NULL 
+                THEN TIMESTAMPDIFF(HOUR, si.shipped_at, si.delivered_at) END) as avg_delivery_hours
+        FROM shipping_info si
+        JOIN orders o ON si.order_id = o.id
+        WHERE si.company = #{company}
+        AND o.shipping_fee IS NOT NULL
+    </select>
+
+</mapper>

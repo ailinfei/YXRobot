@@ -1,161 +1,135 @@
 @echo off
 echo ========================================
-echo 客户API集成测试执行脚本
+echo 订单管理系统集成测试执行脚本
 echo ========================================
+echo.
 
-:: 设置环境变量
-set API_BASE_URL=http://localhost:8081
-set NODE_ENV=test
+echo 🚀 开始执行订单管理系统集成测试...
+echo.
 
-:: 检查Node.js是否安装
-node --version >nul 2>&1
-if errorlevel 1 (
-    echo ❌ 错误: 未找到Node.js，请先安装Node.js
+echo 📋 测试环境信息:
+echo - Java版本: %JAVA_VERSION%
+echo - Maven版本: 
+call mvn --version | findstr "Apache Maven"
+echo - 数据库连接: yun.finiot.cn:3306/YXRobot
+echo.
+
+echo 🔧 准备测试环境...
+echo 1. 检查数据库连接...
+E:\YXRobot\mysql-9.3.0-winx64\bin\mysql.exe -h yun.finiot.cn -P 3306 -u YXRobot -p2200548qq YXRobot -e "SELECT 'Database connection OK' as status;"
+
+if %ERRORLEVEL% NEQ 0 (
+    echo ❌ 数据库连接失败，请检查数据库服务状态
     pause
     exit /b 1
 )
 
-:: 检查npm是否可用
-npm --version >nul 2>&1
-if errorlevel 1 (
-    echo ❌ 错误: 未找到npm，请检查Node.js安装
+echo ✅ 数据库连接正常
+echo.
+
+echo 2. 编译项目...
+call mvn clean compile -q
+if %ERRORLEVEL% NEQ 0 (
+    echo ❌ 项目编译失败
     pause
     exit /b 1
 )
-
-echo 📋 环境信息:
-echo Node.js版本: 
-node --version
-echo npm版本: 
-npm --version
-echo API地址: %API_BASE_URL%
+echo ✅ 项目编译成功
 echo.
 
-:: 进入前端目录
-cd /d "%~dp0\..\workspace\projects\YXRobot\src\frontend"
+echo 🧪 执行集成测试...
+echo.
 
-:: 检查是否存在package.json
-if not exist "package.json" (
-    echo ❌ 错误: 未找到package.json文件，请检查路径
-    pause
-    exit /b 1
-)
+echo ==========================================
+echo 阶段1: 基础API集成测试
+echo ==========================================
+echo 执行订单CRUD API测试...
+call mvn test -Dtest=OrderCrudApiIntegrationTest -q
+echo.
 
-:: 安装依赖（如果需要）
-echo 🔍 检查依赖...
-if not exist "node_modules" (
-    echo 📦 安装依赖...
-    npm install
-    if errorlevel 1 (
-        echo ❌ 依赖安装失败
-        pause
-        exit /b 1
-    )
-)
+echo 执行订单列表API测试...
+call mvn test -Dtest=OrderListApiIntegrationTest -q
+echo.
 
-:: 检查后端服务状态
-echo 🔍 检查后端服务状态...
-curl -s -o nul -w "%%{http_code}" %API_BASE_URL%/api/admin/customers/stats > temp_status.txt
-set /p HTTP_STATUS=<temp_status.txt
-del temp_status.txt
+echo 执行订单状态API测试...
+call mvn test -Dtest=OrderStatusApiIntegrationTest -q
+echo.
 
-if "%HTTP_STATUS%" neq "200" (
-    echo ⚠️  警告: 后端服务可能未启动 (HTTP状态: %HTTP_STATUS%)
-    echo 请确保后端服务正在运行: mvn spring-boot:run
-    echo.
-    echo 是否继续运行测试? (y/n)
-    set /p CONTINUE=
-    if /i "%CONTINUE%" neq "y" (
-        echo 测试已取消
-        pause
-        exit /b 0
-    )
+echo 执行订单统计API测试...
+call mvn test -Dtest=OrderStatsApiIntegrationTest -q
+echo.
+
+echo ==========================================
+echo 阶段2: 系统功能集成测试
+echo ==========================================
+echo 执行系统基础集成测试...
+call mvn test -Dtest=OrderSystemIntegrationTest -q
+echo.
+
+echo 执行系统全面集成测试...
+call mvn test -Dtest=OrderSystemComprehensiveIntegrationTest -q
+echo.
+
+echo ==========================================
+echo 阶段3: 部署验证测试
+echo ==========================================
+echo 执行部署验证测试...
+call mvn test -Dtest=OrderSystemDeploymentValidationTest -q
+echo.
+
+echo ==========================================
+echo 阶段4: 数据验证测试
+echo ==========================================
+echo 执行数据验证集成测试...
+call mvn test -Dtest=OrderValidationIntegrationTest -q
+echo.
+
+echo ==========================================
+echo 阶段5: 完整测试套件执行
+echo ==========================================
+echo 执行完整测试套件...
+call mvn test -Dtest=OrderSystemIntegrationTestSuite
+echo.
+
+echo 📊 生成测试报告...
+if exist target\surefire-reports (
+    echo ✅ 测试报告已生成: target\surefire-reports\
+    echo 📁 查看详细报告: target\surefire-reports\index.html
 ) else (
-    echo ✅ 后端服务运行正常
+    echo ⚠️  测试报告目录不存在
 )
-
 echo.
-echo 🚀 开始执行集成测试...
+
+echo 🎯 验证前端页面访问...
+echo 📝 前端访问地址: http://localhost:8081/admin/business/orders
+echo 💡 请手动验证前端页面功能是否正常
+echo.
+
 echo ========================================
-
-:: 运行集成测试
-echo 📋 1. API接口完整性测试...
-npx vitest run src/__tests__/integration/customerApiIntegration.test.ts --reporter=verbose
-set TEST1_RESULT=%errorlevel%
-
-echo.
-echo 📋 2. 字段映射验证测试...
-npx vitest run src/__tests__/validation/fieldMappingValidation.test.ts --reporter=verbose
-set TEST2_RESULT=%errorlevel%
-
-echo.
-echo 📋 3. API性能验证测试...
-npx vitest run src/__tests__/performance/apiPerformanceValidation.test.ts --reporter=verbose
-set TEST3_RESULT=%errorlevel%
-
-echo.
+echo 🎉 订单管理系统集成测试完成！
 echo ========================================
-echo 📊 测试结果总结:
-echo ========================================
-
-:: 检查测试结果
-set TOTAL_TESTS=3
-set PASSED_TESTS=0
-
-if %TEST1_RESULT% equ 0 (
-    echo ✅ API接口完整性测试: 通过
-    set /a PASSED_TESTS+=1
-) else (
-    echo ❌ API接口完整性测试: 失败
-)
-
-if %TEST2_RESULT% equ 0 (
-    echo ✅ 字段映射验证测试: 通过
-    set /a PASSED_TESTS+=1
-) else (
-    echo ❌ 字段映射验证测试: 失败
-)
-
-if %TEST3_RESULT% equ 0 (
-    echo ✅ API性能验证测试: 通过
-    set /a PASSED_TESTS+=1
-) else (
-    echo ❌ API性能验证测试: 失败
-)
-
 echo.
-echo 通过率: %PASSED_TESTS%/%TOTAL_TESTS%
 
-if %PASSED_TESTS% equ %TOTAL_TESTS% (
-    echo.
-    echo 🎉 所有集成测试通过！
-    echo ✅ 前后端API对接验证成功
-    echo ✅ 数据格式匹配正确
-    echo ✅ 字段映射一致
-    echo ✅ 性能要求满足
-    echo.
-    echo 📋 验证完成的功能:
-    echo   • 客户列表查询和分页
-    echo   • 客户统计数据获取
-    echo   • 客户CRUD操作
-    echo   • 客户关联数据查询
-    echo   • 搜索和筛选功能
-    echo   • 错误处理机制
-    echo   • API响应性能
-    echo.
-) else (
-    echo.
-    echo ⚠️  部分测试失败，需要检查和修复
-    echo.
-    echo 🔧 可能的解决方案:
-    echo   1. 检查后端服务是否正常运行
-    echo   2. 验证数据库连接和数据
-    echo   3. 检查API接口实现
-    echo   4. 验证字段映射配置
-    echo   5. 优化API响应性能
-    echo.
-)
-
-echo 测试完成时间: %date% %time%
+echo 📋 测试结果摘要:
+echo - 基础API测试: 已执行
+echo - 系统功能测试: 已执行  
+echo - 部署验证测试: 已执行
+echo - 数据验证测试: 已执行
+echo - 完整测试套件: 已执行
 echo.
+
+echo 🔍 如需查看详细测试结果，请检查:
+echo - 控制台输出日志
+echo - target\surefire-reports\ 目录下的测试报告
+echo - 应用日志文件
+echo.
+
+echo 📝 下一步操作建议:
+echo 1. 检查所有测试是否通过
+echo 2. 验证前端页面功能: http://localhost:8081/admin/business/orders
+echo 3. 检查数据库中的测试数据
+echo 4. 验证API响应时间和性能指标
+echo 5. 确认错误处理机制正常工作
+echo.
+
 pause

@@ -1,0 +1,848 @@
+package com.yxrobot.test;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.yxrobot.dto.ManagedDeviceDTO;
+import com.yxrobot.dto.ManagedDeviceSearchCriteria;
+import com.yxrobot.dto.PageResult;
+import com.yxrobot.common.Result;
+import com.yxrobot.entity.DeviceModel;
+import com.yxrobot.entity.DeviceStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.*;
+import org.springframework.stereotype.Component;
+
+import java.time.LocalDateTime;
+import java.util.*;
+
+/**
+ * 设备管理API集成测试
+ * 验证前后端API接口的完整性和正确性
+ * 
+ * @author YXRobot开发团队
+ * @version 1.0.0
+ * @since 2025-01-28
+ */
+@Component
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+public class ManagedDeviceApiIntegrationTest {
+    
+    private static final Logger logger = LoggerFactory.getLogger(ManagedDeviceApiIntegrationTest.class);
+    
+    @Autowired
+    private TestRestTemplate restTemplate;
+    
+    @Autowired
+    private ObjectMapper objectMapper;
+    
+    private final String BASE_URL = "/api/admin/devices";
+    
+    /**
+     * 执行完整的API集成测试
+     * 
+     * @return 测试结果
+     */
+    public Map<String, Object> executeFullApiIntegrationTest() {
+        logger.info("开始执行设备管理API集成测试");
+        
+        Map<String, Object> testResults = new HashMap<>();
+        List<String> passedTests = new ArrayList<>();
+        List<String> failedTests = new ArrayList<>();
+        List<String> errors = new ArrayList<>();
+        
+        try {
+            // 1. 测试设备列表API
+            testResults.put("deviceListApi", testDeviceListApi(passedTests, failedTests, errors));
+            
+            // 2. 测试设备详情API
+            testResults.put("deviceDetailApi", testDeviceDetailApi(passedTests, failedTests, errors));
+            
+            // 3. 测试设备创建API
+            testResults.put("deviceCreateApi", testDeviceCreateApi(passedTests, failedTests, errors));
+            
+            // 4. 测试设备编辑API
+            testResults.put("deviceUpdateApi", testDeviceUpdateApi(passedTests, failedTests, errors));
+            
+            // 5. 测试设备操作API
+            testResults.put("deviceOperationApi", testDeviceOperationApi(passedTests, failedTests, errors));
+            
+            // 6. 测试批量操作API
+            testResults.put("batchOperationApi", testBatchOperationApi(passedTests, failedTests, errors));
+            
+            // 7. 测试设备统计API
+            testResults.put("deviceStatsApi", testDeviceStatsApi(passedTests, failedTests, errors));
+            
+            // 8. 测试设备日志API
+            testResults.put("deviceLogApi", testDeviceLogApi(passedTests, failedTests, errors));
+            
+            // 9. 测试搜索功能API
+            testResults.put("searchApi", testSearchApi(passedTests, failedTests, errors));
+            
+            // 10. 测试删除操作API
+            testResults.put("deleteApi", testDeleteApi(passedTests, failedTests, errors));
+            
+        } catch (Exception e) {
+            logger.error("API集成测试执行失败", e);
+            errors.add("测试执行异常: " + e.getMessage());
+        }
+        
+        // 汇总测试结果
+        Map<String, Object> summary = new HashMap<>();
+        summary.put("totalTests", passedTests.size() + failedTests.size());
+        summary.put("passedTests", passedTests.size());
+        summary.put("failedTests", failedTests.size());
+        summary.put("errorCount", errors.size());
+        summary.put("successRate", calculateSuccessRate(passedTests.size(), failedTests.size()));
+        summary.put("passedTestList", passedTests);
+        summary.put("failedTestList", failedTests);
+        summary.put("errorList", errors);
+        
+        testResults.put("summary", summary);
+        
+        logger.info("设备管理API集成测试完成，通过: {}, 失败: {}, 错误: {}", 
+                   passedTests.size(), failedTests.size(), errors.size());
+        
+        return testResults;
+    }
+    
+    /**
+     * 测试设备列表API
+     */
+    private Map<String, Object> testDeviceListApi(List<String> passed, List<String> failed, List<String> errors) {
+        Map<String, Object> result = new HashMap<>();
+        
+        try {
+            // 测试基础列表查询
+            String url = BASE_URL + "?page=1&pageSize=10";
+            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+            
+            if (response.getStatusCode() == HttpStatus.OK) {
+                // 验证响应格式
+                Map<String, Object> responseData = objectMapper.readValue(response.getBody(), Map.class);
+                
+                if (validateResponseFormat(responseData)) {
+                    passed.add("设备列表API - 基础查询");
+                    result.put("basicQuery", "PASS");
+                } else {
+                    failed.add("设备列表API - 响应格式不正确");
+                    result.put("basicQuery", "FAIL - 响应格式错误");
+                }
+                
+                // 验证分页参数
+                if (validatePaginationResponse(responseData)) {
+                    passed.add("设备列表API - 分页功能");
+                    result.put("pagination", "PASS");
+                } else {
+                    failed.add("设备列表API - 分页功能异常");
+                    result.put("pagination", "FAIL - 分页参数错误");
+                }
+                
+            } else {
+                failed.add("设备列表API - HTTP状态码错误: " + response.getStatusCode());
+                result.put("basicQuery", "FAIL - HTTP " + response.getStatusCode());
+            }
+            
+            // 测试搜索功能
+            testSearchFunctionality(passed, failed, result);
+            
+            // 测试筛选功能
+            testFilterFunctionality(passed, failed, result);
+            
+        } catch (Exception e) {
+            errors.add("设备列表API测试异常: " + e.getMessage());
+            result.put("error", e.getMessage());
+        }
+        
+        return result;
+    }
+    
+    /**
+     * 测试设备详情API
+     */
+    private Map<String, Object> testDeviceDetailApi(List<String> passed, List<String> failed, List<String> errors) {
+        Map<String, Object> result = new HashMap<>();
+        
+        try {
+            // 测试有效ID查询
+            Long testId = 1L;
+            String url = BASE_URL + "/" + testId;
+            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+            
+            if (response.getStatusCode() == HttpStatus.OK) {
+                Map<String, Object> responseData = objectMapper.readValue(response.getBody(), Map.class);
+                
+                if (validateDeviceDetailResponse(responseData)) {
+                    passed.add("设备详情API - 有效ID查询");
+                    result.put("validId", "PASS");
+                } else {
+                    failed.add("设备详情API - 详情数据不完整");
+                    result.put("validId", "FAIL - 数据不完整");
+                }
+            } else if (response.getStatusCode() == HttpStatus.NOT_FOUND) {
+                passed.add("设备详情API - 无效ID处理");
+                result.put("invalidId", "PASS");
+            } else {
+                failed.add("设备详情API - 意外的HTTP状态码: " + response.getStatusCode());
+                result.put("validId", "FAIL - HTTP " + response.getStatusCode());
+            }
+            
+            // 测试无效ID
+            testInvalidIdHandling(passed, failed, result);
+            
+        } catch (Exception e) {
+            errors.add("设备详情API测试异常: " + e.getMessage());
+            result.put("error", e.getMessage());
+        }
+        
+        return result;
+    }
+    
+    /**
+     * 测试设备创建API
+     */
+    private Map<String, Object> testDeviceCreateApi(List<String> passed, List<String> failed, List<String> errors) {
+        Map<String, Object> result = new HashMap<>();
+        
+        try {
+            // 构建测试设备数据
+            Map<String, Object> deviceData = createTestDeviceData();
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(deviceData, headers);
+            
+            ResponseEntity<String> response = restTemplate.postForEntity(BASE_URL, request, String.class);
+            
+            if (response.getStatusCode() == HttpStatus.OK || response.getStatusCode() == HttpStatus.CREATED) {
+                Map<String, Object> responseData = objectMapper.readValue(response.getBody(), Map.class);
+                
+                if (validateCreateResponse(responseData)) {
+                    passed.add("设备创建API - 有效数据创建");
+                    result.put("validCreate", "PASS");
+                } else {
+                    failed.add("设备创建API - 创建响应格式错误");
+                    result.put("validCreate", "FAIL - 响应格式错误");
+                }
+            } else {
+                failed.add("设备创建API - HTTP状态码错误: " + response.getStatusCode());
+                result.put("validCreate", "FAIL - HTTP " + response.getStatusCode());
+            }
+            
+            // 测试无效数据处理
+            testInvalidDataHandling(passed, failed, result);
+            
+        } catch (Exception e) {
+            errors.add("设备创建API测试异常: " + e.getMessage());
+            result.put("error", e.getMessage());
+        }
+        
+        return result;
+    }
+    
+    /**
+     * 测试设备编辑API
+     */
+    private Map<String, Object> testDeviceUpdateApi(List<String> passed, List<String> failed, List<String> errors) {
+        Map<String, Object> result = new HashMap<>();
+        
+        try {
+            Long testId = 1L;
+            Map<String, Object> updateData = createTestUpdateData();
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(updateData, headers);
+            
+            ResponseEntity<String> response = restTemplate.exchange(
+                BASE_URL + "/" + testId, HttpMethod.PUT, request, String.class);
+            
+            if (response.getStatusCode() == HttpStatus.OK) {
+                Map<String, Object> responseData = objectMapper.readValue(response.getBody(), Map.class);
+                
+                if (validateUpdateResponse(responseData)) {
+                    passed.add("设备编辑API - 有效数据更新");
+                    result.put("validUpdate", "PASS");
+                } else {
+                    failed.add("设备编辑API - 更新响应格式错误");
+                    result.put("validUpdate", "FAIL - 响应格式错误");
+                }
+            } else {
+                failed.add("设备编辑API - HTTP状态码错误: " + response.getStatusCode());
+                result.put("validUpdate", "FAIL - HTTP " + response.getStatusCode());
+            }
+            
+        } catch (Exception e) {
+            errors.add("设备编辑API测试异常: " + e.getMessage());
+            result.put("error", e.getMessage());
+        }
+        
+        return result;
+    }
+    
+    /**
+     * 测试设备操作API
+     */
+    private Map<String, Object> testDeviceOperationApi(List<String> passed, List<String> failed, List<String> errors) {
+        Map<String, Object> result = new HashMap<>();
+        
+        try {
+            Long testId = 1L;
+            
+            // 测试状态变更
+            testStatusUpdate(testId, passed, failed, result);
+            
+            // 测试设备重启
+            testDeviceReboot(testId, passed, failed, result);
+            
+            // 测试设备激活
+            testDeviceActivation(testId, passed, failed, result);
+            
+            // 测试固件推送
+            testFirmwarePush(testId, passed, failed, result);
+            
+        } catch (Exception e) {
+            errors.add("设备操作API测试异常: " + e.getMessage());
+            result.put("error", e.getMessage());
+        }
+        
+        return result;
+    }
+    
+    /**
+     * 测试批量操作API
+     */
+    private Map<String, Object> testBatchOperationApi(List<String> passed, List<String> failed, List<String> errors) {
+        Map<String, Object> result = new HashMap<>();
+        
+        try {
+            List<Long> testIds = Arrays.asList(1L, 2L, 3L);
+            
+            // 测试批量固件推送
+            testBatchFirmwarePush(testIds, passed, failed, result);
+            
+            // 测试批量重启
+            testBatchReboot(testIds, passed, failed, result);
+            
+            // 测试批量删除
+            testBatchDelete(testIds, passed, failed, result);
+            
+        } catch (Exception e) {
+            errors.add("批量操作API测试异常: " + e.getMessage());
+            result.put("error", e.getMessage());
+        }
+        
+        return result;
+    }
+    
+    /**
+     * 测试设备统计API
+     */
+    private Map<String, Object> testDeviceStatsApi(List<String> passed, List<String> failed, List<String> errors) {
+        Map<String, Object> result = new HashMap<>();
+        
+        try {
+            String url = BASE_URL + "/stats";
+            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+            
+            if (response.getStatusCode() == HttpStatus.OK) {
+                Map<String, Object> responseData = objectMapper.readValue(response.getBody(), Map.class);
+                
+                if (validateStatsResponse(responseData)) {
+                    passed.add("设备统计API - 统计数据查询");
+                    result.put("statsQuery", "PASS");
+                } else {
+                    failed.add("设备统计API - 统计数据格式错误");
+                    result.put("statsQuery", "FAIL - 数据格式错误");
+                }
+            } else {
+                failed.add("设备统计API - HTTP状态码错误: " + response.getStatusCode());
+                result.put("statsQuery", "FAIL - HTTP " + response.getStatusCode());
+            }
+            
+        } catch (Exception e) {
+            errors.add("设备统计API测试异常: " + e.getMessage());
+            result.put("error", e.getMessage());
+        }
+        
+        return result;
+    }
+    
+    /**
+     * 测试设备日志API
+     */
+    private Map<String, Object> testDeviceLogApi(List<String> passed, List<String> failed, List<String> errors) {
+        Map<String, Object> result = new HashMap<>();
+        
+        try {
+            Long testId = 1L;
+            String url = BASE_URL + "/" + testId + "/logs?page=1&pageSize=10";
+            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+            
+            if (response.getStatusCode() == HttpStatus.OK) {
+                Map<String, Object> responseData = objectMapper.readValue(response.getBody(), Map.class);
+                
+                if (validateLogResponse(responseData)) {
+                    passed.add("设备日志API - 日志查询");
+                    result.put("logQuery", "PASS");
+                } else {
+                    failed.add("设备日志API - 日志数据格式错误");
+                    result.put("logQuery", "FAIL - 数据格式错误");
+                }
+            } else {
+                failed.add("设备日志API - HTTP状态码错误: " + response.getStatusCode());
+                result.put("logQuery", "FAIL - HTTP " + response.getStatusCode());
+            }
+            
+        } catch (Exception e) {
+            errors.add("设备日志API测试异常: " + e.getMessage());
+            result.put("error", e.getMessage());
+        }
+        
+        return result;
+    }
+    
+    /**
+     * 测试搜索功能API
+     */
+    private Map<String, Object> testSearchApi(List<String> passed, List<String> failed, List<String> errors) {
+        Map<String, Object> result = new HashMap<>();
+        
+        try {
+            // 测试快速搜索
+            testQuickSearch(passed, failed, result);
+            
+            // 测试高级搜索
+            testAdvancedSearch(passed, failed, result);
+            
+            // 测试搜索建议
+            testSearchSuggestions(passed, failed, result);
+            
+        } catch (Exception e) {
+            errors.add("搜索功能API测试异常: " + e.getMessage());
+            result.put("error", e.getMessage());
+        }
+        
+        return result;
+    }
+    
+    /**
+     * 测试删除操作API
+     */
+    private Map<String, Object> testDeleteApi(List<String> passed, List<String> failed, List<String> errors) {
+        Map<String, Object> result = new HashMap<>();
+        
+        try {
+            Long testId = 999L; // 使用一个测试ID
+            ResponseEntity<String> response = restTemplate.exchange(
+                BASE_URL + "/" + testId, HttpMethod.DELETE, null, String.class);
+            
+            if (response.getStatusCode() == HttpStatus.OK || response.getStatusCode() == HttpStatus.NO_CONTENT) {
+                passed.add("设备删除API - 单个删除");
+                result.put("singleDelete", "PASS");
+            } else {
+                failed.add("设备删除API - HTTP状态码错误: " + response.getStatusCode());
+                result.put("singleDelete", "FAIL - HTTP " + response.getStatusCode());
+            }
+            
+        } catch (Exception e) {
+            errors.add("设备删除API测试异常: " + e.getMessage());
+            result.put("error", e.getMessage());
+        }
+        
+        return result;
+    }
+    
+    // 辅助方法
+    
+    private boolean validateResponseFormat(Map<String, Object> response) {
+        return response.containsKey("code") && 
+               response.containsKey("data") && 
+               response.containsKey("message");
+    }
+    
+    private boolean validatePaginationResponse(Map<String, Object> response) {
+        Object data = response.get("data");
+        if (data instanceof Map) {
+            Map<String, Object> dataMap = (Map<String, Object>) data;
+            return dataMap.containsKey("list") && 
+                   dataMap.containsKey("total") && 
+                   dataMap.containsKey("page") && 
+                   dataMap.containsKey("pageSize");
+        }
+        return false;
+    }
+    
+    private boolean validateDeviceDetailResponse(Map<String, Object> response) {
+        Object data = response.get("data");
+        if (data instanceof Map) {
+            Map<String, Object> device = (Map<String, Object>) data;
+            return device.containsKey("id") && 
+                   device.containsKey("serialNumber") && 
+                   device.containsKey("model") && 
+                   device.containsKey("status");
+        }
+        return false;
+    }
+    
+    private boolean validateCreateResponse(Map<String, Object> response) {
+        return validateResponseFormat(response) && 
+               response.get("code").equals(200);
+    }
+    
+    private boolean validateUpdateResponse(Map<String, Object> response) {
+        return validateResponseFormat(response) && 
+               response.get("code").equals(200);
+    }
+    
+    private boolean validateStatsResponse(Map<String, Object> response) {
+        Object data = response.get("data");
+        if (data instanceof Map) {
+            Map<String, Object> stats = (Map<String, Object>) data;
+            return stats.containsKey("totalDevices") && 
+                   stats.containsKey("onlineDevices") && 
+                   stats.containsKey("offlineDevices");
+        }
+        return false;
+    }
+    
+    private boolean validateLogResponse(Map<String, Object> response) {
+        return validateResponseFormat(response) && validatePaginationResponse(response);
+    }
+    
+    private Map<String, Object> createTestDeviceData() {
+        Map<String, Object> device = new HashMap<>();
+        device.put("serialNumber", "TEST-" + System.currentTimeMillis());
+        device.put("model", "EDUCATION");
+        device.put("status", "PENDING");
+        device.put("firmwareVersion", "1.0.0");
+        device.put("customerId", 1L);
+        device.put("customerName", "测试客户");
+        device.put("customerPhone", "13800138000");
+        device.put("notes", "API测试设备");
+        return device;
+    }
+    
+    private Map<String, Object> createTestUpdateData() {
+        Map<String, Object> update = new HashMap<>();
+        update.put("notes", "更新测试 - " + System.currentTimeMillis());
+        update.put("firmwareVersion", "1.0.1");
+        return update;
+    }
+    
+    private void testSearchFunctionality(List<String> passed, List<String> failed, Map<String, Object> result) {
+        try {
+            String url = BASE_URL + "?keyword=test&page=1&pageSize=10";
+            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+            
+            if (response.getStatusCode() == HttpStatus.OK) {
+                passed.add("设备列表API - 搜索功能");
+                result.put("search", "PASS");
+            } else {
+                failed.add("设备列表API - 搜索功能异常");
+                result.put("search", "FAIL");
+            }
+        } catch (Exception e) {
+            failed.add("设备列表API - 搜索功能异常: " + e.getMessage());
+            result.put("search", "FAIL - " + e.getMessage());
+        }
+    }
+    
+    private void testFilterFunctionality(List<String> passed, List<String> failed, Map<String, Object> result) {
+        try {
+            String url = BASE_URL + "?status=online&model=education&page=1&pageSize=10";
+            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+            
+            if (response.getStatusCode() == HttpStatus.OK) {
+                passed.add("设备列表API - 筛选功能");
+                result.put("filter", "PASS");
+            } else {
+                failed.add("设备列表API - 筛选功能异常");
+                result.put("filter", "FAIL");
+            }
+        } catch (Exception e) {
+            failed.add("设备列表API - 筛选功能异常: " + e.getMessage());
+            result.put("filter", "FAIL - " + e.getMessage());
+        }
+    }
+    
+    private void testInvalidIdHandling(List<String> passed, List<String> failed, Map<String, Object> result) {
+        try {
+            Long invalidId = 999999L;
+            String url = BASE_URL + "/" + invalidId;
+            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+            
+            if (response.getStatusCode() == HttpStatus.NOT_FOUND) {
+                passed.add("设备详情API - 无效ID处理");
+                result.put("invalidId", "PASS");
+            } else {
+                failed.add("设备详情API - 无效ID处理异常");
+                result.put("invalidId", "FAIL");
+            }
+        } catch (Exception e) {
+            failed.add("设备详情API - 无效ID处理异常: " + e.getMessage());
+            result.put("invalidId", "FAIL - " + e.getMessage());
+        }
+    }
+    
+    private void testInvalidDataHandling(List<String> passed, List<String> failed, Map<String, Object> result) {
+        try {
+            Map<String, Object> invalidData = new HashMap<>();
+            invalidData.put("serialNumber", ""); // 空序列号
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(invalidData, headers);
+            
+            ResponseEntity<String> response = restTemplate.postForEntity(BASE_URL, request, String.class);
+            
+            if (response.getStatusCode() == HttpStatus.BAD_REQUEST) {
+                passed.add("设备创建API - 无效数据处理");
+                result.put("invalidData", "PASS");
+            } else {
+                failed.add("设备创建API - 无效数据处理异常");
+                result.put("invalidData", "FAIL");
+            }
+        } catch (Exception e) {
+            failed.add("设备创建API - 无效数据处理异常: " + e.getMessage());
+            result.put("invalidData", "FAIL - " + e.getMessage());
+        }
+    }
+    
+    private void testStatusUpdate(Long deviceId, List<String> passed, List<String> failed, Map<String, Object> result) {
+        try {
+            Map<String, Object> statusData = new HashMap<>();
+            statusData.put("status", "ONLINE");
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(statusData, headers);
+            
+            ResponseEntity<String> response = restTemplate.exchange(
+                BASE_URL + "/" + deviceId + "/status", HttpMethod.PATCH, request, String.class);
+            
+            if (response.getStatusCode() == HttpStatus.OK) {
+                passed.add("设备操作API - 状态变更");
+                result.put("statusUpdate", "PASS");
+            } else {
+                failed.add("设备操作API - 状态变更异常");
+                result.put("statusUpdate", "FAIL");
+            }
+        } catch (Exception e) {
+            failed.add("设备操作API - 状态变更异常: " + e.getMessage());
+            result.put("statusUpdate", "FAIL - " + e.getMessage());
+        }
+    }
+    
+    private void testDeviceReboot(Long deviceId, List<String> passed, List<String> failed, Map<String, Object> result) {
+        try {
+            ResponseEntity<String> response = restTemplate.postForEntity(
+                BASE_URL + "/" + deviceId + "/reboot", null, String.class);
+            
+            if (response.getStatusCode() == HttpStatus.OK) {
+                passed.add("设备操作API - 设备重启");
+                result.put("reboot", "PASS");
+            } else {
+                failed.add("设备操作API - 设备重启异常");
+                result.put("reboot", "FAIL");
+            }
+        } catch (Exception e) {
+            failed.add("设备操作API - 设备重启异常: " + e.getMessage());
+            result.put("reboot", "FAIL - " + e.getMessage());
+        }
+    }
+    
+    private void testDeviceActivation(Long deviceId, List<String> passed, List<String> failed, Map<String, Object> result) {
+        try {
+            ResponseEntity<String> response = restTemplate.postForEntity(
+                BASE_URL + "/" + deviceId + "/activate", null, String.class);
+            
+            if (response.getStatusCode() == HttpStatus.OK) {
+                passed.add("设备操作API - 设备激活");
+                result.put("activation", "PASS");
+            } else {
+                failed.add("设备操作API - 设备激活异常");
+                result.put("activation", "FAIL");
+            }
+        } catch (Exception e) {
+            failed.add("设备操作API - 设备激活异常: " + e.getMessage());
+            result.put("activation", "FAIL - " + e.getMessage());
+        }
+    }
+    
+    private void testFirmwarePush(Long deviceId, List<String> passed, List<String> failed, Map<String, Object> result) {
+        try {
+            Map<String, Object> firmwareData = new HashMap<>();
+            firmwareData.put("firmwareVersion", "2.0.0");
+            firmwareData.put("firmwareUrl", "http://example.com/firmware/2.0.0.bin");
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(firmwareData, headers);
+            
+            ResponseEntity<String> response = restTemplate.postForEntity(
+                BASE_URL + "/" + deviceId + "/firmware", request, String.class);
+            
+            if (response.getStatusCode() == HttpStatus.OK) {
+                passed.add("设备操作API - 固件推送");
+                result.put("firmwarePush", "PASS");
+            } else {
+                failed.add("设备操作API - 固件推送异常");
+                result.put("firmwarePush", "FAIL");
+            }
+        } catch (Exception e) {
+            failed.add("设备操作API - 固件推送异常: " + e.getMessage());
+            result.put("firmwarePush", "FAIL - " + e.getMessage());
+        }
+    }
+    
+    private void testBatchFirmwarePush(List<Long> deviceIds, List<String> passed, List<String> failed, Map<String, Object> result) {
+        try {
+            Map<String, Object> batchData = new HashMap<>();
+            batchData.put("deviceIds", deviceIds);
+            batchData.put("firmwareVersion", "2.0.0");
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(batchData, headers);
+            
+            ResponseEntity<String> response = restTemplate.postForEntity(
+                BASE_URL + "/batch/firmware", request, String.class);
+            
+            if (response.getStatusCode() == HttpStatus.OK) {
+                passed.add("批量操作API - 批量固件推送");
+                result.put("batchFirmware", "PASS");
+            } else {
+                failed.add("批量操作API - 批量固件推送异常");
+                result.put("batchFirmware", "FAIL");
+            }
+        } catch (Exception e) {
+            failed.add("批量操作API - 批量固件推送异常: " + e.getMessage());
+            result.put("batchFirmware", "FAIL - " + e.getMessage());
+        }
+    }
+    
+    private void testBatchReboot(List<Long> deviceIds, List<String> passed, List<String> failed, Map<String, Object> result) {
+        try {
+            Map<String, Object> batchData = new HashMap<>();
+            batchData.put("deviceIds", deviceIds);
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(batchData, headers);
+            
+            ResponseEntity<String> response = restTemplate.postForEntity(
+                BASE_URL + "/batch/reboot", request, String.class);
+            
+            if (response.getStatusCode() == HttpStatus.OK) {
+                passed.add("批量操作API - 批量重启");
+                result.put("batchReboot", "PASS");
+            } else {
+                failed.add("批量操作API - 批量重启异常");
+                result.put("batchReboot", "FAIL");
+            }
+        } catch (Exception e) {
+            failed.add("批量操作API - 批量重启异常: " + e.getMessage());
+            result.put("batchReboot", "FAIL - " + e.getMessage());
+        }
+    }
+    
+    private void testBatchDelete(List<Long> deviceIds, List<String> passed, List<String> failed, Map<String, Object> result) {
+        try {
+            Map<String, Object> batchData = new HashMap<>();
+            batchData.put("deviceIds", deviceIds);
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(batchData, headers);
+            
+            ResponseEntity<String> response = restTemplate.exchange(
+                BASE_URL + "/batch", HttpMethod.DELETE, request, String.class);
+            
+            if (response.getStatusCode() == HttpStatus.OK) {
+                passed.add("批量操作API - 批量删除");
+                result.put("batchDelete", "PASS");
+            } else {
+                failed.add("批量操作API - 批量删除异常");
+                result.put("batchDelete", "FAIL");
+            }
+        } catch (Exception e) {
+            failed.add("批量操作API - 批量删除异常: " + e.getMessage());
+            result.put("batchDelete", "FAIL - " + e.getMessage());
+        }
+    }
+    
+    private void testQuickSearch(List<String> passed, List<String> failed, Map<String, Object> result) {
+        try {
+            String url = BASE_URL + "/search/quick?keyword=test&page=1&pageSize=10";
+            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+            
+            if (response.getStatusCode() == HttpStatus.OK) {
+                passed.add("搜索功能API - 快速搜索");
+                result.put("quickSearch", "PASS");
+            } else {
+                failed.add("搜索功能API - 快速搜索异常");
+                result.put("quickSearch", "FAIL");
+            }
+        } catch (Exception e) {
+            failed.add("搜索功能API - 快速搜索异常: " + e.getMessage());
+            result.put("quickSearch", "FAIL - " + e.getMessage());
+        }
+    }
+    
+    private void testAdvancedSearch(List<String> passed, List<String> failed, Map<String, Object> result) {
+        try {
+            ManagedDeviceSearchCriteria criteria = new ManagedDeviceSearchCriteria();
+            criteria.setKeyword("test");
+            criteria.setStatus(DeviceStatus.ONLINE);
+            criteria.setModel(DeviceModel.EDUCATION);
+            criteria.setPage(1);
+            criteria.setPageSize(10);
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<ManagedDeviceSearchCriteria> request = new HttpEntity<>(criteria, headers);
+            
+            ResponseEntity<String> response = restTemplate.postForEntity(
+                BASE_URL + "/search/advanced", request, String.class);
+            
+            if (response.getStatusCode() == HttpStatus.OK) {
+                passed.add("搜索功能API - 高级搜索");
+                result.put("advancedSearch", "PASS");
+            } else {
+                failed.add("搜索功能API - 高级搜索异常");
+                result.put("advancedSearch", "FAIL");
+            }
+        } catch (Exception e) {
+            failed.add("搜索功能API - 高级搜索异常: " + e.getMessage());
+            result.put("advancedSearch", "FAIL - " + e.getMessage());
+        }
+    }
+    
+    private void testSearchSuggestions(List<String> passed, List<String> failed, Map<String, Object> result) {
+        try {
+            String url = BASE_URL + "/search/suggestions?field=serialNumber&query=test&limit=10";
+            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+            
+            if (response.getStatusCode() == HttpStatus.OK) {
+                passed.add("搜索功能API - 搜索建议");
+                result.put("searchSuggestions", "PASS");
+            } else {
+                failed.add("搜索功能API - 搜索建议异常");
+                result.put("searchSuggestions", "FAIL");
+            }
+        } catch (Exception e) {
+            failed.add("搜索功能API - 搜索建议异常: " + e.getMessage());
+            result.put("searchSuggestions", "FAIL - " + e.getMessage());
+        }
+    }
+    
+    private double calculateSuccessRate(int passed, int failed) {
+        int total = passed + failed;
+        if (total == 0) return 0.0;
+        return (double) passed / total * 100;
+    }
+}

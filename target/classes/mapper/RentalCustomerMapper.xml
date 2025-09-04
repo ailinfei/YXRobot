@@ -119,14 +119,14 @@
         WHERE id = #{id} AND is_deleted = 0
     </update>
 
-    <!-- 软删除 -->
+    <!-- 软删射?-->
     <update id="deleteById">
         UPDATE rental_customers
         SET is_deleted = 1, updated_at = NOW()
         WHERE id = #{id}
     </update>
 
-    <!-- 批量软删除 -->
+    <!-- 批量软删射?-->
     <update id="deleteBatchByIds">
         UPDATE rental_customers
         SET is_deleted = 1, updated_at = NOW()
@@ -170,7 +170,7 @@
         WHERE id = #{customerId} AND is_deleted = 0
     </update>
 
-    <!-- 查询活跃客户数 -->
+    <!-- 查询活跃客户射?-->
     <select id="selectActiveCustomerCount" resultType="java.lang.Long">
         SELECT COUNT(*)
         FROM rental_customers

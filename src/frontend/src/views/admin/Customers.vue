@@ -131,7 +131,6 @@ import EnhancedDataTable from '@/components/tables/EnhancedDataTable.vue'
 import CustomerDetailDialog from '@/components/customer/CustomerDetailDialog.vue'
 import CustomerEditDialog from '@/components/customer/CustomerEditDialog.vue'
 import { customerApi } from '@/api/customer'
-import { mockCustomers, mockCustomerStats } from '@/api/mock/customer'
 import type { Customer, CustomerStats } from '@/types/customer'
 import { formatDate } from '@/utils/dateTime'
 
@@ -144,7 +143,14 @@ const selectedCustomer = ref<Customer | null>(null)
 const detailVisible = ref(false)
 const editVisible = ref(false)
 const editMode = ref<'create' | 'edit'>('edit')
-const stats = ref<CustomerStats>(mockCustomerStats)
+const stats = ref<CustomerStats>({
+  total: 0,
+  regular: 0,
+  vip: 0,
+  premium: 0,
+  activeDevices: 0,
+  totalRevenue: 0
+})
 
 // 分页配置
 const pagination = ref({
@@ -301,16 +307,12 @@ onMounted(() => {
 const loadCustomers = async () => {
   try {
     loading.value = true
-    // 暂时使用Mock数据
-    customers.value = mockCustomers
-    pagination.value.total = mockCustomers.length
-    
-    // const response = await customerApi.getCustomers({
-    //   page: pagination.value.page,
-    //   pageSize: pagination.value.pageSize
-    // })
-    // customers.value = response.data.data
-    // pagination.value.total = response.data.total
+    const response = await customerApi.getCustomers({
+      page: pagination.value.page,
+      pageSize: pagination.value.pageSize
+    })
+    customers.value = response.data.list
+    pagination.value.total = response.data.total
   } catch (error) {
     console.error('加载客户列表失败:', error)
     ElMessage.error('加载客户列表失败')
@@ -321,8 +323,8 @@ const loadCustomers = async () => {
 
 const loadStats = async () => {
   try {
-    // const response = await customerApi.getCustomerStats()
-    // stats.value = response.data
+    const response = await customerApi.getCustomerStats()
+    stats.value = response.data
   } catch (error) {
     console.error('加载统计数据失败:', error)
   }
@@ -415,7 +417,7 @@ const handleDeleteCustomer = async (customer: Customer) => {
       }
     )
     
-    // await customerApi.deleteCustomer(customer.id)
+    await customerApi.deleteCustomer(customer.id)
     ElMessage.success('客户删除成功')
     loadCustomers()
   } catch {

@@ -5,19 +5,15 @@ package com.yxrobot.entity;
  * 对应数据库字段：payment_status
  * 
  * 字段映射规范：
- * - 数据库存储值使用小写英文
- * - Java枚举使用大写命名
+ * - 数据库存储值：小写英文（pending, paid, failed, refunded）
+ * - Java枚举：大写命名（PENDING, PAID, FAILED, REFUNDED）
+ * - 前端显示：中文描述（待付款, 已付款, 付款失败, 已退款）
  */
 public enum PaymentStatus {
     /**
-     * 未付款
+     * 待付款
      */
-    UNPAID("unpaid", "未付款"),
-    
-    /**
-     * 部分付款
-     */
-    PARTIAL("partial", "部分付款"),
+    PENDING("pending", "待付款"),
     
     /**
      * 已付款
@@ -25,20 +21,25 @@ public enum PaymentStatus {
     PAID("paid", "已付款"),
     
     /**
+     * 付款失败
+     */
+    FAILED("failed", "付款失败"),
+    
+    /**
      * 已退款
      */
     REFUNDED("refunded", "已退款");
     
-    private final String value;
+    private final String code;
     private final String description;
     
-    PaymentStatus(String value, String description) {
-        this.value = value;
+    PaymentStatus(String code, String description) {
+        this.code = code;
         this.description = description;
     }
     
-    public String getValue() {
-        return value;
+    public String getCode() {
+        return code;
     }
     
     public String getDescription() {
@@ -48,17 +49,21 @@ public enum PaymentStatus {
     /**
      * 根据数据库值获取枚举
      */
-    public static PaymentStatus fromValue(String value) {
+    public static PaymentStatus fromCode(String code) {
+        if (code == null) {
+            return null;
+        }
+        
         for (PaymentStatus status : PaymentStatus.values()) {
-            if (status.getValue().equals(value)) {
+            if (status.getCode().equals(code)) {
                 return status;
             }
         }
-        throw new IllegalArgumentException("未知的付款状态: " + value);
+        throw new IllegalArgumentException("未知的付款状态: " + code);
     }
     
     @Override
     public String toString() {
-        return this.value;
+        return description;
     }
 }

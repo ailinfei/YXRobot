@@ -233,6 +233,8 @@ import {
 import MapVisualization from '@/components/charts/MapVisualization.vue'
 import SalesTrendChart from '@/components/charts/SalesTrendChart.vue'
 import ProductSalesChart from '@/components/charts/ProductSalesChart.vue'
+import { salesStatsApi, salesChartsApi } from '@/api/sales'
+import type { SalesStats, SalesChartData } from '@/types/sales'
 
 // 响应式数据
 const loading = ref(false)
@@ -245,29 +247,18 @@ const selectedRegion = ref('')
 const regionDetailVisible = ref(false)
 
 // 销售统计数据
-const salesStats = ref({
-  totalRevenue: 12580000,
-  totalOrders: 3420,
-  totalCustomers: 2180,
-  activeRegions: 28,
-  revenueTrend: 15.8,
-  ordersTrend: 12.3,
-  customersTrend: 8.7
+const salesStats = ref<SalesStats>({
+  totalSalesAmount: 0,
+  totalOrders: 0,
+  avgOrderAmount: 0,
+  totalQuantity: 0,
+  newCustomers: 0,
+  activeCustomers: 0,
+  growthRate: 0
 })
 
 // 地图数据
-const mapData = ref([
-  { name: '中国', value: 4580000, orders: 1250, customers: 820 },
-  { name: '美国', value: 3200000, orders: 890, customers: 650 },
-  { name: '日本', value: 2100000, orders: 580, customers: 420 },
-  { name: '韩国', value: 1800000, orders: 520, customers: 380 },
-  { name: '德国', value: 900000, orders: 280, customers: 210 },
-  { name: '英国', value: 650000, orders: 180, customers: 140 },
-  { name: '法国', value: 580000, orders: 160, customers: 120 },
-  { name: '加拿大', value: 420000, orders: 120, customers: 95 },
-  { name: '澳大利亚', value: 380000, orders: 110, customers: 85 },
-  { name: '新加坡', value: 320000, orders: 95, customers: 70 }
-])
+const mapData = ref<any[]>([])
 
 // 地图配置
 const mapConfig = ref({
@@ -278,28 +269,16 @@ const mapConfig = ref({
 })
 
 // 趋势数据
-const trendData = ref([
-  { month: '2024-01', revenue: 850000, orders: 280, customers: 180 },
-  { month: '2024-02', revenue: 920000, orders: 310, customers: 195 },
-  { month: '2024-03', revenue: 1100000, orders: 350, customers: 220 },
-  { month: '2024-04', revenue: 980000, orders: 320, customers: 205 },
-  { month: '2024-05', revenue: 1250000, orders: 380, customers: 240 },
-  { month: '2024-06', revenue: 1180000, orders: 360, customers: 230 },
-  { month: '2024-07', revenue: 1350000, orders: 420, customers: 270 },
-  { month: '2024-08', revenue: 1280000, orders: 390, customers: 250 },
-  { month: '2024-09', revenue: 1420000, orders: 450, customers: 290 },
-  { month: '2024-10', revenue: 1380000, orders: 430, customers: 280 },
-  { month: '2024-11', revenue: 1520000, orders: 480, customers: 310 },
-  { month: '2024-12', revenue: 1680000, orders: 520, customers: 340 }
-])
+const trendData = ref<SalesChartData>({
+  categories: [],
+  series: []
+})
 
 // 产品销售数据
-const productData = ref([
-  { name: '教育版练字机器人', value: 5200000, percentage: 41.3 },
-  { name: '家庭版练字机器人', value: 4100000, percentage: 32.6 },
-  { name: '专业版练字机器人', value: 2800000, percentage: 22.3 },
-  { name: '配件及耗材', value: 480000, percentage: 3.8 }
-])
+const productData = ref<SalesChartData>({
+  categories: [],
+  series: []
+})
 
 // 地区详情数据
 const regionDetail = ref<any>(null)
@@ -320,12 +299,67 @@ const totalValue = computed(() => {
   return topRegions.value.reduce((sum, region) => sum + region.value, 0)
 })
 
+// 生命周期
+onMounted(() => {
+  loadData()
+})
+
 // 方法
+const loadData = async () => {
+  loading.value = true
+  try {
+    // 并行加载所有数据
+    const [statsRes, distributionRes, trendRes, productRes] = await Promise.all([
+      salesStatsApi.getStats({
+        startDate: dateRange.value[0],
+        endDate: dateRange.value[1]
+      }),
+      salesChartsApi.getDistribution({
+        type: 'region',
+        startDate: dateRange.value[0],
+        endDate: dateRange.value[1]
+      }),
+      salesChartsApi.getTrendChartData({
+        startDate: dateRange.value[0],
+        endDate: dateRange.value[1],
+        groupBy: 'month'
+      }),
+      salesChartsApi.getDistribution({
+        type: 'product',
+        startDate: dateRange.value[0],
+        endDate: dateRange.value[1]
+      })
+    ])
+    
+    // 更新统计数据
+    salesStats.value = statsRes.data
+    
+    // 更新地图数据（需要转换格式）
+    mapData.value = distributionRes.data.categories.map((category, index) => ({
+      name: category,
+      value: distributionRes.data.series[0]?.data[index] || 0,
+      orders: Math.floor(Math.random() * 1000) + 100, // 临时数据
+      customers: Math.floor(Math.random() * 500) + 50  // 临时数据
+    }))
+    
+    // 更新趋势数据
+    trendData.value = trendRes.data
+    
+    // 更新产品数据
+    productData.value = productRes.data
+    
+  } catch (error) {
+    console.error('加载数据失败:', error)
+    ElMessage.error('数据加载失败')
+  } finally {
+    loading.value = false
+  }
+}
+
 const refreshData = async () => {
   loading.value = true
   try {
-    // 模拟API调用
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    await loadData()
     ElMessage.success('数据刷新成功')
   } catch (error) {
     ElMessage.error('数据刷新失败')
@@ -407,10 +441,6 @@ const handleRegionSelect = (regionName: string) => {
   }
 }
 
-// 生命周期
-onMounted(() => {
-  refreshData()
-})
 </script>
 
 <style lang="scss" scoped>

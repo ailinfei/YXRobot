@@ -2,7 +2,7 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.yxrobot.mapper.SalesRecordMapper">
 
-    <!-- 销售记录结果映射 -->
+    <!-- 销售记录结果映射-->
     <resultMap id="SalesRecordResultMap" type="com.yxrobot.entity.SalesRecord">
         <id column="id" property="id"/>
         <result column="order_number" property="orderNumber"/>
@@ -15,8 +15,8 @@
         <result column="discount_amount" property="discountAmount"/>
         <result column="order_date" property="orderDate"/>
         <result column="delivery_date" property="deliveryDate"/>
-        <result column="status" property="status" typeHandler="com.yxrobot.handler.SalesStatusTypeHandler"/>
-        <result column="payment_status" property="paymentStatus" typeHandler="com.yxrobot.handler.PaymentStatusTypeHandler"/>
+        <result column="status" property="status"/>
+        <result column="payment_status" property="paymentStatus"/>
         <result column="payment_method" property="paymentMethod"/>
         <result column="region" property="region"/>
         <result column="channel" property="channel"/>
@@ -39,15 +39,15 @@
         <result column="discount_amount" property="discountAmount"/>
         <result column="order_date" property="orderDate"/>
         <result column="delivery_date" property="deliveryDate"/>
-        <result column="status" property="status" typeHandler="com.yxrobot.handler.SalesStatusTypeHandler"/>
-        <result column="payment_status" property="paymentStatus" typeHandler="com.yxrobot.handler.PaymentStatusTypeHandler"/>
+        <result column="status" property="status"/>
+        <result column="payment_status" property="paymentStatus"/>
         <result column="payment_method" property="paymentMethod"/>
         <result column="region" property="region"/>
         <result column="channel" property="channel"/>
         <result column="notes" property="notes"/>
         <result column="created_at" property="createdAt"/>
         <result column="updated_at" property="updatedAt"/>
-        <!-- 关联数据字段 - 匹配前端需求 -->
+        <!-- 关联数据字段 - 匹配前端需射-->
         <result column="customer_name" property="customerName"/>
         <result column="customer_phone" property="customerPhone"/>
         <result column="product_name" property="productName"/>
@@ -61,13 +61,12 @@
         payment_status, payment_method, region, channel, notes, created_at, updated_at, is_deleted
     </sql>
 
-    <!-- 带关联信息的查询字段 - 匹配前端DTO需求 -->
+    <!-- 带关联信息的查询字段 - 匹配前端DTO需射-->
     <sql id="Detail_Column_List">
         sr.id, sr.order_number, sr.customer_id, sr.product_id, sr.sales_staff_id, 
         sr.sales_amount, sr.quantity, sr.unit_price, sr.discount_amount, sr.order_date, 
         sr.delivery_date, sr.status, sr.payment_status, sr.payment_method, sr.region, 
         sr.channel, sr.notes, sr.created_at, sr.updated_at, sr.is_deleted,
-        -- 关联数据字段，匹配前端需求
         c.customer_name,
         c.phone as customer_phone,
         p.product_name,
@@ -78,7 +77,7 @@
     <sql id="Query_Where_Clause">
         <where>
             sr.is_deleted = 0
-            <!-- 订单号搜索 - 支持精确匹配和模糊搜索 -->
+            <!-- 订单号搜射- 支持精确匹配和模糊搜射-->
             <if test="query.orderNumber != null and query.orderNumber != ''">
                 <choose>
                     <when test="query.orderNumber.length() >= 8">
@@ -90,35 +89,35 @@
                     </otherwise>
                 </choose>
             </if>
-            <!-- 客户筛选 - 支持ID和名称搜索 -->
+            <!-- 客户筛射- 支持ID和名称搜射-->
             <if test="query.customerId != null">
                 AND sr.customer_id = #{query.customerId}
             </if>
             <if test="query.customerName != null and query.customerName != ''">
                 AND c.customer_name LIKE CONCAT('%', #{query.customerName}, '%')
             </if>
-            <!-- 产品筛选 - 支持ID和名称搜索 -->
+            <!-- 产品筛射- 支持ID和名称搜射-->
             <if test="query.productId != null">
                 AND sr.product_id = #{query.productId}
             </if>
             <if test="query.productName != null and query.productName != ''">
                 AND p.product_name LIKE CONCAT('%', #{query.productName}, '%')
             </if>
-            <!-- 销售人员筛选 - 支持ID和姓名搜索 -->
+            <!-- 销售人员筛射- 支持ID和姓名搜射-->
             <if test="query.salesStaffId != null">
                 AND sr.sales_staff_id = #{query.salesStaffId}
             </if>
             <if test="query.salesStaffName != null and query.salesStaffName != ''">
                 AND ss.staff_name LIKE CONCAT('%', #{query.salesStaffName}, '%')
             </if>
-            <!-- 销售金额范围筛选 -->
+            <!-- 销售金额范围筛射-->
             <if test="query.minSalesAmount != null">
                 AND sr.sales_amount >= #{query.minSalesAmount}
             </if>
             <if test="query.maxSalesAmount != null">
                 AND sr.sales_amount &lt;= #{query.maxSalesAmount}
             </if>
-            <!-- 时间范围筛选 - 优化索引使用 -->
+            <!-- 时间范围筛射- 优化索引使用 -->
             <if test="query.startDate != null and query.endDate != null">
                 AND sr.order_date BETWEEN #{query.startDate} AND #{query.endDate}
             </if>
@@ -128,47 +127,47 @@
             <if test="query.startDate == null and query.endDate != null">
                 AND sr.order_date &lt;= #{query.endDate}
             </if>
-            <!-- 状态筛选 -->
+            <!-- 状态筛射-->
             <if test="query.status != null">
                 AND sr.status = #{query.status}
             </if>
             <if test="query.paymentStatus != null">
                 AND sr.payment_status = #{query.paymentStatus}
             </if>
-            <!-- 地区筛选 -->
+            <!-- 地区筛射-->
             <if test="query.region != null and query.region != ''">
                 <choose>
                     <when test="query.region == 'ALL'">
-                        <!-- 查询所有地区，不添加条件 -->
+                        <!-- 查询所有地区，不添加条射-->
                     </when>
                     <otherwise>
                         AND sr.region = #{query.region}
                     </otherwise>
                 </choose>
             </if>
-            <!-- 渠道筛选 -->
+            <!-- 渠道筛射-->
             <if test="query.channel != null and query.channel != ''">
                 <choose>
                     <when test="query.channel == 'ALL'">
-                        <!-- 查询所有渠道，不添加条件 -->
+                        <!-- 查询所有渠道，不添加条射-->
                     </when>
                     <otherwise>
                         AND sr.channel = #{query.channel}
                     </otherwise>
                 </choose>
             </if>
-            <!-- 付款方式筛选 -->
+            <!-- 付款方式筛射-->
             <if test="query.paymentMethod != null and query.paymentMethod != ''">
                 <choose>
                     <when test="query.paymentMethod == 'ALL'">
-                        <!-- 查询所有付款方式，不添加条件 -->
+                        <!-- 查询所有付款方式，不添加条射-->
                     </when>
                     <otherwise>
                         AND sr.payment_method = #{query.paymentMethod}
                     </otherwise>
                 </choose>
             </if>
-            <!-- 关键词搜索 - 多字段模糊匹配，优化性能 -->
+            <!-- 关键词搜射- 多字段模糊匹配，优化性能 -->
             <if test="query.keyword != null and query.keyword != ''">
                 AND (
                     sr.order_number LIKE CONCAT('%', #{query.keyword}, '%')
@@ -211,21 +210,21 @@
         </choose>
     </sql>
 
-    <!-- 根据ID查询销售记录 -->
+    <!-- 根据ID查询销售记射-->
     <select id="selectById" resultMap="SalesRecordResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM sales_records
         WHERE id = #{id} AND is_deleted = 0
     </select>
 
-    <!-- 根据订单号查询销售记录 -->
+    <!-- 根据订单号查询销售记射-->
     <select id="selectByOrderNumber" resultMap="SalesRecordResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM sales_records
         WHERE order_number = #{orderNumber} AND is_deleted = 0
     </select>
 
-    <!-- 分页查询销售记录列表 -->
+    <!-- 分页查询销售记录列射-->
     <select id="selectList" resultMap="SalesRecordResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM sales_records sr
@@ -263,7 +262,7 @@
         </if>
     </select>
 
-    <!-- 查询销售记录总数（带关联信息） -->
+    <!-- 查询销售记录总数（带关联信息射-->
     <select id="selectCountWithDetails" resultType="java.lang.Long">
         SELECT COUNT(*)
         FROM sales_records sr
@@ -287,7 +286,7 @@
         </if>
     </select>
 
-    <!-- 插入销售记录 -->
+    <!-- 插入销售记射-->
     <insert id="insert" parameterType="com.yxrobot.entity.SalesRecord" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO sales_records (
             order_number, customer_id, product_id, sales_staff_id, sales_amount, 
@@ -302,7 +301,7 @@
         )
     </insert>
 
-    <!-- 批量插入销售记录 -->
+    <!-- 批量插入销售记射-->
     <insert id="insertBatch" parameterType="java.util.List">
         INSERT INTO sales_records (
             order_number, customer_id, product_id, sales_staff_id, sales_amount, 
@@ -318,7 +317,7 @@
         </foreach>
     </insert>
 
-    <!-- 更新销售记录 -->
+    <!-- 更新销售记射-->
     <update id="updateById" parameterType="com.yxrobot.entity.SalesRecord">
         UPDATE sales_records SET
             order_number = #{orderNumber},
@@ -341,17 +340,17 @@
         WHERE id = #{id} AND is_deleted = 0
     </update>
 
-    <!-- 根据ID删除销售记录（物理删除） -->
+    <!-- 根据ID删除销售记录（物理删除-->
     <delete id="deleteById">
         DELETE FROM sales_records WHERE id = #{id}
     </delete>
 
-    <!-- 根据ID软删除销售记录 -->
+    <!-- 根据ID软删除销售记射-->
     <update id="softDeleteById">
         UPDATE sales_records SET is_deleted = 1, updated_at = NOW() WHERE id = #{id}
     </update>
 
-    <!-- 批量软删除销售记录 -->
+    <!-- 批量软删除销售记射-->
     <update id="softDeleteByIds">
         UPDATE sales_records SET is_deleted = 1, updated_at = NOW() 
         WHERE id IN
@@ -360,7 +359,7 @@
         </foreach>
     </update>
 
-    <!-- 根据客户ID查询销售记录 -->
+    <!-- 根据客户ID查询销售记射-->
     <select id="selectByCustomerId" resultMap="SalesRecordResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM sales_records
@@ -368,7 +367,7 @@
         ORDER BY created_at DESC
     </select>
 
-    <!-- 根据产品ID查询销售记录 -->
+    <!-- 根据产品ID查询销售记射-->
     <select id="selectByProductId" resultMap="SalesRecordResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM sales_records
@@ -376,7 +375,7 @@
         ORDER BY created_at DESC
     </select>
 
-    <!-- 根据销售人员ID查询销售记录 -->
+    <!-- 根据销售人员ID查询销售记射-->
     <select id="selectBySalesStaffId" resultMap="SalesRecordResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM sales_records
@@ -384,7 +383,7 @@
         ORDER BY created_at DESC
     </select>
 
-    <!-- 根据日期范围查询销售记录 -->
+    <!-- 根据日期范围查询销售记射-->
     <select id="selectByDateRange" resultMap="SalesRecordResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM sales_records
@@ -392,7 +391,7 @@
         ORDER BY order_date DESC
     </select>
 
-    <!-- 查询指定时间段的销售统计 -->
+    <!-- 查询指定时间段的销售统射-->
     <select id="selectSalesStatsByDateRange" resultType="java.util.Map">
         SELECT 
             COUNT(*) as total_orders,
@@ -405,7 +404,7 @@
         WHERE order_date BETWEEN #{startDate} AND #{endDate} AND is_deleted = 0
     </select>
 
-    <!-- 查询销售趋势数据 -->
+    <!-- 查询销售趋势数射-->
     <select id="selectSalesTrends" resultType="java.util.Map">
         SELECT 
             <choose>
@@ -424,7 +423,7 @@
         ORDER BY date_key
     </select>
 
-    <!-- 查询产品销售排行 -->
+    <!-- 查询产品销售排射-->
     <select id="selectProductRanking" resultType="java.util.Map">
         SELECT 
             sp.id as product_id,
@@ -442,7 +441,7 @@
         </if>
     </select>
 
-    <!-- 查询销售人员业绩排行 -->
+    <!-- 查询销售人员业绩排射-->
     <select id="selectStaffPerformance" resultType="java.util.Map">
         SELECT 
             ss.id as staff_id,
@@ -462,7 +461,7 @@
         </if>
     </select>
 
-    <!-- 查询地区销售分布 -->
+    <!-- 查询地区销售分射-->
     <select id="selectRegionDistribution" resultType="java.util.Map">
         SELECT 
             region,
@@ -475,7 +474,7 @@
         ORDER BY total_sales_amount DESC
     </select>
 
-    <!-- 查询渠道销售分布 -->
+    <!-- 查询渠道销售分射-->
     <select id="selectChannelDistribution" resultType="java.util.Map">
         SELECT 
             channel,
@@ -488,7 +487,7 @@
         ORDER BY total_sales_amount DESC
     </select>
 
-    <!-- 查询月度销售数据 -->
+    <!-- 查询月度销售数射-->
     <select id="selectMonthlySalesData" resultType="java.util.Map">
         SELECT 
             MONTH(order_date) as month,
@@ -501,11 +500,11 @@
         ORDER BY month
     </select>
 
-    <!-- 查询销售漏斗数据 -->
+    <!-- 查询销售漏斗数射-->
     <select id="selectSalesFunnelData" resultType="java.util.Map">
         SELECT 
             'pending' as stage,
-            '待确认' as stage_name,
+            '待确射 as stage_name,
             COUNT(*) as count,
             SUM(sales_amount) as amount
         FROM sales_records
@@ -513,7 +512,7 @@
         UNION ALL
         SELECT 
             'confirmed' as stage,
-            '已确认' as stage_name,
+            '已确射 as stage_name,
             COUNT(*) as count,
             SUM(sales_amount) as amount
         FROM sales_records
@@ -521,7 +520,7 @@
         UNION ALL
         SELECT 
             'delivered' as stage,
-            '已交付' as stage_name,
+            '已交射 as stage_name,
             COUNT(*) as count,
             SUM(sales_amount) as amount
         FROM sales_records
@@ -529,14 +528,14 @@
         UNION ALL
         SELECT 
             'completed' as stage,
-            '已完成' as stage_name,
+            '已完射 as stage_name,
             COUNT(*) as count,
             SUM(sales_amount) as amount
         FROM sales_records
         WHERE order_date BETWEEN #{startDate} AND #{endDate} AND status = 'completed' AND is_deleted = 0
     </select>
 
-    <!-- 查询客户销售汇总 -->
+    <!-- 查询客户销售汇射-->
     <select id="selectCustomerSalesSummary" resultType="java.util.Map">
         SELECT 
             c.id as customer_id,
@@ -576,7 +575,7 @@
         GROUP BY payment_status
     </select>
 
-    <!-- 查询今日销售数据 -->
+    <!-- 查询今日销售数射-->
     <select id="selectTodaySalesData" resultType="java.util.Map">
         SELECT 
             COUNT(*) as today_orders,
@@ -587,7 +586,7 @@
         WHERE DATE(order_date) = CURDATE() AND is_deleted = 0
     </select>
 
-    <!-- 查询本月销售数据 -->
+    <!-- 查询本月销售数射-->
     <select id="selectCurrentMonthSalesData" resultType="java.util.Map">
         SELECT 
             COUNT(*) as month_orders,
@@ -598,7 +597,7 @@
         WHERE YEAR(order_date) = YEAR(CURDATE()) AND MONTH(order_date) = MONTH(CURDATE()) AND is_deleted = 0
     </select>
 
-    <!-- 查询本年销售数据 -->
+    <!-- 查询本年销售数射-->
     <select id="selectCurrentYearSalesData" resultType="java.util.Map">
         SELECT 
             COUNT(*) as year_orders,
@@ -609,19 +608,19 @@
         WHERE YEAR(order_date) = YEAR(CURDATE()) AND is_deleted = 0
     </select>
 
-    <!-- 更新销售记录状态 -->
+    <!-- 更新销售记录状射-->
     <update id="updateStatus">
         UPDATE sales_records SET status = #{status}, updated_at = NOW() 
         WHERE id = #{id} AND is_deleted = 0
     </update>
 
-    <!-- 更新付款状态 -->
+    <!-- 更新付款状射-->
     <update id="updatePaymentStatus">
         UPDATE sales_records SET payment_status = #{paymentStatus}, updated_at = NOW() 
         WHERE id = #{id} AND is_deleted = 0
     </update>
 
-    <!-- 批量更新销售记录状态 -->
+    <!-- 批量更新销售记录状射-->
     <update id="batchUpdateStatus">
         UPDATE sales_records SET status = #{status}, updated_at = NOW() 
         WHERE id IN
@@ -636,7 +635,7 @@
         SELECT COUNT(*) > 0 FROM sales_records WHERE order_number = #{orderNumber} AND is_deleted = 0
     </select>
 
-    <!-- 检查订单号是否存在（排除指定ID） -->
+    <!-- 检查订单号是否存在（排除指定ID射-->
     <select id="existsByOrderNumberExcludeId" resultType="boolean">
         SELECT COUNT(*) > 0 FROM sales_records 
         WHERE order_number = #{orderNumber} AND id != #{id} AND is_deleted = 0
@@ -709,7 +708,7 @@
         ORDER BY count DESC
     </select>
 
-    <!-- 获取销售金额范围统计 -->
+    <!-- 获取销售金额范围统射-->
     <select id="getSalesAmountRangeStats" resultType="java.util.Map">
         SELECT 
             '0-1000' as range_label,
@@ -749,7 +748,7 @@
         ORDER BY min_amount
     </select>
 
-    <!-- 快速筛选 - 今日订单 -->
+    <!-- 快速筛射- 今日订单 -->
     <select id="selectTodayOrders" resultMap="SalesRecordResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM sales_records
@@ -757,7 +756,7 @@
         ORDER BY created_at DESC
     </select>
 
-    <!-- 快速筛选 - 本周订单 -->
+    <!-- 快速筛射- 本周订单 -->
     <select id="selectThisWeekOrders" resultMap="SalesRecordResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM sales_records
@@ -765,7 +764,7 @@
         ORDER BY order_date DESC
     </select>
 
-    <!-- 快速筛选 - 本月订单 -->
+    <!-- 快速筛射- 本月订单 -->
     <select id="selectThisMonthOrders" resultMap="SalesRecordResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM sales_records
@@ -773,7 +772,7 @@
         ORDER BY order_date DESC
     </select>
 
-    <!-- 快速筛选 - 待处理订单 -->
+    <!-- 快速筛射- 待处理订射-->
     <select id="selectPendingOrders" resultMap="SalesRecordResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM sales_records
@@ -781,7 +780,7 @@
         ORDER BY created_at ASC
     </select>
 
-    <!-- 快速筛选 - 高价值订单 -->
+    <!-- 快速筛射- 高价值订射-->
     <select id="selectHighValueOrders" resultMap="SalesRecordResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM sales_records

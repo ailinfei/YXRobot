@@ -1,103 +1,105 @@
 <!--
-  设备日志对话框
-  显示设备的运行日志和系统信息
+  设备日志对话框组件
+  功能：显示设备运行日志
 -->
 <template>
   <el-dialog
-    v-model="dialogVisible"
+    v-model="visible"
     :title="`设备日志 - ${device?.serialNumber || ''}`"
-    width="80%"
+    width="1000px"
     :before-close="handleClose"
-    class="device-logs-dialog"
   >
-    <div v-if="device" class="logs-content">
-      <!-- 日志筛选 -->
-      <div class="logs-filters">
-        <div class="filters-left">
-          <el-select v-model="levelFilter" placeholder="日志级别" clearable @change="handleFilter">
-            <el-option label="全部级别" value="" />
-            <el-option label="信息" value="info" />
-            <el-option label="警告" value="warning" />
-            <el-option label="错误" value="error" />
-            <el-option label="调试" value="debug" />
-          </el-select>
-          <el-select v-model="categoryFilter" placeholder="日志分类" clearable @change="handleFilter">
-            <el-option label="全部分类" value="" />
-            <el-option label="系统" value="system" />
-            <el-option label="用户" value="user" />
-            <el-option label="网络" value="network" />
-            <el-option label="硬件" value="hardware" />
-            <el-option label="软件" value="software" />
-          </el-select>
-          <el-date-picker
-            v-model="dateRange"
-            type="datetimerange"
-            range-separator="至"
-            start-placeholder="开始时间"
-            end-placeholder="结束时间"
-            format="YYYY-MM-DD HH:mm:ss"
-            value-format="YYYY-MM-DD HH:mm:ss"
-            @change="handleFilter"
-          />
-        </div>
-        <div class="filters-right">
-          <el-button @click="refreshLogs" :loading="logsLoading">
-            <el-icon><Refresh /></el-icon>
-            刷新
-          </el-button>
-          <el-button @click="exportLogs">
-            <el-icon><Download /></el-icon>
-            导出日志
-          </el-button>
-        </div>
-      </div>
+    <!-- 日志筛选 -->
+    <div class="log-filters">
+      <el-select v-model="levelFilter" placeholder="日志级别" clearable @change="handleFilter">
+        <el-option label="全部级别" value="" />
+        <el-option label="信息" value="info" />
+        <el-option label="警告" value="warning" />
+        <el-option label="错误" value="error" />
+        <el-option label="调试" value="debug" />
+      </el-select>
+      
+      <el-select v-model="categoryFilter" placeholder="日志分类" clearable @change="handleFilter">
+        <el-option label="全部分类" value="" />
+        <el-option label="系统" value="system" />
+        <el-option label="用户" value="user" />
+        <el-option label="网络" value="network" />
+        <el-option label="硬件" value="hardware" />
+        <el-option label="软件" value="software" />
+      </el-select>
+      
+      <el-date-picker
+        v-model="dateRange"
+        type="datetimerange"
+        range-separator="至"
+        start-placeholder="开始时间"
+        end-placeholder="结束时间"
+        format="YYYY-MM-DD HH:mm:ss"
+        value-format="YYYY-MM-DD HH:mm:ss"
+        @change="handleFilter"
+      />
+      
+      <el-button @click="refreshLogs" :loading="loading">
+        <el-icon><Refresh /></el-icon>
+        刷新
+      </el-button>
+    </div>
 
-      <!-- 日志列表 -->
-      <div class="logs-list" v-loading="logsLoading">
-        <div
-          v-for="log in logsList"
+    <!-- 日志列表 -->
+    <div class="log-content">
+      <div v-loading="loading" class="log-list">
+        <div 
+          v-for="log in logList" 
           :key="log.id"
-          :class="['log-item', `log-${log.level}`]"
+          class="log-item"
+          :class="getLevelClass(log.level)"
         >
           <div class="log-header">
             <div class="log-meta">
-              <el-tag :type="getLogLevelTagType(log.level)" size="small">
-                {{ getLogLevelText(log.level) }}
+              <el-tag :type="getLevelTagType(log.level)" size="small">
+                {{ getLevelText(log.level) }}
               </el-tag>
-              <el-tag type="info" size="small" style="margin-left: 8px;">
-                {{ getLogCategoryText(log.category) }}
+              <el-tag :type="getCategoryTagType(log.category)" size="small">
+                {{ getCategoryText(log.category) }}
               </el-tag>
-              <span class="log-timestamp">{{ formatDateTime(log.timestamp) }}</span>
+              <span class="log-time">{{ formatDateTime(log.timestamp) }}</span>
             </div>
+            <el-button 
+              v-if="log.details"
+              text 
+              size="small" 
+              @click="toggleDetails(log.id)"
+            >
+              {{ expandedLogs.has(log.id) ? '收起' : '详情' }}
+            </el-button>
           </div>
+          
           <div class="log-message">
             {{ log.message }}
           </div>
-          <div v-if="log.details" class="log-details">
-            <el-collapse>
-              <el-collapse-item title="详细信息" name="details">
-                <div class="details-content">
-                  <pre>{{ JSON.stringify(log.details, null, 2) }}</pre>
-                </div>
-              </el-collapse-item>
-            </el-collapse>
+          
+          <div 
+            v-if="log.details && expandedLogs.has(log.id)" 
+            class="log-details"
+          >
+            <pre>{{ formatLogDetails(log.details) }}</pre>
           </div>
         </div>
-
+        
         <!-- 空状态 -->
-        <div v-if="logsList.length === 0 && !logsLoading" class="empty-logs">
+        <div v-if="!loading && logList.length === 0" class="empty-state">
           <el-empty description="暂无日志数据" />
         </div>
       </div>
-
+      
       <!-- 分页 -->
-      <div class="pagination-wrapper">
+      <div class="pagination-wrapper" v-if="total > 0">
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
           :page-sizes="[20, 50, 100]"
           :total="total"
-          layout="total, sizes, prev, pager, next, jumper"
+          layout="total, sizes, prev, pager, next"
           @size-change="handleSizeChange"
           @current-change="handleCurrentChange"
         />
@@ -107,7 +109,10 @@
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="handleClose">关闭</el-button>
-        <el-button type="primary" @click="exportLogs">导出日志</el-button>
+        <el-button type="primary" @click="exportLogs">
+          <el-icon><Download /></el-icon>
+          导出日志
+        </el-button>
       </div>
     </template>
   </el-dialog>
@@ -115,102 +120,142 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
 import { Refresh, Download } from '@element-plus/icons-vue'
-import type { Device, DeviceLog } from '@/types/device'
-import { mockDeviceAPI } from '@/api/mock/device'
+import { ElMessage } from 'element-plus'
+import type { ManagedDevice, ManagedDeviceLog, LogLevel, LogCategory } from '@/types/managedDevice'
+import { managedDeviceAPI } from '@/api/managedDevice'
 
-// Props
 interface Props {
   modelValue: boolean
-  device?: Device | null
+  device: ManagedDevice | null
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  device: null
-})
+interface Emits {
+  (e: 'update:modelValue', value: boolean): void
+}
 
-// Emits
-const emit = defineEmits<{
-  'update:modelValue': [value: boolean]
-}>()
+const props = defineProps<Props>()
+const emit = defineEmits<Emits>()
 
-// 响应式数据
-const dialogVisible = computed({
-  get: () => props.modelValue,
-  set: (value) => emit('update:modelValue', value)
-})
-
-const logsLoading = ref(false)
-const levelFilter = ref('')
-const categoryFilter = ref('')
-const dateRange = ref<[string, string] | null>(null)
+const loading = ref(false)
+const logList = ref<ManagedDeviceLog[]>([])
+const expandedLogs = ref(new Set<string>())
 const currentPage = ref(1)
 const pageSize = ref(50)
 const total = ref(0)
 
-// 日志数据
-const logsList = ref<DeviceLog[]>([])
+// 筛选条件
+const levelFilter = ref('')
+const categoryFilter = ref('')
+const dateRange = ref<[string, string] | null>(null)
 
-// 监听器
-watch(() => props.modelValue, (visible) => {
-  if (visible && props.device) {
-    loadDeviceLogs()
+const visible = computed({
+  get: () => props.modelValue,
+  set: (value) => emit('update:modelValue', value)
+})
+
+// 监听对话框显示
+watch(visible, (show) => {
+  if (show && props.device) {
+    resetFilters()
+    loadLogs()
   }
 })
 
-// 方法
-const loadDeviceLogs = async () => {
-  if (!props.device) return
+// 重置筛选条件
+const resetFilters = () => {
+  levelFilter.value = ''
+  categoryFilter.value = ''
+  dateRange.value = null
+  currentPage.value = 1
+  expandedLogs.value.clear()
+}
 
-  logsLoading.value = true
+// 加载日志数据
+const loadLogs = async () => {
+  if (!props.device) return
+  
+  loading.value = true
   try {
-    const response = await mockDeviceAPI.getDeviceLogs(props.device.id, {
+    const params: any = {
       page: currentPage.value,
-      pageSize: pageSize.value,
-      level: levelFilter.value || undefined
-    })
+      pageSize: pageSize.value
+    }
     
-    logsList.value = response.data.list
-    total.value = response.data.total
-  } catch (error) {
-    console.error('加载设备日志失败:', error)
-    ElMessage.error('加载设备日志失败')
+    if (levelFilter.value) {
+      params.level = levelFilter.value
+    }
+    
+    if (categoryFilter.value) {
+      params.category = categoryFilter.value
+    }
+    
+    if (dateRange.value) {
+      params.dateRange = dateRange.value
+    }
+    
+    const response = await managedDeviceAPI.getDeviceLogs(props.device.id, params)
+    logList.value = response.list || []
+    total.value = response.total || 0
+  } catch (error: any) {
+    console.error('加载日志失败:', error)
+    ElMessage.error(error?.message || '加载日志失败')
+    // 设置默认值
+    logList.value = []
+    total.value = 0
   } finally {
-    logsLoading.value = false
+    loading.value = false
   }
 }
 
+// 筛选处理
 const handleFilter = () => {
   currentPage.value = 1
-  loadDeviceLogs()
+  loadLogs()
 }
 
-const refreshLogs = () => {
-  loadDeviceLogs()
-}
-
-const exportLogs = () => {
-  ElMessage.success('日志导出功能开发中')
-}
-
+// 分页处理
 const handleSizeChange = (size: number) => {
   pageSize.value = size
   currentPage.value = 1
-  loadDeviceLogs()
+  loadLogs()
 }
 
 const handleCurrentChange = (page: number) => {
   currentPage.value = page
-  loadDeviceLogs()
+  loadLogs()
 }
 
+// 刷新日志
+const refreshLogs = () => {
+  loadLogs()
+}
+
+// 切换详情显示
+const toggleDetails = (logId: string) => {
+  if (expandedLogs.value.has(logId)) {
+    expandedLogs.value.delete(logId)
+  } else {
+    expandedLogs.value.add(logId)
+  }
+}
+
+// 导出日志
+const exportLogs = () => {
+  ElMessage.info('日志导出功能开发中')
+}
+
+// 关闭对话框
 const handleClose = () => {
-  emit('update:modelValue', false)
+  visible.value = false
 }
 
 // 工具方法
-const getLogLevelTagType = (level: string) => {
+const getLevelClass = (level: string) => {
+  return `log-level-${level}`
+}
+
+const getLevelTagType = (level: string) => {
   const types: Record<string, any> = {
     info: 'primary',
     warning: 'warning',
@@ -220,7 +265,7 @@ const getLogLevelTagType = (level: string) => {
   return types[level] || 'info'
 }
 
-const getLogLevelText = (level: string) => {
+const getLevelText = (level: string) => {
   const texts: Record<string, string> = {
     info: '信息',
     warning: '警告',
@@ -230,7 +275,18 @@ const getLogLevelText = (level: string) => {
   return texts[level] || level
 }
 
-const getLogCategoryText = (category: string) => {
+const getCategoryTagType = (category: string) => {
+  const types: Record<string, any> = {
+    system: 'success',
+    user: 'primary',
+    network: 'warning',
+    hardware: 'danger',
+    software: 'info'
+  }
+  return types[category] || 'info'
+}
+
+const getCategoryText = (category: string) => {
   const texts: Record<string, string> = {
     system: '系统',
     user: '用户',
@@ -244,151 +300,127 @@ const getLogCategoryText = (category: string) => {
 const formatDateTime = (dateStr: string) => {
   return new Date(dateStr).toLocaleString('zh-CN')
 }
+
+const formatLogDetails = (details: Record<string, any>) => {
+  return JSON.stringify(details, null, 2)
+}
 </script>
 
 <style lang="scss" scoped>
-.device-logs-dialog {
-  .logs-content {
-    .logs-filters {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-      padding: 16px;
-      background: #f8f9fa;
-      border-radius: 8px;
-
-      .filters-left {
-        display: flex;
-        gap: 12px;
-        align-items: center;
-        flex-wrap: wrap;
-      }
-
-      .filters-right {
-        display: flex;
-        gap: 12px;
-        align-items: center;
-      }
-    }
-
-    .logs-list {
-      max-height: 60vh;
-      overflow-y: auto;
-      border: 1px solid #e8e8e8;
-      border-radius: 8px;
-
-      .log-item {
-        padding: 16px;
-        border-bottom: 1px solid #f0f0f0;
-        transition: background-color 0.2s;
-
-        &:hover {
-          background-color: #f8f9fa;
-        }
-
-        &:last-child {
-          border-bottom: none;
-        }
-
-        &.log-error {
-          border-left: 4px solid #f56c6c;
-        }
-
-        &.log-warning {
-          border-left: 4px solid #e6a23c;
-        }
-
-        &.log-info {
-          border-left: 4px solid #409eff;
-        }
-
-        &.log-debug {
-          border-left: 4px solid #909399;
-        }
-
-        .log-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 8px;
-
-          .log-meta {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-
-            .log-timestamp {
-              color: #666;
-              font-size: 12px;
-              margin-left: 8px;
-            }
-          }
-        }
-
-        .log-message {
-          color: #262626;
-          line-height: 1.6;
-          margin-bottom: 8px;
-          font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-        }
-
-        .log-details {
-          .details-content {
-            background: #f8f9fa;
-            padding: 12px;
-            border-radius: 4px;
-            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-            font-size: 12px;
-            color: #666;
-            overflow-x: auto;
-
-            pre {
-              margin: 0;
-              white-space: pre-wrap;
-              word-break: break-all;
-            }
-          }
-        }
-      }
-
-      .empty-logs {
-        padding: 40px;
-        text-align: center;
-      }
-    }
-
-    .pagination-wrapper {
-      display: flex;
-      justify-content: center;
-      margin-top: 20px;
-    }
+.log-filters {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 16px;
+  background: #fafafa;
+  border-radius: 6px;
+  
+  .el-select {
+    width: 120px;
   }
-
-  .dialog-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
+  
+  .el-date-editor {
+    width: 300px;
   }
 }
 
-@media (max-width: 768px) {
-  .device-logs-dialog {
-    .logs-content {
-      .logs-filters {
-        flex-direction: column;
-        gap: 16px;
-        align-items: stretch;
-
-        .filters-left {
-          justify-content: center;
+.log-content {
+  .log-list {
+    max-height: 500px;
+    overflow-y: auto;
+    border: 1px solid #f0f0f0;
+    border-radius: 6px;
+    
+    .log-item {
+      padding: 12px 16px;
+      border-bottom: 1px solid #f0f0f0;
+      transition: background-color 0.2s;
+      
+      &:last-child {
+        border-bottom: none;
+      }
+      
+      &:hover {
+        background-color: #fafafa;
+      }
+      
+      &.log-level-error {
+        border-left: 4px solid #f56c6c;
+      }
+      
+      &.log-level-warning {
+        border-left: 4px solid #e6a23c;
+      }
+      
+      &.log-level-info {
+        border-left: 4px solid #409eff;
+      }
+      
+      &.log-level-debug {
+        border-left: 4px solid #909399;
+      }
+      
+      .log-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+        
+        .log-meta {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          
+          .log-time {
+            font-size: 12px;
+            color: #8c8c8c;
+            margin-left: 8px;
+          }
         }
-
-        .filters-right {
-          justify-content: center;
+      }
+      
+      .log-message {
+        color: #262626;
+        font-size: 14px;
+        line-height: 1.5;
+        margin-bottom: 8px;
+      }
+      
+      .log-details {
+        background: #f8f9fa;
+        border-radius: 4px;
+        padding: 12px;
+        margin-top: 8px;
+        
+        pre {
+          margin: 0;
+          font-size: 12px;
+          color: #666;
+          white-space: pre-wrap;
+          word-break: break-all;
         }
       }
     }
+    
+    .empty-state {
+      padding: 40px;
+      text-align: center;
+    }
   }
+  
+  .pagination-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #f0f0f0;
+  }
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
 }
 </style>

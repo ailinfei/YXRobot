@@ -160,7 +160,7 @@
              INNER JOIN customer_device_relation cdr ON d.id = cdr.device_id 
              WHERE d.device_status = 'active' AND d.is_deleted = 0 AND cdr.status = 1) as active_devices,
             COALESCE(SUM(total_spent), 0) as total_revenue,
-            COUNT(CASE WHEN DATE(registered_at) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) THEN 1 END) as new_this_month
+            COUNT(CASE WHEN DATE(registered_at) &gt;= DATE_SUB(CURDATE(), INTERVAL 30 DAY) THEN 1 END) as new_this_month
         FROM customers 
         WHERE is_deleted = 0
     </select>
@@ -172,7 +172,7 @@
         WHERE is_deleted = 0
     </select>
 
-    <!-- 计算各等级客户数量 -->
+    <!-- 计算各等级客户数 -->
     <select id="calculateCustomerLevelCounts" resultType="java.util.Map">
         SELECT 
             'regular' as level, COUNT(CASE WHEN customer_level = 'regular' THEN 1 END) as count
@@ -207,7 +207,7 @@
         SELECT COUNT(*)
         FROM customers 
         WHERE is_deleted = 0 
-        AND DATE(registered_at) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+        AND DATE(registered_at) &gt;= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
     </select>
 
     <!-- 计算指定月份新增客户数 -->
@@ -238,12 +238,12 @@
              INNER JOIN customer_device_relation cdr ON d.id = cdr.device_id 
              WHERE d.device_status = 'active' AND d.is_deleted = 0 AND cdr.status = 1) as active_devices,
             COALESCE(SUM(total_spent), 0) as total_revenue,
-            COUNT(CASE WHEN DATE(registered_at) >= DATE_SUB(#{statDate}, INTERVAL 30 DAY) THEN 1 END) as new_customers_this_month,
+            COUNT(CASE WHEN DATE(registered_at) &gt;= DATE_SUB(#{statDate}, INTERVAL 30 DAY) THEN 1 END) as new_customers_this_month,
             NOW() as created_at,
             NOW() as updated_at
         FROM customers 
         WHERE is_deleted = 0
-        AND created_at <= DATE_ADD(#{statDate}, INTERVAL 1 DAY)
+        AND created_at &lt;= DATE_ADD(#{statDate}, INTERVAL 1 DAY)
     </insert>
 
     <!-- 生成今日客户统计数据 -->
@@ -263,7 +263,7 @@
              INNER JOIN customer_device_relation cdr ON d.id = cdr.device_id 
              WHERE d.device_status = 'active' AND d.is_deleted = 0 AND cdr.status = 1) as active_devices,
             COALESCE(SUM(total_spent), 0) as total_revenue,
-            COUNT(CASE WHEN DATE(registered_at) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) THEN 1 END) as new_customers_this_month,
+            COUNT(CASE WHEN DATE(registered_at) &gt;= DATE_SUB(CURDATE(), INTERVAL 30 DAY) THEN 1 END) as new_customers_this_month,
             NOW() as created_at,
             NOW() as updated_at
         FROM customers 
@@ -310,7 +310,7 @@
             vip_customers as vip,
             premium_customers as premium
         FROM customer_stats
-        WHERE stat_date >= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
+        WHERE stat_date &gt;= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
         ORDER BY stat_date ASC
     </select>
 
@@ -325,7 +325,7 @@
             MAX(total_customers) as max_total,
             MIN(total_customers) as min_total
         FROM customer_stats
-        WHERE stat_date >= DATE_SUB(CURDATE(), INTERVAL #{months} MONTH)
+        WHERE stat_date &gt;= DATE_SUB(CURDATE(), INTERVAL #{months} MONTH)
         GROUP BY DATE_FORMAT(stat_date, '%Y-%m')
         ORDER BY month ASC
     </select>
@@ -338,7 +338,7 @@
             MAX(total_revenue) as max_revenue,
             MIN(total_revenue) as min_revenue
         FROM customer_stats
-        WHERE stat_date >= DATE_SUB(CURDATE(), INTERVAL #{months} MONTH)
+        WHERE stat_date &gt;= DATE_SUB(CURDATE(), INTERVAL #{months} MONTH)
         GROUP BY DATE_FORMAT(stat_date, '%Y-%m')
         ORDER BY month ASC
     </select>
@@ -351,7 +351,7 @@
             MAX(new_customers_this_month) as max_new_customers,
             MIN(new_customers_this_month) as min_new_customers
         FROM customer_stats
-        WHERE stat_date >= DATE_SUB(CURDATE(), INTERVAL #{months} MONTH)
+        WHERE stat_date &gt;= DATE_SUB(CURDATE(), INTERVAL #{months} MONTH)
         GROUP BY DATE_FORMAT(stat_date, '%Y-%m')
         ORDER BY month ASC
     </select>
@@ -360,7 +360,7 @@
 
     <!-- 检查指定日期的统计数据是否存在 -->
     <select id="existsByStatDate" resultType="boolean">
-        SELECT COUNT(*) > 0
+        SELECT COUNT(*) &gt; 0
         FROM customer_stats
         WHERE stat_date = #{statDate}
     </select>
@@ -408,7 +408,7 @@
             premium_customers as premium,
             total_revenue as revenue
         FROM customer_stats
-        WHERE stat_date >= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
+        WHERE stat_date &gt;= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
         ORDER BY stat_date ASC
     </select>
 

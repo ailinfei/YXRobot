@@ -225,7 +225,6 @@ import {
 import ProductPreview from '@/components/product/ProductPreview.vue'
 import ProductEditDialog from '@/components/product/ProductEditDialog.vue'
 import { productApi } from '@/api/product'
-import { mockProducts } from '@/api/mock/product'
 import type { Product } from '@/types/product'
 import { formatDate } from '@/utils/dateTime'
 
@@ -260,10 +259,8 @@ onMounted(() => {
 const loadProducts = async () => {
   try {
     loading.value = true
-    // 暂时使用Mock数据
-    products.value = mockProducts
-    // const response = await productApi.getProducts()
-    // products.value = response.data
+    const response = await productApi.getProducts()
+    products.value = response.data
   } catch (error) {
     console.error('加载产品列表失败:', error)
     ElMessage.error('加载产品列表失败')
@@ -375,7 +372,7 @@ const handlePublish = async (product: Product) => {
       }
     )
     
-    // await productApi.publishProduct(product.id)
+    await productApi.publishProduct(product.id)
     ElMessage.success('产品发布成功')
     loadProducts()
   } catch {

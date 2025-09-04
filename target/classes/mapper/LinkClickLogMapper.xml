@@ -15,7 +15,7 @@
         <result column="conversion_value" property="conversionValue" jdbcType="DECIMAL"/>
     </resultMap>
 
-    <!-- 基础列 -->
+    <!-- 基础射?-->
     <sql id="Base_Column_List">
         id, link_id, user_ip, user_agent, referer, clicked_at, 
         is_conversion, conversion_type, conversion_value
@@ -71,13 +71,13 @@
         WHERE id = #{id}
     </update>
 
-    <!-- 删除指定时间之前的日志 -->
+    <!-- 删除指定时间之前的日射?-->
     <delete id="deleteBeforeTime">
         DELETE FROM link_click_logs
         WHERE clicked_at &lt; #{beforeTime}
     </delete>
 
-    <!-- 统计链接点击量 -->
+    <!-- 统计链接点击射?-->
     <select id="selectClickCount" resultType="long">
         SELECT COUNT(*)
         FROM link_click_logs
@@ -94,7 +94,7 @@
         </where>
     </select>
 
-    <!-- 统计链接转化量 -->
+    <!-- 统计链接转化射?-->
     <select id="selectConversionCount" resultType="long">
         SELECT COUNT(*)
         FROM link_click_logs
@@ -200,7 +200,7 @@
         ORDER BY clickCount DESC
     </select>
 
-    <!-- 更新链接的点击统计 -->
+    <!-- 更新链接的点击统射?-->
     <update id="updateLinkClickStats">
         UPDATE platform_links pl
         SET 

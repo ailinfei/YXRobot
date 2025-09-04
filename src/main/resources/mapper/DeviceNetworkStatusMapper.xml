@@ -1,0 +1,354 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yxrobot.mapper.DeviceNetworkStatusMapper">
+
+    <!-- 基础结果映射 -->
+    <resultMap id="BaseResultMap" type="com.yxrobot.entity.DeviceNetworkStatus">
+        <id column="id" property="id"/>
+        <result column="device_id" property="deviceId"/>
+        <result column="network_type" property="networkType" typeHandler="org.apache.ibatis.type.EnumTypeHandler"/>
+        <result column="signal_strength" property="signalStrength"/>
+        <result column="connection_status" property="connectionStatus" typeHandler="org.apache.ibatis.type.EnumTypeHandler"/>
+        <result column="ip_address" property="ipAddress"/>
+        <result column="mac_address" property="macAddress"/>
+        <result column="download_speed" property="downloadSpeed"/>
+        <result column="upload_speed" property="uploadSpeed"/>
+        <result column="ping_latency" property="pingLatency"/>
+        <result column="last_connected_at" property="lastConnectedAt"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <!-- 基础列定义 -->
+    <sql id="Base_Column_List">
+        id, device_id, network_type, signal_strength, connection_status, ip_address,
+        mac_address, download_speed, upload_speed, ping_latency, last_connected_at,
+        created_at, updated_at
+    </sql>
+
+    <!-- 动态查询条件 -->
+    <sql id="Where_Clause">
+        <where>
+            <if test="params.deviceId != null">
+                AND device_id = #{params.deviceId}
+            </if>
+            <if test="params.networkType != null and params.networkType != ''">
+                AND network_type = #{params.networkType}
+            </if>
+            <if test="params.connectionStatus != null and params.connectionStatus != ''">
+                AND connection_status = #{params.connectionStatus}
+            </if>
+            <if test="params.signalThreshold != null">
+                AND signal_strength &lt;= #{params.signalThreshold}
+            </if>
+            <if test="params.startTime != null">
+                AND created_at &gt;= #{params.startTime}
+            </if>
+            <if test="params.endTime != null">
+                AND created_at &lt;= #{params.endTime}
+            </if>
+            <if test="params.ipAddress != null and params.ipAddress != ''">
+                AND ip_address = #{params.ipAddress}
+            </if>
+        </where>
+    </sql>
+
+    <!-- 插入设备网络状态 -->
+    <insert id="insert" parameterType="com.yxrobot.entity.DeviceNetworkStatus" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO device_network_status (
+            device_id, network_type, signal_strength, connection_status, ip_address,
+            mac_address, download_speed, upload_speed, ping_latency, last_connected_at,
+            created_at, updated_at
+        ) VALUES (
+            #{deviceId}, #{networkType}, #{signalStrength}, #{connectionStatus}, #{ipAddress},
+            #{macAddress}, #{downloadSpeed}, #{uploadSpeed}, #{pingLatency}, #{lastConnectedAt},
+            NOW(), NOW()
+        )
+    </insert>
+
+    <!-- 根据ID查询设备网络状态 -->
+    <select id="selectById" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_network_status
+        WHERE id = #{id}
+    </select>
+
+    <!-- 根据设备ID查询最新网络状态 -->
+    <select id="selectLatestByDeviceId" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_network_status
+        WHERE device_id = #{deviceId}
+        ORDER BY created_at DESC
+        LIMIT 1
+    </select>
+
+    <!-- 根据设备ID查询网络状态历史记录 -->
+    <select id="selectHistoryByDeviceId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_network_status
+        WHERE device_id = #{deviceId}
+        <if test="startTime != null">
+            AND created_at &gt;= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND created_at &lt;= #{endTime}
+        </if>
+        ORDER BY created_at DESC
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 分页查询设备网络状态列表 -->
+    <select id="selectWithPagination" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_network_status
+        <include refid="Where_Clause"/>
+        <if test="params.orderBy != null and params.orderBy != ''">
+            ORDER BY ${params.orderBy}
+        </if>
+        <if test="params.orderBy == null or params.orderBy == ''">
+            ORDER BY created_at DESC
+        </if>
+        <if test="params.offset != null and params.limit != null">
+            LIMIT #{params.offset}, #{params.limit}
+        </if>
+    </select>
+
+    <!-- 统计设备网络状态总数 -->
+    <select id="countWithConditions" resultType="int">
+        SELECT COUNT(*)
+        FROM device_network_status
+        <include refid="Where_Clause"/>
+    </select>
+
+    <!-- 根据连接状态查询设备列表 -->
+    <select id="selectByConnectionStatus" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_network_status
+        WHERE connection_status = #{connectionStatus}
+        ORDER BY created_at DESC
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 根据网络类型查询设备列表 -->
+    <select id="selectByNetworkType" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_network_status
+        WHERE network_type = #{networkType}
+        ORDER BY created_at DESC
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 查询信号强度低的设备 -->
+    <select id="selectLowSignalDevices" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_network_status
+        WHERE signal_strength IS NOT NULL 
+          AND signal_strength &lt;= #{signalThreshold}
+        ORDER BY signal_strength ASC, created_at DESC
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 查询网络延迟高的设备 -->
+    <select id="selectHighLatencyDevices" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_network_status
+        WHERE ping_latency IS NOT NULL 
+          AND ping_latency &gt;= #{latencyThreshold}
+        ORDER BY ping_latency DESC, created_at DESC
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 查询网速慢的设备 -->
+    <select id="selectSlowSpeedDevices" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_network_status
+        WHERE download_speed IS NOT NULL 
+          AND download_speed &lt;= #{speedThreshold}
+        ORDER BY download_speed ASC, created_at DESC
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 更新设备网络状态 -->
+    <update id="updateById" parameterType="com.yxrobot.entity.DeviceNetworkStatus">
+        UPDATE device_network_status
+        SET device_id = #{deviceId},
+            network_type = #{networkType},
+            signal_strength = #{signalStrength},
+            connection_status = #{connectionStatus},
+            ip_address = #{ipAddress},
+            mac_address = #{macAddress},
+            download_speed = #{downloadSpeed},
+            upload_speed = #{uploadSpeed},
+            ping_latency = #{pingLatency},
+            last_connected_at = #{lastConnectedAt},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 更新设备连接状态 -->
+    <update id="updateConnectionStatus">
+        UPDATE device_network_status
+        SET connection_status = #{connectionStatus},
+            last_connected_at = #{lastConnectedAt},
+            updated_at = NOW()
+        WHERE device_id = #{deviceId}
+    </update>
+
+    <!-- 批量更新设备连接状态 -->
+    <update id="batchUpdateConnectionStatus">
+        UPDATE device_network_status
+        SET connection_status = #{connectionStatus},
+            updated_at = NOW()
+        WHERE device_id IN
+        <foreach collection="deviceIds" item="deviceId" open="(" separator="," close=")">
+            #{deviceId}
+        </foreach>
+    </update>
+
+    <!-- 删除设备网络状态 -->
+    <delete id="deleteById" parameterType="java.lang.Long">
+        DELETE FROM device_network_status WHERE id = #{id}
+    </delete>
+
+    <!-- 根据设备ID删除所有网络状态 -->
+    <delete id="deleteByDeviceId" parameterType="java.lang.Long">
+        DELETE FROM device_network_status WHERE device_id = #{deviceId}
+    </delete>
+
+    <!-- 批量插入设备网络状态 -->
+    <insert id="batchInsert" parameterType="java.util.List">
+        INSERT INTO device_network_status (
+            device_id, network_type, signal_strength, connection_status, ip_address,
+            mac_address, download_speed, upload_speed, ping_latency, last_connected_at,
+            created_at, updated_at
+        ) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.deviceId}, #{item.networkType}, #{item.signalStrength}, #{item.connectionStatus}, #{item.ipAddress},
+             #{item.macAddress}, #{item.downloadSpeed}, #{item.uploadSpeed}, #{item.pingLatency}, #{item.lastConnectedAt},
+             NOW(), NOW())
+        </foreach>
+    </insert>
+
+    <!-- 统计各连接状态设备数量 -->
+    <select id="countDevicesByConnectionStatus" resultType="map">
+        SELECT 
+            connection_status as status,
+            COUNT(*) as count
+        FROM device_network_status
+        GROUP BY connection_status
+    </select>
+
+    <!-- 统计各网络类型设备数量 -->
+    <select id="countDevicesByNetworkType" resultType="map">
+        SELECT 
+            network_type as type,
+            COUNT(*) as count
+        FROM device_network_status
+        GROUP BY network_type
+    </select>
+
+    <!-- 计算平均网络性能指标 -->
+    <select id="calculateAverageNetworkMetrics" resultType="map">
+        SELECT 
+            AVG(signal_strength) as avgSignalStrength,
+            AVG(download_speed) as avgDownloadSpeed,
+            AVG(upload_speed) as avgUploadSpeed,
+            AVG(ping_latency) as avgPingLatency
+        FROM device_network_status
+        WHERE created_at BETWEEN #{startTime} AND #{endTime}
+    </select>
+
+    <!-- 查询网络图表数据 -->
+    <select id="selectNetworkChartData" resultType="map">
+        SELECT 
+            DATE_FORMAT(
+                FROM_UNIXTIME(
+                    FLOOR(UNIX_TIMESTAMP(created_at) / (#{intervalMinutes} * 60)) * (#{intervalMinutes} * 60)
+                ), 
+                '%Y-%m-%d %H:%i:00'
+            ) as timePoint,
+            AVG(signal_strength) as avgSignalStrength,
+            AVG(download_speed) as avgDownloadSpeed,
+            AVG(upload_speed) as avgUploadSpeed,
+            AVG(ping_latency) as avgPingLatency
+        FROM device_network_status
+        WHERE device_id = #{deviceId}
+          AND created_at BETWEEN #{startTime} AND #{endTime}
+        GROUP BY timePoint
+        ORDER BY timePoint ASC
+    </select>
+
+    <!-- 查询网络质量分布统计 -->
+    <select id="selectNetworkQualityDistribution" resultType="map">
+        SELECT 
+            CASE 
+                WHEN signal_strength &gt;= 80 AND ping_latency &lt; 50 THEN 'excellent'
+                WHEN signal_strength &gt;= 60 AND ping_latency &lt; 100 THEN 'good'
+                WHEN signal_strength &gt;= 40 AND ping_latency &lt; 200 THEN 'fair'
+                ELSE 'poor'
+            END as quality,
+            COUNT(*) as count
+        FROM device_network_status
+        WHERE signal_strength IS NOT NULL AND ping_latency IS NOT NULL
+        GROUP BY quality
+    </select>
+
+    <!-- 查询长时间断开连接的设备 -->
+    <select id="selectLongDisconnectedDevices" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_network_status
+        WHERE connection_status = 'DISCONNECTED'
+          AND (last_connected_at IS NULL OR last_connected_at &lt; #{disconnectedThreshold})
+        ORDER BY last_connected_at ASC
+    </select>
+
+    <!-- 清理过期的网络状态数据 -->
+    <delete id="deleteExpiredNetworkStatus">
+        DELETE FROM device_network_status 
+        WHERE created_at &lt; #{beforeTime}
+    </delete>
+
+    <!-- 查询网络异常的设备 -->
+    <select id="selectAbnormalNetworkDevices" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_network_status
+        WHERE (
+            (signal_strength IS NOT NULL AND signal_strength &lt;= #{signalThreshold})
+            OR (ping_latency IS NOT NULL AND ping_latency &gt;= #{latencyThreshold})
+            OR (download_speed IS NOT NULL AND download_speed &lt;= #{speedThreshold})
+        )
+        AND created_at &gt;= DATE_SUB(NOW(), INTERVAL #{recentMinutes} MINUTE)
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 根据IP地址查询设备网络状态 -->
+    <select id="selectByIpAddress" parameterType="java.lang.String" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_network_status
+        WHERE ip_address = #{ipAddress}
+        ORDER BY created_at DESC
+        LIMIT 1
+    </select>
+
+    <!-- 根据MAC地址查询设备网络状态 -->
+    <select id="selectByMacAddress" parameterType="java.lang.String" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM device_network_status
+        WHERE mac_address = #{macAddress}
+        ORDER BY created_at DESC
+        LIMIT 1
+    </select>
+
+</mapper>

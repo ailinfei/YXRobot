@@ -58,9 +58,53 @@ public class CustomerOrderDTO {
     @JsonProperty("notes")
     private String notes;               // 备注
     
+    // 订单商品明细列表
+    @JsonProperty("items")
+    private java.util.List<OrderItemInfo> items; // 订单商品明细
+    
     // 订单详细信息
     @JsonProperty("orderDetails")
     private OrderDetailsDTO orderDetails; // 订单详情
+    
+    // 内部类 - 订单商品明细
+    public static class OrderItemInfo {
+        @JsonProperty("id")
+        private String id;                  // 商品明细ID
+        
+        @JsonProperty("productId")
+        private String productId;           // 产品ID
+        
+        @JsonProperty("productName")
+        private String productName;         // 产品名称
+        
+        @JsonProperty("productModel")
+        private String productModel;        // 产品型号
+        
+        @JsonProperty("quantity")
+        private Integer quantity;           // 数量
+        
+        @JsonProperty("unitPrice")
+        private BigDecimal unitPrice;       // 单价
+        
+        @JsonProperty("totalPrice")
+        private BigDecimal totalPrice;      // 总价
+        
+        // Getter和Setter
+        public String getId() { return id; }
+        public void setId(String id) { this.id = id; }
+        public String getProductId() { return productId; }
+        public void setProductId(String productId) { this.productId = productId; }
+        public String getProductName() { return productName; }
+        public void setProductName(String productName) { this.productName = productName; }
+        public String getProductModel() { return productModel; }
+        public void setProductModel(String productModel) { this.productModel = productModel; }
+        public Integer getQuantity() { return quantity; }
+        public void setQuantity(Integer quantity) { this.quantity = quantity; }
+        public BigDecimal getUnitPrice() { return unitPrice; }
+        public void setUnitPrice(BigDecimal unitPrice) { this.unitPrice = unitPrice; }
+        public BigDecimal getTotalPrice() { return totalPrice; }
+        public void setTotalPrice(BigDecimal totalPrice) { this.totalPrice = totalPrice; }
+    }
     
     // 内部类 - 订单详情
     public static class OrderDetailsDTO {
@@ -228,6 +272,14 @@ public class CustomerOrderDTO {
     
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+    
+    public java.util.List<OrderItemInfo> getItems() {
+        return items;
+    }
+    
+    public void setItems(java.util.List<OrderItemInfo> items) {
+        this.items = items;
     }
     
     public OrderDetailsDTO getOrderDetails() {

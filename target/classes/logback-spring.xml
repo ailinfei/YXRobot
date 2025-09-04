@@ -1,211 +1,206 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- 
-公益项目管理系统日志配置
-创建时间: 2024-12-19
-维护人员: YXRobot开发团队
-说明: 该配置文件定义了开发和生产环境的日志输出规则
--->
 <configuration>
-    <!-- 定义日志文件存储路径 -->
-    <property name="LOG_HOME" value="logs" />
-    <property name="APP_NAME" value="yxrobot" />
+    <!-- 定义日志文件路径 -->
+    <property name="LOG_PATH" value="logs"/>
     
-    <!-- 彩色日志依赖的渲染类 -->
-    <conversionRule conversionWord="clr" converterClass="org.springframework.boot.logging.logback.ColorConverter" />
-    <conversionRule conversionWord="wex" converterClass="org.springframework.boot.logging.logback.WhitespaceThrowableProxyConverter" />
-    <conversionRule conversionWord="wEx" converterClass="org.springframework.boot.logging.logback.ExtendedWhitespaceThrowableProxyConverter" />
-
-    <!-- 控制台输出配置 -->
+    <!-- 控制台输出 -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n%wEx</pattern>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
             <charset>UTF-8</charset>
         </encoder>
     </appender>
-
-    <!-- 文件输出配置 - 所有日志 -->
-    <appender name="FILE_ALL" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_HOME}/${APP_NAME}-all.log</file>
+    
+    <!-- 应用日志文件 -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/application.log</file>
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n</pattern>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
             <charset>UTF-8</charset>
         </encoder>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_HOME}/${APP_NAME}-all.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
-            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-                <maxFileSize>100MB</maxFileSize>
-            </timeBasedFileNamingAndTriggeringPolicy>
+            <fileNamePattern>${LOG_PATH}/application.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>100MB</maxFileSize>
             <maxHistory>30</maxHistory>
             <totalSizeCap>3GB</totalSizeCap>
         </rollingPolicy>
     </appender>
-
-    <!-- 文件输出配置 - 错误日志 -->
-    <appender name="FILE_ERROR" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_HOME}/${APP_NAME}-error.log</file>
-        <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n</pattern>
-            <charset>UTF-8</charset>
-        </encoder>
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_HOME}/${APP_NAME}-error.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
-            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-                <maxFileSize>50MB</maxFileSize>
-            </timeBasedFileNamingAndTriggeringPolicy>
-            <maxHistory>60</maxHistory>
-            <totalSizeCap>1GB</totalSizeCap>
-        </rollingPolicy>
+    
+    <!-- 错误日志文件 -->
+    <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/error.log</file>
         <filter class="ch.qos.logback.classic.filter.LevelFilter">
             <level>ERROR</level>
             <onMatch>ACCEPT</onMatch>
             <onMismatch>DENY</onMismatch>
         </filter>
-    </appender>
-
-    <!-- 文件输出配置 - 公益项目管理专用日志 -->
-    <appender name="FILE_CHARITY" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_HOME}/${APP_NAME}-charity.log</file>
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n</pattern>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
             <charset>UTF-8</charset>
         </encoder>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_HOME}/${APP_NAME}-charity.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
-            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-                <maxFileSize>50MB</maxFileSize>
-            </timeBasedFileNamingAndTriggeringPolicy>
+            <fileNamePattern>${LOG_PATH}/error.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>50MB</maxFileSize>
             <maxHistory>30</maxHistory>
             <totalSizeCap>1GB</totalSizeCap>
         </rollingPolicy>
     </appender>
-
-    <!-- 文件输出配置 - 性能监控日志 -->
-    <appender name="FILE_PERFORMANCE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_HOME}/${APP_NAME}-performance.log</file>
+    
+    <!-- 性能日志文件 -->
+    <appender name="PERFORMANCE_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/performance.log</file>
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n</pattern>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} - %msg%n</pattern>
             <charset>UTF-8</charset>
         </encoder>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_HOME}/${APP_NAME}-performance.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
-            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-                <maxFileSize>50MB</maxFileSize>
-            </timeBasedFileNamingAndTriggeringPolicy>
-            <maxHistory>15</maxHistory>
+            <fileNamePattern>${LOG_PATH}/performance.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>50MB</maxFileSize>
+            <maxHistory>7</maxHistory>
             <totalSizeCap>500MB</totalSizeCap>
         </rollingPolicy>
     </appender>
-
-    <!-- 异步日志配置 -->
-    <appender name="ASYNC_FILE_ALL" class="ch.qos.logback.classic.AsyncAppender">
-        <discardingThreshold>0</discardingThreshold>
-        <queueSize>1024</queueSize>
-        <includeCallerData>false</includeCallerData>
-        <appender-ref ref="FILE_ALL"/>
+    
+    <!-- SQL日志文件 -->
+    <appender name="SQL_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/sql.log</file>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/sql.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>50MB</maxFileSize>
+            <maxHistory>7</maxHistory>
+            <totalSizeCap>500MB</totalSizeCap>
+        </rollingPolicy>
     </appender>
-
-    <appender name="ASYNC_FILE_ERROR" class="ch.qos.logback.classic.AsyncAppender">
-        <discardingThreshold>0</discardingThreshold>
-        <queueSize>256</queueSize>
-        <includeCallerData>true</includeCallerData>
-        <appender-ref ref="FILE_ERROR"/>
+    
+    <!-- 订单业务日志文件 -->
+    <appender name="ORDER_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/order.log</file>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/order.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>2GB</totalSizeCap>
+        </rollingPolicy>
     </appender>
-
+    
+    <!-- 特定Logger配置 -->
+    
+    <!-- 性能监控Logger -->
+    <logger name="com.yxrobot.util.PerformanceMonitor" level="INFO" additivity="false">
+        <appender-ref ref="PERFORMANCE_FILE"/>
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+    
+    <logger name="com.yxrobot.interceptor.PerformanceInterceptor" level="INFO" additivity="false">
+        <appender-ref ref="PERFORMANCE_FILE"/>
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+    
+    <!-- SQL日志Logger -->
+    <logger name="com.yxrobot.mapper" level="DEBUG" additivity="false">
+        <appender-ref ref="SQL_FILE"/>
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+    
+    <!-- MyBatis SQL日志 -->
+    <logger name="org.apache.ibatis" level="DEBUG" additivity="false">
+        <appender-ref ref="SQL_FILE"/>
+    </logger>
+    
+    <!-- 订单业务Logger -->
+    <logger name="com.yxrobot.service.OrderService" level="INFO" additivity="false">
+        <appender-ref ref="ORDER_FILE"/>
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+    
+    <logger name="com.yxrobot.service.OrderStatusService" level="INFO" additivity="false">
+        <appender-ref ref="ORDER_FILE"/>
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+    
+    <logger name="com.yxrobot.service.OrderStatsService" level="INFO" additivity="false">
+        <appender-ref ref="ORDER_FILE"/>
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+    
+    <logger name="com.yxrobot.controller.OrderController" level="INFO" additivity="false">
+        <appender-ref ref="ORDER_FILE"/>
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+    
+    <logger name="com.yxrobot.controller.OrderStatusController" level="INFO" additivity="false">
+        <appender-ref ref="ORDER_FILE"/>
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+    
+    <logger name="com.yxrobot.controller.OrderStatsController" level="INFO" additivity="false">
+        <appender-ref ref="ORDER_FILE"/>
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+    
+    <!-- 数据库优化Logger -->
+    <logger name="com.yxrobot.util.DatabaseOptimizer" level="INFO" additivity="false">
+        <appender-ref ref="PERFORMANCE_FILE"/>
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+    
+    <!-- 验证和异常处理Logger -->
+    <logger name="com.yxrobot.exception.GlobalExceptionHandler" level="WARN" additivity="false">
+        <appender-ref ref="ERROR_FILE"/>
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+    
+    <logger name="com.yxrobot.service.OrderValidationService" level="INFO" additivity="false">
+        <appender-ref ref="ORDER_FILE"/>
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+    
+    <!-- Spring框架日志 -->
+    <logger name="org.springframework" level="WARN"/>
+    <logger name="org.springframework.web" level="INFO"/>
+    <logger name="org.springframework.security" level="INFO"/>
+    
+    <!-- Hibernate/JPA日志 -->
+    <logger name="org.hibernate" level="WARN"/>
+    <logger name="org.hibernate.SQL" level="DEBUG" additivity="false">
+        <appender-ref ref="SQL_FILE"/>
+    </logger>
+    
+    <!-- 数据库连接池日志 -->
+    <logger name="com.zaxxer.hikari" level="INFO"/>
+    <logger name="com.alibaba.druid" level="INFO"/>
+    
+    <!-- 根Logger配置 -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+        <appender-ref ref="ERROR_FILE"/>
+    </root>
+    
     <!-- 开发环境配置 -->
     <springProfile name="dev">
-        <!-- 公益项目管理相关日志 -->
-        <logger name="com.yxrobot.controller.CharityController" level="DEBUG" additivity="false">
+        <root level="DEBUG">
             <appender-ref ref="CONSOLE"/>
-            <appender-ref ref="FILE_CHARITY"/>
-        </logger>
-        
-        <logger name="com.yxrobot.service.CharityService" level="DEBUG" additivity="false">
-            <appender-ref ref="CONSOLE"/>
-            <appender-ref ref="FILE_CHARITY"/>
-        </logger>
-        
-        <logger name="com.yxrobot.service.CharityInstitutionService" level="DEBUG" additivity="false">
-            <appender-ref ref="CONSOLE"/>
-            <appender-ref ref="FILE_CHARITY"/>
-        </logger>
-        
-        <logger name="com.yxrobot.service.CharityActivityService" level="DEBUG" additivity="false">
-            <appender-ref ref="CONSOLE"/>
-            <appender-ref ref="FILE_CHARITY"/>
-        </logger>
-        
-        <logger name="com.yxrobot.mapper" level="DEBUG" additivity="false">
-            <appender-ref ref="CONSOLE"/>
-            <appender-ref ref="FILE_CHARITY"/>
-        </logger>
-
-        <!-- 性能监控日志 -->
-        <logger name="com.yxrobot.aspect.PerformanceMonitoringAspect" level="INFO" additivity="false">
-            <appender-ref ref="CONSOLE"/>
-            <appender-ref ref="FILE_PERFORMANCE"/>
-        </logger>
-
-        <!-- 缓存相关日志 -->
-        <logger name="org.springframework.cache" level="DEBUG" additivity="false">
-            <appender-ref ref="CONSOLE"/>
-            <appender-ref ref="FILE_ALL"/>
-        </logger>
-        
-        <logger name="org.springframework.data.redis" level="DEBUG" additivity="false">
-            <appender-ref ref="CONSOLE"/>
-            <appender-ref ref="FILE_ALL"/>
-        </logger>
-
-        <!-- SQL日志 -->
-        <logger name="org.apache.ibatis" level="DEBUG" additivity="false">
-            <appender-ref ref="CONSOLE"/>
-            <appender-ref ref="FILE_ALL"/>
-        </logger>
-
-        <!-- 根日志配置 -->
-        <root level="INFO">
-            <appender-ref ref="CONSOLE"/>
-            <appender-ref ref="ASYNC_FILE_ALL"/>
-            <appender-ref ref="ASYNC_FILE_ERROR"/>
+            <appender-ref ref="FILE"/>
         </root>
     </springProfile>
-
+    
     <!-- 生产环境配置 -->
     <springProfile name="prod">
-        <!-- 公益项目管理相关日志 -->
-        <logger name="com.yxrobot.controller.CharityController" level="INFO" additivity="false">
-            <appender-ref ref="FILE_CHARITY"/>
-        </logger>
-        
-        <logger name="com.yxrobot.service.CharityService" level="INFO" additivity="false">
-            <appender-ref ref="FILE_CHARITY"/>
-        </logger>
-        
-        <logger name="com.yxrobot.service.CharityInstitutionService" level="INFO" additivity="false">
-            <appender-ref ref="FILE_CHARITY"/>
-        </logger>
-        
-        <logger name="com.yxrobot.service.CharityActivityService" level="INFO" additivity="false">
-            <appender-ref ref="FILE_CHARITY"/>
-        </logger>
-
-        <!-- 性能监控日志 -->
-        <logger name="com.yxrobot.aspect.PerformanceMonitoringAspect" level="INFO" additivity="false">
-            <appender-ref ref="FILE_PERFORMANCE"/>
-        </logger>
-
-        <!-- 错误和警告日志 -->
-        <logger name="com.yxrobot.exception" level="WARN" additivity="false">
-            <appender-ref ref="FILE_ERROR"/>
-        </logger>
-
-        <!-- 根日志配置 -->
-        <root level="WARN">
-            <appender-ref ref="ASYNC_FILE_ALL"/>
-            <appender-ref ref="ASYNC_FILE_ERROR"/>
+        <root level="INFO">
+            <appender-ref ref="FILE"/>
+            <appender-ref ref="ERROR_FILE"/>
         </root>
     </springProfile>
-
+    
     <!-- 测试环境配置 -->
     <springProfile name="test">
         <root level="WARN">

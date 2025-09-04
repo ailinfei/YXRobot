@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yxrobot.mapper.ManagedDeviceUsageStatsMapper">
+
+    <resultMap id="BaseResultMap" type="com.yxrobot.entity.ManagedDeviceUsageStats">
+        <id column="id" property="id"/>
+        <result column="device_id" property="deviceId"/>
+        <result column="total_runtime" property="totalRuntime"/>
+        <result column="usage_count" property="usageCount"/>
+        <result column="last_used_at" property="lastUsedAt"/>
+        <result column="average_session_time" property="averageSessionTime"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, device_id, total_runtime, usage_count, last_used_at, average_session_time, created_at, updated_at
+    </sql>
+
+    <select id="selectByDeviceId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM managed_device_usage_stats
+        WHERE device_id = #{deviceId}
+    </select>
+
+    <insert id="insert" parameterType="com.yxrobot.entity.ManagedDeviceUsageStats" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO managed_device_usage_stats (
+            device_id, total_runtime, usage_count, last_used_at, average_session_time
+        ) VALUES (
+            #{deviceId}, #{totalRuntime}, #{usageCount}, #{lastUsedAt}, #{averageSessionTime}
+        )
+    </insert>
+
+    <update id="updateByDeviceId" parameterType="com.yxrobot.entity.ManagedDeviceUsageStats">
+        UPDATE managed_device_usage_stats
+        SET total_runtime = #{totalRuntime},
+            usage_count = #{usageCount},
+            last_used_at = #{lastUsedAt},
+            average_session_time = #{averageSessionTime},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE device_id = #{deviceId}
+    </update>
+
+    <delete id="deleteByDeviceId">
+        DELETE FROM managed_device_usage_stats WHERE device_id = #{deviceId}
+    </delete>
+
+</mapper>

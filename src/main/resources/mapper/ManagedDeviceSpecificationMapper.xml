@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yxrobot.mapper.ManagedDeviceSpecificationMapper">
+
+    <resultMap id="BaseResultMap" type="com.yxrobot.entity.ManagedDeviceSpecification">
+        <id column="id" property="id"/>
+        <result column="device_id" property="deviceId"/>
+        <result column="cpu" property="cpu"/>
+        <result column="memory" property="memory"/>
+        <result column="storage" property="storage"/>
+        <result column="display" property="display"/>
+        <result column="battery" property="battery"/>
+        <result column="connectivity" property="connectivity" typeHandler="com.yxrobot.handler.JsonListTypeHandler"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, device_id, cpu, memory, storage, display, battery, connectivity, created_at, updated_at
+    </sql>
+
+    <select id="selectByDeviceId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM managed_device_specifications
+        WHERE device_id = #{deviceId}
+    </select>
+
+    <insert id="insert" parameterType="com.yxrobot.entity.ManagedDeviceSpecification" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO managed_device_specifications (
+            device_id, cpu, memory, storage, display, battery, connectivity
+        ) VALUES (
+            #{deviceId}, #{cpu}, #{memory}, #{storage}, #{display}, #{battery}, #{connectivity}
+        )
+    </insert>
+
+    <update id="updateByDeviceId" parameterType="com.yxrobot.entity.ManagedDeviceSpecification">
+        UPDATE managed_device_specifications
+        SET cpu = #{cpu},
+            memory = #{memory},
+            storage = #{storage},
+            display = #{display},
+            battery = #{battery},
+            connectivity = #{connectivity},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE device_id = #{deviceId}
+    </update>
+
+    <delete id="deleteByDeviceId">
+        DELETE FROM managed_device_specifications WHERE device_id = #{deviceId}
+    </delete>
+
+</mapper>

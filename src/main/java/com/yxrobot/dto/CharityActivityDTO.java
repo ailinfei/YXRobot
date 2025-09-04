@@ -191,6 +191,249 @@ public class CharityActivityDTO {
      */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime updateTime;
+    
+    /**
+     * 创建人ID
+     */
+    private Long createBy;
+    
+    /**
+     * 更新人ID
+     */
+    private Long updateBy;
+    
+    // 手动添加getter和setter方法，因为Lombok可能没有正确生成
+    public Long getId() {
+        return id;
+    }
+    
+    public void setId(Long id) {
+        this.id = id;
+    }
+    
+    public Long getProjectId() {
+        return projectId;
+    }
+    
+    public void setProjectId(Long projectId) {
+        this.projectId = projectId;
+    }
+    
+    public String getProjectName() {
+        return projectName;
+    }
+    
+    public void setProjectName(String projectName) {
+        this.projectName = projectName;
+    }
+    
+    public String getTitle() {
+        return title;
+    }
+    
+    public void setTitle(String title) {
+        this.title = title;
+    }
+    
+    public String getDescription() {
+        return description;
+    }
+    
+    public void setDescription(String description) {
+        this.description = description;
+    }
+    
+    public String getType() {
+        return type;
+    }
+    
+    public void setType(String type) {
+        this.type = type;
+    }
+    
+    public String getTypeDisplay() {
+        return typeDisplay;
+    }
+    
+    public void setTypeDisplay(String typeDisplay) {
+        this.typeDisplay = typeDisplay;
+    }
+    
+    public LocalDate getDate() {
+        return date;
+    }
+    
+    public void setDate(LocalDate date) {
+        this.date = date;
+    }
+    
+    public LocalDateTime getStartTime() {
+        return startTime;
+    }
+    
+    public void setStartTime(LocalDateTime startTime) {
+        this.startTime = startTime;
+    }
+    
+    public LocalDateTime getEndTime() {
+        return endTime;
+    }
+    
+    public void setEndTime(LocalDateTime endTime) {
+        this.endTime = endTime;
+    }
+    
+    public String getLocation() {
+        return location;
+    }
+    
+    public void setLocation(String location) {
+        this.location = location;
+    }
+    
+    public Integer getParticipants() {
+        return participants;
+    }
+    
+    public void setParticipants(Integer participants) {
+        this.participants = participants;
+    }
+    
+    public Integer getTargetParticipants() {
+        return targetParticipants;
+    }
+    
+    public void setTargetParticipants(Integer targetParticipants) {
+        this.targetParticipants = targetParticipants;
+    }
+    
+    public String getOrganizer() {
+        return organizer;
+    }
+    
+    public void setOrganizer(String organizer) {
+        this.organizer = organizer;
+    }
+    
+    public String getStatus() {
+        return status;
+    }
+    
+    public void setStatus(String status) {
+        this.status = status;
+    }
+    
+    public String getStatusDisplay() {
+        return statusDisplay;
+    }
+    
+    public void setStatusDisplay(String statusDisplay) {
+        this.statusDisplay = statusDisplay;
+    }
+    
+    public BigDecimal getBudget() {
+        return budget;
+    }
+    
+    public void setBudget(BigDecimal budget) {
+        this.budget = budget;
+    }
+    
+    public BigDecimal getActualCost() {
+        return actualCost;
+    }
+    
+    public void setActualCost(BigDecimal actualCost) {
+        this.actualCost = actualCost;
+    }
+    
+    public String getManager() {
+        return manager;
+    }
+    
+    public void setManager(String manager) {
+        this.manager = manager;
+    }
+    
+    public String getManagerContact() {
+        return managerContact;
+    }
+    
+    public void setManagerContact(String managerContact) {
+        this.managerContact = managerContact;
+    }
+    
+    public Integer getVolunteerNeeded() {
+        return volunteerNeeded;
+    }
+    
+    public void setVolunteerNeeded(Integer volunteerNeeded) {
+        this.volunteerNeeded = volunteerNeeded;
+    }
+    
+    public Integer getActualVolunteers() {
+        return actualVolunteers;
+    }
+    
+    public void setActualVolunteers(Integer actualVolunteers) {
+        this.actualVolunteers = actualVolunteers;
+    }
+    
+    public String getAchievements() {
+        return achievements;
+    }
+    
+    public void setAchievements(String achievements) {
+        this.achievements = achievements;
+    }
+    
+    public String[] getPhotos() {
+        return photos;
+    }
+    
+    public void setPhotos(String[] photos) {
+        this.photos = photos;
+    }
+    
+    public String getNotes() {
+        return notes;
+    }
+    
+    public void setNotes(String notes) {
+        this.notes = notes;
+    }
+    
+    public LocalDateTime getCreateTime() {
+        return createTime;
+    }
+    
+    public void setCreateTime(LocalDateTime createTime) {
+        this.createTime = createTime;
+    }
+    
+    public LocalDateTime getUpdateTime() {
+        return updateTime;
+    }
+    
+    public void setUpdateTime(LocalDateTime updateTime) {
+        this.updateTime = updateTime;
+    }
+    
+    public Long getCreateBy() {
+        return createBy;
+    }
+    
+    public void setCreateBy(Long createBy) {
+        this.createBy = createBy;
+    }
+    
+    public Long getUpdateBy() {
+        return updateBy;
+    }
+    
+    public void setUpdateBy(Long updateBy) {
+        this.updateBy = updateBy;
+    }
 }
 
 /**

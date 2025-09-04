@@ -224,7 +224,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
-import { mockCustomerAPI } from '@/api/mock/customer'
+import { customerRelationApi } from '@/api/customer'
 import type { CustomerOrder } from '@/types/customer'
 
 // Props
@@ -288,8 +288,8 @@ const hasRentalOrders = computed(() => {
 const loadOrders = async () => {
   loading.value = true
   try {
-    const response = await mockCustomerAPI.getCustomerOrders(props.customerId)
-    orderList.value = response.data
+    const response = await customerRelationApi.getCustomerOrders(props.customerId)
+    orderList.value = response.data.list || response.data
   } catch (error) {
     console.error('加载订单历史失败:', error)
     ElMessage.error('加载订单历史失败')
